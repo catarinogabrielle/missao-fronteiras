@@ -1,0 +1,1863 @@
+"use client";
+
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Car,
+  CheckCircle2,
+  Compass,
+  Crown,
+  Flame,
+  Heart,
+  HeartHandshake,
+  Languages,
+  Lightbulb,
+  MapPin,
+  Package,
+  RotateCcw,
+  School,
+  Shield,
+  ShieldAlert,
+  Sparkles,
+  Swords,
+  ThumbsDown,
+  ThumbsUp,
+  Users,
+  X,
+  Zap,
+} from "lucide-react";
+import { DialogueOption, Mission } from "@/types/game";
+import { useGame } from "@/context/GameContext";
+import { getMissionSplash, NPC_PORTRAITS } from "@/lib/assets";
+import { getOpenWorldConfig, StreetPersonQuest } from "@/lib/worldData";
+import {
+  CombatActionType,
+  CombatTrigger,
+  MobaGtaWorld3D,
+  NearbyInteractionInfo,
+  WORLD_LANDMARKS,
+  WorldFloatingPopup,
+  WorldHudSnapshot,
+} from "./MobaGtaWorld3D";
+import { HeroPortrait, NpcPortrait } from "./GamePortrait";
+import { MobaButton } from "./MobaButton";
+import { WordDecoderGame } from "./WordDecoderGame";
+import { PassportStampSvg } from "./StampSvg";
+import { CollectibleCard } from "./CollectibleCard";
+import { ConfettiCanvas } from "./ConfettiCanvas";
+
+interface MissionEngineProps {
+  mission: Mission;
+  onExitToHub: () => void;
+}
+
+type OverlayMode = "none" | "briefing" | "dialogue" | "decoder" | "victory";
+
+interface ActivePersonEncounter {
+  person: StreetPersonQuest;
+  status:
+    | "completed_now"
+    | "already_done"
+    | "needs_supplies"
+    | "needs_rescue";
+  message: string;
+  missingCount?: number;
+}
+
+function deterministicShuffle(
+  options: DialogueOption[],
+  seedStr: string
+): DialogueOption[] {
+  const copy = [...options];
+  let hash = 0;
+  for (let i = 0; i < seedStr.length; i++) {
+    hash = (hash * 31 + seedStr.charCodeAt(i)) >>> 0;
+  }
+  for (let i = copy.length - 1; i > 0; i--) {
+    hash = (hash * 1664525 + 1013904223) >>> 0;
+    const j = hash % (i + 1);
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+// Map 160x160 3D Open-World coordinates (-74..74) to Radar Minimap percentages (4%..96%)
+function toWorldRadarPct(x: number, z: number) {
+  const px = ((x + 74) / 148) * 100;
+  const py = ((z + 74) / 148) * 100;
+  return {
+    left: `${Math.max(4, Math.min(96, px))}%`,
+    top: `${Math.max(4, Math.min(96, py))}%`,
+  };
+}
+
+const INITIAL_HUD_SNAPSHOT: WorldHudSnapshot = {
+  heroX: WORLD_LANDMARKS.spawn.x,
+  heroZ: WORLD_LANDMARKS.spawn.z,
+  heroAngle: Math.PI,
+  hp: 120,
+  maxHp: 120,
+  inVehicle: false,
+  score: 0,
+  combo: 0,
+  suppliesHeld: 0,
+  scrollsCollected: 0,
+  totalScrolls: 5,
+  enemiesDefeated: 0,
+  totalEnemies: 11,
+  bossDefeated: false,
+  bossHpPct: 100,
+  helpedPersonIds: [],
+  cooldowns: { q: 0, w: 0, e: 0, r: 0 },
+  nearby: null,
+  dots: [],
+};
+
+export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
+  const {
+    state,
+    level,
+    playSfx,
+    addBonusXp,
+    grantFieldLoot,
+    completeMission,
+    acceptSchoolChallenge,
+  } = useGame();
+
+  const worldCfg = useMemo(
+    () => getOpenWorldConfig(mission.id),
+    [mission.id]
+  );
+
+  const isWelcomingHeart = state.agent?.giftId === "acolhedor";
+  const isFaithfulIntercessor = state.agent?.giftId === "intercessor";
+  const hasRegionalPrayer = state.prayedMissionIds.includes(mission.id);
+
+  const initialTrust = isWelcomingHeart ? 10 : 0;
+  const basePrayerUses =
+    1 + (isFaithfulIntercessor ? 1 : 0) + (hasRegionalPrayer ? 1 : 0);
+
+  const [worldResetSeed, setWorldResetSeed] = useState(0);
+  const [overlay, setOverlay] = useState<OverlayMode>("none");
+  const [hudSnap, setHudSnap] = useState<WorldHudSnapshot>(INITIAL_HUD_SNAPSHOT);
+  const [popups, setPopups] = useState<WorldFloatingPopup[]>([]);
+  const [combatTrigger, setCombatTrigger] = useState<CombatTrigger | null>(null);
+  const [customWaypoint, setCustomWaypoint] = useState<{
+    x: number;
+    z: number;
+    label: string;
+  } | null>(null);
+
+  // Virtual Analog Thumbstick State (Mobile + Mouse Drag)
+  const [joystickVec, setJoystickVec] = useState<{ x: number; y: number }>({
+    x: 0,
+    y: 0,
+  });
+  const joystickPadRef = useRef<HTMLDivElement | null>(null);
+  const joystickDraggingRef = useRef(false);
+
+  // Open-World Progression & Side Quests
+  const [totemScanned, setTotemScanned] = useState(false);
+  const [helpedPersonIds, setHelpedPersonIds] = useState<string[]>([]);
+  const [activeEncounter, setActiveEncounter] =
+    useState<ActivePersonEncounter | null>(null);
+  const [dialogueCompleted, setDialogueCompleted] = useState(false);
+
+  // Main NPC Dialogue Clash State
+  const [turnIndex, setTurnIndex] = useState(0);
+  const [trust, setTrust] = useState(initialTrust);
+  const [dialogueXp, setDialogueXp] = useState(0);
+  const [prayerUsesLeft, setPrayerUsesLeft] = useState(basePrayerUses);
+  const [prayerActiveThisTurn, setPrayerActiveThisTurn] = useState(false);
+  const [selectedOption, setSelectedOption] = useState<DialogueOption | null>(
+    null
+  );
+
+  // Victory State
+  const [victoryStats, setVictoryStats] = useState<{
+    totalXpEarned: number;
+    wisdomEarned: number;
+    leveledUp: boolean;
+    openWorldBonusXp: number;
+  } | null>(null);
+
+  const currentTurn = mission.turns[turnIndex];
+  const splash = getMissionSplash(mission.id);
+
+  const shuffledOptions = useMemo(() => {
+    if (!currentTurn) return [];
+    return deterministicShuffle(
+      currentTurn.options,
+      `${mission.id}-${currentTurn.id}`
+    );
+  }, [currentTurn, mission.id]);
+
+  // Push auto-expiring floating combat/loot popup
+  const pushWorldPopup = useCallback((popup: WorldFloatingPopup) => {
+    setPopups((prev) => [...prev.slice(-4), popup]);
+    setTimeout(() => {
+      setPopups((prev) => prev.filter((p) => p.id !== popup.id));
+    }, 1850);
+  }, []);
+
+  // Trigger a 3D Action from HUD Buttons
+  const fireAction = useCallback((action: CombatActionType) => {
+    setCombatTrigger({
+      id: Date.now() + Math.random(),
+      action,
+    });
+  }, []);
+
+  // Dynamic GPS Target Calculation (Custom Waypoint -> Main Objective / Boss / Nexus)
+  const activeGpsTarget = useMemo(() => {
+    if (customWaypoint) {
+      const distToCustom = Math.hypot(
+        hudSnap.heroX - customWaypoint.x,
+        hudSnap.heroZ - customWaypoint.z
+      );
+      if (distToCustom > 4.8) {
+        return customWaypoint;
+      }
+    }
+    if (!dialogueCompleted) {
+      return {
+        x: WORLD_LANDMARKS.mainNpc.x,
+        z: WORLD_LANDMARKS.mainNpc.z,
+        label: `Praça Central: ${mission.npc.name}`,
+      };
+    }
+    if (!hudSnap.bossDefeated) {
+      return {
+        x: WORLD_LANDMARKS.boss.x,
+        z: WORLD_LANDMARKS.boss.z,
+        label: `Derrotar Boss: ${worldCfg.bossName} (ou ir ao Nexus)`,
+      };
+    }
+    return {
+      x: WORLD_LANDMARKS.nexus.x,
+      z: WORLD_LANDMARKS.nexus.z,
+      label: "⚡ Nexus da Palavra (Norte)",
+    };
+  }, [
+    customWaypoint,
+    dialogueCompleted,
+    hudSnap.bossDefeated,
+    hudSnap.heroX,
+    hudSnap.heroZ,
+    mission.npc.name,
+    worldCfg.bossName,
+  ]);
+
+  // Close Street Citizen Encounter Card with Enter / Escape
+  useEffect(() => {
+    if (!activeEncounter) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" || e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        setActiveEncounter(null);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [activeEncounter]);
+
+  // Handle 3D Proximity Interactions (Totem, Main NPC, Nexus, and 4 Regional Street People!)
+  const handleInteractTrigger = useCallback(
+    (info: NearbyInteractionInfo, suppliesHeld: number): boolean => {
+      if (info.kind === "totem") {
+        if (!totemScanned) {
+          setTotemScanned(true);
+          addBonusXp(25, "Totem Cultural Escaneado na Cidade 3D!");
+        } else {
+          playSfx("click");
+        }
+        setOverlay("briefing");
+        return false;
+      }
+
+      if (info.kind === "mainNpc") {
+        playSfx("success");
+        setCustomWaypoint(null);
+        setOverlay("dialogue");
+        return false;
+      }
+
+      if (info.kind === "nexus") {
+        if (dialogueCompleted) {
+          playSfx("levelUp");
+          setOverlay("decoder");
+        } else {
+          playSfx("error");
+          pushWorldPopup({
+            id: Date.now() + Math.random(),
+            text: `🔒 Fale com ${mission.npc.name} na Praça Central (★) primeiro!`,
+            color: "#fbbf24",
+          });
+        }
+        return false;
+      }
+
+      if (info.kind === "person" && info.person) {
+        const person = info.person;
+
+        if (helpedPersonIds.includes(person.id)) {
+          playSfx("click");
+          setActiveEncounter({
+            person,
+            status: "already_done",
+            message: person.speechAfter,
+          });
+          return false;
+        }
+
+        if (person.questType === "encourage") {
+          playSfx("success");
+          setHelpedPersonIds((prev) => [...prev, person.id]);
+          setTrust((prev) => Math.min(100, prev + 10));
+          setPrayerUsesLeft((prev) => prev + 1);
+          addBonusXp(
+            person.xpReward,
+            `${person.name} fortalecido(a)! (+10% Ponte & +1 Escudo de Oração)`
+          );
+          setActiveEncounter({
+            person,
+            status: "completed_now",
+            message: person.speechAfter,
+          });
+          return true;
+        }
+
+        if (person.questType === "supply") {
+          const needed = person.neededSupplies || 2;
+          if (suppliesHeld >= needed) {
+            playSfx("success");
+            setHelpedPersonIds((prev) => [...prev, person.id]);
+            setTrust((prev) => Math.min(100, prev + 10));
+            addBonusXp(
+              person.xpReward,
+              `${needed}x ${worldCfg.supplyLabel} entregues para ${person.name}! (+10% Ponte)`
+            );
+            setActiveEncounter({
+              person,
+              status: "completed_now",
+              message: person.speechAfter,
+            });
+            return true;
+          } else {
+            playSfx("neutral");
+            setActiveEncounter({
+              person,
+              status: "needs_supplies",
+              message: person.speechBefore,
+              missingCount: needed - suppliesHeld,
+            });
+            return false;
+          }
+        }
+
+        if (person.questType === "rescue") {
+          const nearbyThreat = hudSnap.dots.some(
+            (d) =>
+              (d.kind === "enemy" || d.kind === "boss") &&
+              Math.hypot(d.x - person.x, d.z - person.z) < 17.5
+          );
+          if (!nearbyThreat) {
+            playSfx("success");
+            setHelpedPersonIds((prev) => [...prev, person.id]);
+            setTrust((prev) => Math.min(100, prev + 10));
+            addBonusXp(
+              person.xpReward,
+              `${person.name} protegido(a) das Sombras! (+10% Ponte)`
+            );
+            setActiveEncounter({
+              person,
+              status: "completed_now",
+              message: person.speechAfter,
+            });
+            return true;
+          } else {
+            playSfx("error");
+            setActiveEncounter({
+              person,
+              status: "needs_rescue",
+              message: person.speechBefore,
+            });
+            return false;
+          }
+        }
+      }
+
+      return false;
+    },
+    [
+      addBonusXp,
+      dialogueCompleted,
+      helpedPersonIds,
+      hudSnap.dots,
+      mission.npc.name,
+      playSfx,
+      pushWorldPopup,
+      totemScanned,
+      worldCfg.supplyLabel,
+    ]
+  );
+
+  // Virtual Analog Thumbstick Pointer Handlers
+  const updateJoystickFromPointer = (clientX: number, clientY: number) => {
+    const pad = joystickPadRef.current;
+    if (!pad) return;
+    const rect = pad.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const maxR = rect.width * 0.38;
+    const dx = clientX - cx;
+    const dy = clientY - cy;
+    const dist = Math.hypot(dx, dy);
+    if (dist < 2) {
+      setJoystickVec({ x: 0, y: 0 });
+      return;
+    }
+    const clamped = Math.min(dist, maxR);
+    setJoystickVec({
+      x: (dx / dist) * (clamped / maxR),
+      y: (dy / dist) * (clamped / maxR),
+    });
+  };
+
+  const handleRadarClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pctX = (e.clientX - rect.left) / rect.width;
+    const pctZ = (e.clientY - rect.top) / rect.height;
+    const wx = Math.round(Math.max(-68, Math.min(68, pctX * 148 - 74)));
+    const wz = Math.round(Math.max(-68, Math.min(68, pctZ * 148 - 74)));
+    playSfx("click");
+    setCustomWaypoint({ x: wx, z: wz, label: "Marcador GPS no Mapa" });
+    pushWorldPopup({
+      id: Date.now() + Math.random(),
+      text: "📍 Rota GPS Atualizada!",
+      color: "#38bdf8",
+    });
+  };
+
+  const cycleNextPersonGps = () => {
+    playSfx("click");
+    const nextUnhelped =
+      worldCfg.people.find((p) => !helpedPersonIds.includes(p.id)) ||
+      worldCfg.people[0];
+    if (nextUnhelped) {
+      setCustomWaypoint({
+        x: nextUnhelped.x,
+        z: nextUnhelped.z,
+        label: `${nextUnhelped.name} (${nextUnhelped.role})`,
+      });
+      pushWorldPopup({
+        id: Date.now() + Math.random(),
+        text: `📍 GPS -> ${nextUnhelped.name}`,
+        color: "#22d3ee",
+      });
+    }
+  };
+
+  // Main NPC Dialogue Handlers
+  const handleActivatePrayerInDialogue = () => {
+    if (prayerUsesLeft <= 0 || prayerActiveThisTurn || selectedOption) return;
+    playSfx("prayer");
+    setPrayerUsesLeft((prev) => prev - 1);
+    setPrayerActiveThisTurn(true);
+  };
+
+  const handleChooseOption = (opt: DialogueOption) => {
+    if (selectedOption) return;
+
+    if (opt.tone === "empathetic") playSfx("success");
+    else if (opt.tone === "timid") playSfx("neutral");
+    else playSfx("error");
+
+    let delta = opt.trustDelta;
+    if (delta < 0 && isWelcomingHeart) {
+      delta = Math.min(-5, delta + 5);
+    }
+
+    setTrust((prev) => Math.max(0, Math.min(100, prev + delta)));
+    setDialogueXp((prev) => prev + opt.xpReward);
+    setSelectedOption(opt);
+  };
+
+  const handleNextTurn = () => {
+    playSfx("click");
+    if (turnIndex + 1 < mission.turns.length) {
+      setTurnIndex((prev) => prev + 1);
+      setSelectedOption(null);
+      setPrayerActiveThisTurn(false);
+    } else {
+      setDialogueCompleted(true);
+      setCustomWaypoint({
+        x: WORLD_LANDMARKS.nexus.x,
+        z: WORLD_LANDMARKS.nexus.z,
+        label: "⚡ Nexus da Palavra (Norte)",
+      });
+      setOverlay("none");
+      playSfx("levelUp");
+      pushWorldPopup({
+        id: Date.now() + Math.random(),
+        text: "⚡ NEXUS DA PALAVRA DESBLOQUEADO AO NORTE!",
+        color: "#fbbf24",
+      });
+    }
+  };
+
+  const handleDecoderComplete = (remainingSeconds: number) => {
+    const speedBonusXp = Math.max(15, Math.round(remainingSeconds * 0.7));
+    const openWorldBonusXp = Math.round(hudSnap.score / 25);
+    const result = completeMission(
+      mission,
+      trust,
+      dialogueXp + speedBonusXp + openWorldBonusXp
+    );
+    setVictoryStats({
+      ...result,
+      openWorldBonusXp,
+    });
+    setOverlay("victory");
+  };
+
+  const handleReplayMission = () => {
+    playSfx("click");
+    setOverlay("none");
+    setActiveEncounter(null);
+    setTotemScanned(false);
+    setHelpedPersonIds([]);
+    setDialogueCompleted(false);
+    setTurnIndex(0);
+    setTrust(initialTrust);
+    setDialogueXp(0);
+    setPrayerUsesLeft(basePrayerUses);
+    setPrayerActiveThisTurn(false);
+    setSelectedOption(null);
+    setVictoryStats(null);
+    setCustomWaypoint(null);
+    setHudSnap(INITIAL_HUD_SNAPSHOT);
+    setWorldResetSeed((s) => s + 1);
+  };
+
+  if (!state.agent) return null;
+
+  const schoolAccepted = Boolean(
+    state.missionProgress[mission.id]?.schoolChallengeAccepted
+  );
+
+  const hpPct = Math.max(
+    0,
+    Math.min(100, Math.round((hudSnap.hp / hudSnap.maxHp) * 100))
+  );
+
+  const nearBossArena =
+    !hudSnap.bossDefeated &&
+    Math.hypot(
+      hudSnap.heroX - WORLD_LANDMARKS.boss.x,
+      hudSnap.heroZ - WORLD_LANDMARKS.boss.z
+    ) < 34;
+
+  const isWorldPaused = overlay !== "none" || Boolean(activeEncounter);
+
+  return (
+    <div className="relative h-[calc(100vh-66px)] min-h-[580px] w-full overflow-hidden bg-slate-950 select-none">
+      <ConfettiCanvas active={overlay === "victory"} durationMs={5500} />
+
+      {/* =========================================================
+          FULL-SCREEN 160x160 3D OPEN-WORLD GTA + MOBA ENGINE
+         ========================================================= */}
+      <div className="absolute inset-0 z-0">
+        <MobaGtaWorld3D
+          key={`${mission.id}-${worldResetSeed}`}
+          mission={mission}
+          avatarId={state.agent.avatarId}
+          agentName={state.agent.name}
+          dialogueCompleted={dialogueCompleted}
+          helpedPersonIds={helpedPersonIds}
+          paused={isWorldPaused}
+          joystickVec={joystickVec}
+          combatTrigger={combatTrigger}
+          gpsTarget={activeGpsTarget}
+          onHudUpdate={setHudSnap}
+          onPopup={pushWorldPopup}
+          onInteractTrigger={handleInteractTrigger}
+          onEarnRewards={grantFieldLoot}
+        />
+      </div>
+
+      {/* =========================================================
+          FLOATING COMBAT / SCORE / LOOT POPUPS (CENTER SCREEN)
+         ========================================================= */}
+      <div className="pointer-events-none absolute top-32 right-0 left-0 z-30 mx-auto flex max-w-md flex-col items-center gap-1.5 px-4">
+        <AnimatePresence>
+          {popups.map((p) => (
+            <motion.div
+              key={p.id}
+              initial={{ opacity: 0, y: 14, scale: 0.82 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -18, scale: 0.9 }}
+              style={{ color: p.color }}
+              className="rounded-full border border-white/15 bg-slate-950/90 px-3.5 py-1 font-mono text-xs font-black tracking-wide shadow-[0_6px_20px_rgba(0,0,0,0.65)] sm:text-sm"
+            >
+              {p.text}
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+
+      {/* =========================================================
+          TOP-LEFT: GTA + MOBA RADAR MINIMAP & QUICK GPS PILLS
+         ========================================================= */}
+      <div className="pointer-events-auto absolute top-2.5 left-2.5 z-20 flex flex-col gap-1.5 sm:top-3 sm:left-3">
+        <div className="moba-panel-gold relative h-36 w-36 overflow-hidden rounded-2xl p-1.5 shadow-2xl sm:h-44 sm:w-44">
+          <div
+            onClick={handleRadarClick}
+            title="Clique em qualquer rua do Radar para marcar GPS!"
+            className="relative h-full w-full cursor-crosshair overflow-hidden rounded-xl border border-amber-500/40 bg-[#071622]"
+          >
+            {/* GTA City Road Grid Crosshairs */}
+            <div className="pointer-events-none absolute top-0 bottom-0 left-1/2 w-2 -translate-x-1/2 bg-slate-700/55" />
+            <div className="pointer-events-none absolute right-0 left-0 top-1/2 h-2 -translate-y-1/2 bg-slate-700/55" />
+            <div className="pointer-events-none absolute inset-[21%] rounded border border-slate-600/45" />
+            {mission.id === "amazonia" && (
+              <div className="pointer-events-none absolute right-0 left-0 top-[58%] h-2 bg-cyan-500/35" />
+            )}
+
+            {/* Custom GPS Pin */}
+            {customWaypoint && (
+              <div
+                style={toWorldRadarPct(customWaypoint.x, customWaypoint.z)}
+                className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2"
+              >
+                <span className="block h-3.5 w-3.5 animate-ping rounded-full bg-amber-300/80" />
+              </div>
+            )}
+
+            {/* Dynamic World Entities on Radar */}
+            {hudSnap.dots.map((dot, idx) => {
+              const pos = toWorldRadarPct(dot.x, dot.z);
+              if (dot.kind === "enemy") {
+                return (
+                  <span
+                    key={`e-${idx}`}
+                    style={pos}
+                    className="pointer-events-none absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-rose-500 shadow-[0_0_5px_#f43f5e]"
+                  />
+                );
+              }
+              if (dot.kind === "boss") {
+                return (
+                  <span
+                    key={`b-${idx}`}
+                    style={pos}
+                    className="pointer-events-none absolute flex h-4 w-4 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-amber-300 bg-fuchsia-600 text-[8px] shadow-[0_0_8px_#d946ef]"
+                  >
+                    👑
+                  </span>
+                );
+              }
+              if (dot.kind === "scroll") {
+                return (
+                  <span
+                    key={`s-${idx}`}
+                    style={pos}
+                    className="pointer-events-none absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-xs bg-amber-300 shadow-[0_0_6px_#fde047]"
+                  />
+                );
+              }
+              if (dot.kind === "person") {
+                return (
+                  <span
+                    key={`p-${idx}`}
+                    style={pos}
+                    className={`pointer-events-none absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-slate-950 ${
+                      dot.done
+                        ? "bg-emerald-400"
+                        : "animate-pulse bg-cyan-300 shadow-[0_0_7px_#22d3ee]"
+                    }`}
+                  />
+                );
+              }
+              if (dot.kind === "totem") {
+                return (
+                  <span
+                    key={`t-${idx}`}
+                    style={pos}
+                    className="pointer-events-none absolute flex h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-cyan-500 text-[8px] text-slate-950"
+                  >
+                    🧭
+                  </span>
+                );
+              }
+              if (dot.kind === "mainNpc") {
+                return (
+                  <span
+                    key={`m-${idx}`}
+                    style={pos}
+                    className="pointer-events-none absolute flex h-4.5 w-4.5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white bg-emerald-500 text-[9px] font-black text-slate-950 shadow-[0_0_10px_#10b981]"
+                  >
+                    ★
+                  </span>
+                );
+              }
+              if (dot.kind === "nexus") {
+                return (
+                  <span
+                    key={`n-${idx}`}
+                    style={pos}
+                    className={`pointer-events-none absolute flex h-4.5 w-4.5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border text-[9px] ${
+                      !dot.done
+                        ? "animate-pulse border-amber-200 bg-amber-400 text-slate-950 shadow-[0_0_10px_#fbbf24]"
+                        : "border-slate-600 bg-slate-800 text-slate-400"
+                    }`}
+                  >
+                    ⚡
+                  </span>
+                );
+              }
+              return null;
+            })}
+
+            {/* Live Player Radar Arrow */}
+            <div
+              style={toWorldRadarPct(hudSnap.heroX, hudSnap.heroZ)}
+              className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2"
+            >
+              <div
+                style={{
+                  transform: `rotate(${(-hudSnap.heroAngle * 180) / Math.PI + 180}deg)`,
+                }}
+                className={`flex h-4 w-4 items-center justify-center rounded-full border-2 border-white ${
+                  hudSnap.inVehicle
+                    ? "bg-cyan-400 shadow-[0_0_12px_#22d3ee]"
+                    : "bg-amber-400 shadow-[0_0_10px_#fbbf24]"
+                }`}
+              >
+                <span className="block h-1.5 w-1.5 -translate-y-0.5 rounded-full bg-slate-950" />
+              </div>
+            </div>
+          </div>
+
+          <div className="pointer-events-none absolute right-2 bottom-1 left-2 flex items-center justify-between font-mono text-[8px] font-black text-amber-300/95 uppercase">
+            <span>RADAR GTA 3D</span>
+            <span>GPS ATIVO</span>
+          </div>
+        </div>
+
+        {/* Quick GPS Waypoint Selector Buttons */}
+        <div className="grid grid-cols-2 gap-1">
+          <button
+            type="button"
+            onClick={() => {
+              playSfx("click");
+              setCustomWaypoint({
+                x: WORLD_LANDMARKS.mainNpc.x,
+                z: WORLD_LANDMARKS.mainNpc.z,
+                label: mission.npc.name,
+              });
+            }}
+            className="flex cursor-pointer items-center justify-center gap-1 rounded-lg border border-emerald-500/45 bg-slate-950/90 px-2 py-1 text-[10px] font-black text-emerald-300 hover:bg-emerald-500/20"
+          >
+            <MapPin className="h-3 w-3" />
+            {mission.npc.name}
+          </button>
+
+          <button
+            type="button"
+            onClick={cycleNextPersonGps}
+            className="flex cursor-pointer items-center justify-center gap-1 rounded-lg border border-cyan-500/45 bg-slate-950/90 px-2 py-1 text-[10px] font-black text-cyan-300 hover:bg-cyan-500/20"
+          >
+            <Users className="h-3 w-3" />
+            Pessoas
+          </button>
+        </div>
+
+        <MobaButton
+          variant="obsidian"
+          size="sm"
+          shape="slant"
+          sheen={false}
+          onClick={onExitToHub}
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Lobby
+        </MobaButton>
+      </div>
+
+      {/* =========================================================
+          TOP-CENTER: CHAMPION HP, PONTE DE CONFIANÇA & BOSS BAR
+         ========================================================= */}
+      <div className="pointer-events-none absolute top-2.5 right-36 left-40 z-20 mx-auto max-w-lg sm:top-3 sm:right-60 sm:left-52">
+        <div className="moba-panel-gold moba-clip-panel pointer-events-auto px-3 py-2 sm:px-4 sm:py-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-1">
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm sm:text-base">{mission.emoji}</span>
+              <span className="text-[10px] font-black tracking-wider text-amber-300 uppercase sm:text-xs">
+                {mission.title}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 font-mono text-[10px] font-black sm:text-xs">
+              <span className="flex items-center gap-1 rounded bg-rose-500/20 px-1.5 py-0.5 text-rose-300">
+                <Heart className="h-3 w-3 fill-rose-400 text-rose-400" />
+                {hudSnap.hp}/{hudSnap.maxHp}
+              </span>
+              <span className="flex items-center gap-1 rounded bg-emerald-500/20 px-1.5 py-0.5 text-emerald-300">
+                🤝 {trust}%
+              </span>
+            </div>
+          </div>
+
+          {/* Dual Progress Bars: Champion HP & Ponte de Confiança */}
+          <div className="mt-1.5 grid grid-cols-2 gap-2">
+            <div>
+              <div className="h-2 w-full overflow-hidden rounded-full border border-rose-400/40 bg-slate-950">
+                <div
+                  style={{ width: `${hpPct}%` }}
+                  className="h-full bg-gradient-to-r from-rose-600 via-rose-400 to-emerald-400 transition-all duration-150"
+                />
+              </div>
+            </div>
+            <div>
+              <div className="h-2 w-full overflow-hidden rounded-full border border-amber-400/45 bg-slate-950">
+                <motion.div
+                  animate={{ width: `${trust}%` }}
+                  className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-300"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Live Boss HP Bar when approaching Boss Plaza */}
+          {nearBossArena && (
+            <div className="mt-1.5 rounded-lg border border-fuchsia-500/50 bg-fuchsia-950/50 px-2 py-1">
+              <div className="flex items-center justify-between text-[9px] font-black text-fuchsia-200 uppercase">
+                <span className="flex items-center gap-1">
+                  <Crown className="h-3 w-3 text-amber-300" />
+                  BOSS: {worldCfg.bossName}
+                </span>
+                <span>{hudSnap.bossHpPct}%</span>
+              </div>
+              <div className="mt-0.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-950">
+                <div
+                  style={{ width: `${hudSnap.bossHpPct}%` }}
+                  className="h-full bg-gradient-to-r from-fuchsia-500 to-amber-400 transition-all duration-150"
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="mt-1 truncate text-[10px] font-bold text-cyan-200 sm:text-[11px]">
+            🎯 GPS: {activeGpsTarget.label}
+          </div>
+        </div>
+      </div>
+
+      {/* =========================================================
+          TOP-RIGHT: GTA SCOREBOARD, COMBO & MISSION CHECKLIST
+         ========================================================= */}
+      <div className="pointer-events-auto absolute top-2.5 right-2.5 z-20 flex flex-col items-end gap-1.5 sm:top-3 sm:right-3">
+        <div className="moba-panel-cyan rounded-2xl px-3 py-2 text-right shadow-2xl sm:px-3.5 sm:py-2.5">
+          <div className="text-[9px] font-black tracking-widest text-cyan-300 uppercase">
+            PONTUAÇÃO DE CAMPO
+          </div>
+          <div className="font-mono text-lg font-black text-amber-300 sm:text-2xl">
+            {hudSnap.score.toLocaleString("pt-BR")}
+            <span className="ml-1 text-[10px] text-amber-200/80">PTS</span>
+          </div>
+
+          {hudSnap.combo > 1 && (
+            <div className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-amber-500/25 px-2 py-0.5 font-mono text-[10px] font-black text-amber-300">
+              <Flame className="h-3 w-3 text-amber-400" />
+              {hudSnap.combo}x COMBO!
+            </div>
+          )}
+
+          {/* Open-World Collectibles & Side-Missions Checklist */}
+          <div className="mt-2 space-y-1 border-t border-cyan-500/25 pt-1.5 text-left font-mono text-[10px] font-bold">
+            <div className="flex items-center justify-between gap-2 text-sky-200">
+              <span className="flex items-center gap-1 truncate">
+                <Package className="h-3 w-3 shrink-0 text-sky-400" />
+                <span className="hidden sm:inline">{worldCfg.supplyLabel}</span>
+                <span className="sm:hidden">Itens</span>
+              </span>
+              <span className="rounded bg-sky-500/20 px-1.5 text-sky-300">
+                {hudSnap.suppliesHeld}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between gap-2 text-amber-200">
+              <span>📜 Pergaminhos</span>
+              <span className="text-amber-300">
+                {hudSnap.scrollsCollected}/{hudSnap.totalScrolls}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between gap-2 text-emerald-200">
+              <span>👥 Pessoas</span>
+              <span className="text-emerald-300">
+                {helpedPersonIds.length}/{worldCfg.people.length}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between gap-2 text-rose-200">
+              <span>⚔️ Sombras</span>
+              <span className="text-rose-300">
+                {hudSnap.enemiesDefeated}/{hudSnap.totalEnemies}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* =========================================================
+          BOTTOM-CENTER: PROXIMITY ACTION PROMPT [F]
+         ========================================================= */}
+      <AnimatePresence>
+        {hudSnap.nearby && !isWorldPaused && (
+          <motion.div
+            initial={{ opacity: 0, y: 16, scale: 0.92 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 12, scale: 0.92 }}
+            className="pointer-events-auto absolute right-0 bottom-28 left-0 z-30 mx-auto flex justify-center px-4 sm:bottom-6"
+          >
+            <MobaButton
+              variant="gold"
+              size="lg"
+              shape="hex"
+              onClick={() => fireAction("interact")}
+              className="shadow-[0_0_30px_rgba(251,191,36,0.55)]"
+            >
+              <span className="rounded bg-slate-950/90 px-2 py-0.5 font-mono text-xs text-amber-300">
+                F
+              </span>
+              {hudSnap.nearby.label}
+            </MobaButton>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* =========================================================
+          BOTTOM-LEFT: VIRTUAL ANALOG JOYSTICK + CHAMPION CREST
+         ========================================================= */}
+      <div className="pointer-events-auto absolute bottom-3 left-3 z-20 flex items-end gap-3 sm:bottom-4 sm:left-4">
+        {/* 360° Draggable Virtual Thumbstick */}
+        <div
+          ref={joystickPadRef}
+          onPointerDown={(e) => {
+            e.currentTarget.setPointerCapture(e.pointerId);
+            joystickDraggingRef.current = true;
+            updateJoystickFromPointer(e.clientX, e.clientY);
+          }}
+          onPointerMove={(e) => {
+            if (!joystickDraggingRef.current) return;
+            updateJoystickFromPointer(e.clientX, e.clientY);
+          }}
+          onPointerUp={() => {
+            joystickDraggingRef.current = false;
+            setJoystickVec({ x: 0, y: 0 });
+          }}
+          onPointerCancel={() => {
+            joystickDraggingRef.current = false;
+            setJoystickVec({ x: 0, y: 0 });
+          }}
+          className="relative flex h-24 w-24 touch-none items-center justify-center rounded-full border-2 border-amber-400/45 bg-slate-950/70 shadow-[0_0_24px_rgba(0,0,0,0.65)] backdrop-blur-xs sm:h-28 sm:w-28"
+        >
+          <div className="pointer-events-none absolute inset-3 rounded-full border border-cyan-400/20" />
+          <div
+            style={{
+              transform: `translate(${joystickVec.x * 28}px, ${joystickVec.y * 28}px)`,
+            }}
+            className="pointer-events-none flex h-11 w-11 items-center justify-center rounded-full border-2 border-amber-200 bg-gradient-to-b from-amber-300 to-amber-600 text-[10px] font-black text-slate-950 shadow-[0_0_15px_rgba(251,191,36,0.65)]"
+          >
+            MOVER
+          </div>
+        </div>
+
+        {/* Desktop Champion Status Card */}
+        <div className="moba-panel-gold hidden items-center gap-2.5 rounded-2xl p-2 pr-3.5 lg:flex">
+          <div className="relative">
+            <HeroPortrait
+              avatarId={state.agent.avatarId}
+              size={54}
+              shape="circle"
+              active
+            />
+            <span className="absolute -right-1 -bottom-1 flex h-5 w-5 items-center justify-center rounded-full border border-amber-200 bg-amber-500 text-[10px] font-black text-slate-950">
+              {level}
+            </span>
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5 text-xs font-black text-white uppercase">
+              {state.agent.name}
+              {hudSnap.inVehicle && (
+                <span className="rounded bg-cyan-500/25 px-1.5 py-0.5 text-[9px] text-cyan-300">
+                  🚙 {worldCfg.vehicleName}
+                </span>
+              )}
+            </div>
+            <div className="mt-0.5 text-[10px] font-semibold text-amber-200/90">
+              🙏 Escudos Diálogo: {prayerUsesLeft}x • 🧭 Cultura:{" "}
+              {totemScanned ? "OK" : "Mapa"}
+            </div>
+            <div className="mt-0.5 font-mono text-[9px] text-slate-400">
+              WASD Mover • Espaço Atacar • Q/2/E/R Skills • V Veículo • F Ação
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* =========================================================
+          BOTTOM-RIGHT: WILD RIFT / GTA ACTION & COMBAT CLUSTER
+         ========================================================= */}
+      <div className="pointer-events-auto absolute right-3 bottom-3 z-20 flex flex-col items-end gap-2 sm:right-4 sm:bottom-4">
+        {/* Top Utility Row: Cultura Briefing + Vehicle [V] + Nexus Decoder Shortcut */}
+        <div className="flex items-center gap-2">
+          <motion.button
+            type="button"
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.92 }}
+            onClick={() => {
+              if (totemScanned) {
+                playSfx("click");
+                setOverlay("briefing");
+              } else {
+                playSfx("click");
+                setCustomWaypoint({
+                  x: WORLD_LANDMARKS.totem.x,
+                  z: WORLD_LANDMARKS.totem.z,
+                  label: "Totem de Inteligência Cultural",
+                });
+                pushWorldPopup({
+                  id: Date.now() + Math.random(),
+                  text: "🧭 GPS apontado para o Totem Cultural!",
+                  color: "#22d3ee",
+                });
+              }
+            }}
+            className="flex h-10 cursor-pointer items-center gap-1.5 rounded-full border border-cyan-400/60 bg-slate-950/90 px-3 text-[10px] font-black text-cyan-300 shadow-lg hover:bg-cyan-500/15"
+          >
+            <Compass className="h-4 w-4" />
+            CULTURA
+          </motion.button>
+
+          <motion.button
+            type="button"
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.92 }}
+            onClick={() => fireAction("vehicle")}
+            className={`flex h-10 cursor-pointer items-center gap-1.5 rounded-full border-2 px-3 text-[10px] font-black shadow-lg transition ${
+              hudSnap.inVehicle
+                ? "border-cyan-200 bg-cyan-500 text-slate-950 shadow-[0_0_18px_#22d3ee]"
+                : "border-amber-400/60 bg-slate-950/90 text-amber-300 hover:bg-amber-500/15"
+            }`}
+          >
+            <Car className="h-4 w-4" />
+            {hudSnap.inVehicle ? "SAIR [V]" : "VEÍCULO [V]"}
+          </motion.button>
+
+          {dialogueCompleted && (
+            <motion.button
+              type="button"
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: 0.92 }}
+              onClick={() => {
+                playSfx("levelUp");
+                setOverlay("decoder");
+              }}
+              className="moba-ult-ready flex h-10 cursor-pointer items-center gap-1 rounded-full border-2 border-amber-200 bg-gradient-to-r from-amber-300 to-amber-500 px-3 text-[10px] font-black text-slate-950"
+            >
+              <Languages className="h-4 w-4" />
+              TRADUZIR
+            </motion.button>
+          )}
+        </div>
+
+        {/* MOBA Combat Arc + Giant Primary Attack Button */}
+        <div className="flex items-end gap-2 sm:gap-2.5">
+          {/* Skill Q [1]: Pulso de Luz */}
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.88 }}
+            onClick={() => fireAction("skillQ")}
+            className="relative flex flex-col items-center"
+          >
+            <div
+              className={`relative flex h-12 w-12 cursor-pointer items-center justify-center rounded-full border-2 sm:h-13 sm:w-13 ${
+                hudSnap.cooldowns.q > 0
+                  ? "border-slate-700 bg-slate-900/90 text-slate-500"
+                  : "border-cyan-300 bg-gradient-to-b from-cyan-500/45 to-slate-950 text-cyan-200 shadow-[0_0_16px_rgba(34,211,238,0.45)]"
+              }`}
+            >
+              <Zap className="h-5 w-5" />
+              {hudSnap.cooldowns.q > 0 && (
+                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-slate-950/75 font-mono text-xs font-black text-white">
+                  {hudSnap.cooldowns.q.toFixed(1)}
+                </span>
+              )}
+              <span className="absolute -right-1 -bottom-1 rounded-full border border-cyan-200 bg-slate-950 px-1 font-mono text-[9px] font-black text-cyan-300">
+                Q
+              </span>
+            </div>
+          </motion.button>
+
+          {/* Skill W [2]: Dash Tático */}
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.88 }}
+            onClick={() => fireAction("skillW")}
+            className="-translate-y-3 relative flex flex-col items-center"
+          >
+            <div
+              className={`relative flex h-12 w-12 cursor-pointer items-center justify-center rounded-full border-2 sm:h-13 sm:w-13 ${
+                hudSnap.cooldowns.w > 0
+                  ? "border-slate-700 bg-slate-900/90 text-slate-500"
+                  : "border-emerald-300 bg-gradient-to-b from-emerald-500/45 to-slate-950 text-emerald-200 shadow-[0_0_16px_rgba(16,185,129,0.45)]"
+              }`}
+            >
+              <ArrowRight className="h-5 w-5 -rotate-45" />
+              {hudSnap.cooldowns.w > 0 && (
+                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-slate-950/75 font-mono text-xs font-black text-white">
+                  {hudSnap.cooldowns.w.toFixed(1)}
+                </span>
+              )}
+              <span className="absolute -right-1 -bottom-1 rounded-full border border-emerald-200 bg-slate-950 px-1 font-mono text-[9px] font-black text-emerald-300">
+                2
+              </span>
+            </div>
+          </motion.button>
+
+          {/* Skill E [3]: Escudo de Oração & Cura */}
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.88 }}
+            onClick={() => fireAction("skillE")}
+            className="-translate-y-5 relative flex flex-col items-center"
+          >
+            <div
+              className={`relative flex h-12 w-12 cursor-pointer items-center justify-center rounded-full border-2 sm:h-13 sm:w-13 ${
+                hudSnap.cooldowns.e > 0
+                  ? "border-slate-700 bg-slate-900/90 text-slate-500"
+                  : "border-amber-300 bg-gradient-to-b from-amber-400/45 to-slate-950 text-amber-200 shadow-[0_0_16px_rgba(251,191,36,0.5)]"
+              }`}
+            >
+              <Shield className="h-5 w-5" />
+              {hudSnap.cooldowns.e > 0 && (
+                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-slate-950/75 font-mono text-xs font-black text-white">
+                  {hudSnap.cooldowns.e.toFixed(1)}
+                </span>
+              )}
+              <span className="absolute -right-1 -bottom-1 rounded-full border border-amber-200 bg-slate-950 px-1 font-mono text-[9px] font-black text-amber-300">
+                E
+              </span>
+            </div>
+          </motion.button>
+
+          {/* Skill R [4]: Ultimate Luz das Nações */}
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.88 }}
+            onClick={() => fireAction("skillR")}
+            className="-translate-y-2 relative flex flex-col items-center"
+          >
+            <div
+              className={`relative flex h-13 w-13 cursor-pointer items-center justify-center rounded-full border-2 sm:h-14 sm:w-14 ${
+                hudSnap.cooldowns.r > 0
+                  ? "border-slate-700 bg-slate-900/90 text-slate-500"
+                  : "border-amber-200 bg-gradient-to-b from-amber-300 via-amber-500 to-orange-700 text-slate-950 shadow-[0_0_22px_rgba(251,191,36,0.75)]"
+              }`}
+            >
+              <Sparkles className="h-6 w-6" />
+              {hudSnap.cooldowns.r > 0 && (
+                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-slate-950/80 font-mono text-xs font-black text-amber-200">
+                  {Math.ceil(hudSnap.cooldowns.r)}s
+                </span>
+              )}
+              <span className="absolute -right-1 -bottom-1 rounded border border-amber-200 bg-slate-950 px-1 font-mono text-[8px] font-black text-amber-300">
+                ULT
+              </span>
+            </div>
+          </motion.button>
+
+          {/* GIANT PRIMARY MELEE COMBO ATTACK BUTTON [ESPAÇO] */}
+          <motion.button
+            type="button"
+            whileHover={{ scale: 1.06 }}
+            whileTap={{ scale: 0.88 }}
+            onClick={() => fireAction("attack")}
+            className="relative flex h-18 w-18 cursor-pointer flex-col items-center justify-center rounded-full border-3 border-amber-200 bg-gradient-to-b from-rose-500 via-red-600 to-rose-900 text-white shadow-[0_0_28px_rgba(244,63,94,0.65)] sm:h-21 sm:w-21"
+          >
+            <Swords className="h-8 w-8 drop-shadow" />
+            <span className="mt-0.5 font-mono text-[9px] font-black tracking-wider text-amber-200 uppercase">
+              ATACAR
+            </span>
+          </motion.button>
+        </div>
+      </div>
+
+      {/* =========================================================
+          MODALS & ENCOUNTER OVERLAYS
+         ========================================================= */}
+      <AnimatePresence>
+        {/* 0. GTA / RPG STREET CITIZEN QUEST ENCOUNTER MODAL */}
+        {activeEncounter && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/65 p-4 pb-8 backdrop-blur-xs sm:items-center"
+          >
+            <motion.div
+              initial={{ scale: 0.92, y: 24 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.94, opacity: 0 }}
+              className="moba-panel-cyan moba-clip-panel w-full max-w-xl p-5 sm:p-6"
+            >
+              <div className="flex items-start justify-between gap-3 border-b border-cyan-500/30 pb-3">
+                <div>
+                  <span className="inline-flex items-center gap-1.5 rounded bg-cyan-500/20 px-2 py-0.5 text-[10px] font-black tracking-widest text-cyan-300 uppercase">
+                    <HeartHandshake className="h-3.5 w-3.5" />
+                    ENCONTRO NA CIDADE •{" "}
+                    {activeEncounter.person.questType === "rescue"
+                      ? "MISSÃO DE RESGATE"
+                      : activeEncounter.person.questType === "supply"
+                        ? "ENTREGA DE SUPRIMENTOS"
+                        : "APOIO & ENCORAJAMENTO"}
+                  </span>
+                  <h3 className="mt-1 text-lg font-black text-white uppercase sm:text-xl">
+                    {activeEncounter.person.name}{" "}
+                    <span className="text-xs font-bold text-slate-400">
+                      ({activeEncounter.person.role})
+                    </span>
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveEncounter(null)}
+                  className="rounded-lg border border-slate-700 bg-slate-900 p-1.5 text-slate-300 hover:text-white"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <p className="my-4 rounded-xl border border-slate-700/80 bg-slate-950/85 p-4 text-sm leading-relaxed font-semibold text-white sm:text-base">
+                &ldquo;{activeEncounter.message}&rdquo;
+              </p>
+
+              {activeEncounter.status === "completed_now" && (
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-400/50 bg-emerald-500/15 px-3.5 py-2.5 text-xs font-black text-emerald-300">
+                  <span>✅ MISSÃO CONCLUÍDA COM AMOR PRÁTICO!</span>
+                  <span className="font-mono">
+                    +{activeEncounter.person.pointsReward} PTS • +
+                    {activeEncounter.person.xpReward} XP • +10% PONTE
+                  </span>
+                </div>
+              )}
+
+              {activeEncounter.status === "needs_supplies" && (
+                <div className="mb-4 rounded-xl border border-amber-400/50 bg-amber-500/15 px-3.5 py-2.5 text-xs font-bold text-amber-200">
+                  🧰 Procure mais{" "}
+                  <strong>
+                    {activeEncounter.missingCount}x {worldCfg.supplyLabel}
+                  </strong>{" "}
+                  brilhando pelas ruas (caixas azuis/douradas) e volte aqui!
+                </div>
+              )}
+
+              {activeEncounter.status === "needs_rescue" && (
+                <div className="mb-4 rounded-xl border border-rose-400/50 bg-rose-500/15 px-3.5 py-2.5 text-xs font-bold text-rose-200">
+                  ⚔️ Use seu <strong>Ataque [Espaço]</strong>,{" "}
+                  <strong>Skills [Q/E/R]</strong> ou o{" "}
+                  <strong>Veículo [V]</strong> para derrotar as Sombras ao redor
+                  e fale novamente com {activeEncounter.person.name}!
+                </div>
+              )}
+
+              <MobaButton
+                variant={
+                  activeEncounter.status === "completed_now" ? "emerald" : "gold"
+                }
+                size="md"
+                shape="hex"
+                onClick={() => setActiveEncounter(null)}
+                className="w-full"
+              >
+                CONTINUAR EXPLORANDO A CIDADE 3D
+                <ArrowRight className="h-4 w-4" />
+              </MobaButton>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* 1. HOLOGRAPHIC CULTURAL BRIEFING OVERLAY */}
+        {overlay === "briefing" && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.92, y: 16 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.94, opacity: 0 }}
+              className="moba-panel-cyan moba-clip-panel max-h-[88vh] w-full max-w-2xl overflow-y-auto p-5 sm:p-7"
+            >
+              <div className="flex items-start justify-between gap-3 border-b border-cyan-500/30 pb-3">
+                <div>
+                  <span className="text-[10px] font-black tracking-[0.22em] text-cyan-300 uppercase">
+                    🧭 TOTEM DE INTELIGÊNCIA CULTURAL • {mission.country}
+                  </span>
+                  <h2 className="text-xl font-black text-white uppercase sm:text-2xl">
+                    Dossiê de Campo: {mission.title}
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setOverlay("none")}
+                  className="rounded-lg border border-slate-700 bg-slate-900 p-1.5 text-slate-300 hover:text-white"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="my-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3.5">
+                <div className="flex items-center gap-1.5 text-xs font-black text-amber-300 uppercase">
+                  <Lightbulb className="h-4 w-4" />
+                  Sabedoria Transcultural
+                </div>
+                <p className="mt-1 text-xs leading-relaxed text-amber-100 sm:text-sm">
+                  {mission.briefing.culturalTip}
+                </p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5">
+                  <div className="mb-1.5 flex items-center gap-1.5 text-xs font-black text-emerald-300 uppercase">
+                    <ThumbsUp className="h-3.5 w-3.5" />O que Fazer
+                  </div>
+                  <ul className="space-y-1.5 text-xs text-slate-200">
+                    {mission.briefing.dos.map((d, i) => (
+                      <li key={i}>✓ {d}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5">
+                  <div className="mb-1.5 flex items-center gap-1.5 text-xs font-black text-rose-300 uppercase">
+                    <ThumbsDown className="h-3.5 w-3.5" />O que Evitar
+                  </div>
+                  <ul className="space-y-1.5 text-xs text-slate-200">
+                    {mission.briefing.donts.map((d, i) => (
+                      <li key={i}>✕ {d}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              <div className="mt-5 flex flex-wrap justify-end gap-3">
+                <MobaButton
+                  variant="obsidian"
+                  size="md"
+                  shape="slant"
+                  onClick={() => setOverlay("none")}
+                >
+                  Voltar à Cidade 3D
+                </MobaButton>
+                <MobaButton
+                  variant="emerald"
+                  size="md"
+                  shape="hex"
+                  onClick={() => {
+                    setCustomWaypoint({
+                      x: WORLD_LANDMARKS.mainNpc.x,
+                      z: WORLD_LANDMARKS.mainNpc.z,
+                      label: `Praça Central: ${mission.npc.name}`,
+                    });
+                    setOverlay("none");
+                  }}
+                >
+                  Marcar GPS em {mission.npc.name}
+                  <ArrowRight className="h-4 w-4" />
+                </MobaButton>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* 2. CINEMATIC MOBA 3D SPLIT-PORTRAIT DIALOGUE CLASH */}
+        {overlay === "dialogue" && currentTurn && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/88 p-3 backdrop-blur-md sm:p-5"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={splash}
+              alt=""
+              className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-25"
+            />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-slate-950/90" />
+
+            <motion.div
+              initial={{ scale: 0.94, y: 18 }}
+              animate={{ scale: 1, y: 0 }}
+              className="moba-panel-gold moba-clip-panel relative z-10 max-h-[92vh] w-full max-w-4xl overflow-y-auto p-4 sm:p-7"
+            >
+              {/* Top VS / Bridge Header */}
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-amber-500/30 pb-3">
+                <div className="flex items-center gap-3">
+                  <HeroPortrait
+                    avatarId={state.agent.avatarId}
+                    size={54}
+                    shape="hex"
+                    active
+                  />
+                  <div>
+                    <div className="text-[10px] font-black tracking-widest text-amber-300 uppercase">
+                      SEU CAMPEÃO
+                    </div>
+                    <div className="text-sm font-black text-white uppercase">
+                      {state.agent.name}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Center Trust Bridge Meter */}
+                <div className="min-w-[200px] flex-1 px-2 text-center">
+                  <div className="flex items-center justify-center gap-1.5 text-xs font-black tracking-widest text-emerald-300 uppercase">
+                    <Swords className="h-3.5 w-3.5 text-amber-300" />
+                    PONTE DE CONFIANÇA: {trust}%
+                  </div>
+                  <div className="mt-1 h-3 w-full overflow-hidden rounded-full border border-amber-400/50 bg-slate-950">
+                    <motion.div
+                      animate={{ width: `${trust}%` }}
+                      className="h-full bg-gradient-to-r from-emerald-500 via-teal-300 to-amber-300"
+                    />
+                  </div>
+                  <div className="mt-0.5 text-[10px] font-bold text-slate-400">
+                    {currentTurn.sceneTitle} ({turnIndex + 1}/
+                    {mission.turns.length})
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <div className="text-[10px] font-black tracking-widest text-cyan-300 uppercase">
+                      CONTATO LOCAL
+                    </div>
+                    <div className="text-sm font-black text-white uppercase">
+                      {mission.npc.name} ({mission.npc.age}a)
+                    </div>
+                  </div>
+                  <NpcPortrait
+                    avatarKey={mission.npc.avatarKey}
+                    size={54}
+                    shape="hex"
+                  />
+                </div>
+              </div>
+
+              {/* 3D NPC Big Portrait + Speech Box */}
+              <div className="mb-4 grid items-center gap-4 rounded-2xl border border-cyan-500/35 bg-slate-950/90 p-4 sm:grid-cols-12">
+                <div className="flex justify-center sm:col-span-3">
+                  <div className="relative h-32 w-32 overflow-hidden rounded-2xl border-2 border-cyan-400/70 shadow-[0_0_25px_rgba(6,182,212,0.35)] sm:h-36 sm:w-36">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={NPC_PORTRAITS[mission.npc.avatarKey]}
+                      alt={mission.npc.name}
+                      className="h-full w-full object-cover object-top"
+                    />
+                  </div>
+                </div>
+
+                <div className="sm:col-span-9">
+                  <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-xs font-black text-cyan-300 uppercase">
+                      {mission.npc.name} •{" "}
+                      <span className="font-normal text-slate-400 italic">
+                        {currentTurn.npcMood}
+                      </span>
+                    </span>
+
+                    <MobaButton
+                      variant="gold"
+                      size="sm"
+                      shape="slant"
+                      disabled={
+                        prayerUsesLeft <= 0 ||
+                        prayerActiveThisTurn ||
+                        Boolean(selectedOption)
+                      }
+                      onClick={handleActivatePrayerInDialogue}
+                    >
+                      <Sparkles className="h-3.5 w-3.5" />
+                      Escudo de Oração ({prayerUsesLeft}x)
+                    </MobaButton>
+                  </div>
+
+                  <p className="text-base leading-relaxed font-bold text-white sm:text-lg">
+                    &ldquo;{currentTurn.npcSpeech}&rdquo;
+                  </p>
+                </div>
+              </div>
+
+              {/* Prayer Assist Active Banner */}
+              {prayerActiveThisTurn && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-4 rounded-xl border border-amber-400/60 bg-amber-500/15 p-3.5"
+                >
+                  <div className="text-xs font-black text-amber-300 uppercase">
+                    🙏 Cobertura Espiritual Ativada (1 resposta precipitada foi
+                    bloqueada!)
+                  </div>
+                  <p className="mt-1 text-xs text-amber-100">
+                    {currentTurn.prayerHint}
+                  </p>
+                  <div className="mt-1 font-mono text-xs font-bold text-amber-300">
+                    📖 {currentTurn.prayerVerse}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* 3 Animated MOBA Skill-Card Dialogue Choices */}
+              <div className="space-y-2.5">
+                {shuffledOptions.map((opt, idx) => {
+                  const letter = ["A", "B", "C"][idx] || "•";
+                  const eliminated =
+                    prayerActiveThisTurn && opt.tone === "hasty";
+                  const isChosen = selectedOption?.id === opt.id;
+                  const revealed = Boolean(selectedOption);
+
+                  let style =
+                    "border-amber-500/35 bg-slate-900/90 hover:border-cyan-300 hover:bg-slate-800/90 text-white";
+                  if (eliminated && !revealed) {
+                    style =
+                      "border-slate-800 bg-slate-950/30 opacity-35 line-through pointer-events-none";
+                  } else if (revealed) {
+                    if (opt.tone === "empathetic") {
+                      style =
+                        "border-emerald-400 bg-emerald-500/20 text-white shadow-[0_0_20px_rgba(16,185,129,0.25)]";
+                    } else if (isChosen && opt.tone === "timid") {
+                      style = "border-amber-400 bg-amber-500/20 text-white";
+                    } else if (isChosen && opt.tone === "hasty") {
+                      style = "border-rose-500 bg-rose-500/20 text-white";
+                    } else {
+                      style =
+                        "border-slate-800 bg-slate-950/40 opacity-50 text-slate-400";
+                    }
+                  }
+
+                  return (
+                    <motion.button
+                      key={opt.id}
+                      type="button"
+                      whileHover={
+                        !eliminated && !revealed
+                          ? { scale: 1.015, x: 4 }
+                          : undefined
+                      }
+                      whileTap={
+                        !eliminated && !revealed ? { scale: 0.985 } : undefined
+                      }
+                      disabled={eliminated || revealed}
+                      onClick={() => handleChooseOption(opt)}
+                      className={`moba-clip-slant flex w-full cursor-pointer items-start gap-3.5 border-2 p-3.5 text-left transition ${style}`}
+                    >
+                      <span className="moba-clip-hex flex h-8 w-8 shrink-0 items-center justify-center bg-gradient-to-b from-amber-300 to-amber-600 font-mono text-xs font-black text-slate-950">
+                        {letter}
+                      </span>
+                      <span className="flex-1 text-sm leading-relaxed font-semibold sm:text-base">
+                        {opt.text}
+                      </span>
+                    </motion.button>
+                  );
+                })}
+              </div>
+
+              {/* Feedback & Advance */}
+              {selectedOption && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`mt-4 rounded-2xl border-2 p-4 ${
+                    selectedOption.tone === "empathetic"
+                      ? "border-emerald-400 bg-emerald-500/15"
+                      : selectedOption.tone === "timid"
+                        ? "border-amber-400 bg-amber-500/15"
+                        : "border-rose-500 bg-rose-500/15"
+                  }`}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-sm font-black text-white uppercase">
+                      {selectedOption.tone === "empathetic" &&
+                        "✅ GOLPE DE GRAÇA & EMPATIA!"}
+                      {selectedOption.tone === "timid" &&
+                        "⚠️ ABORDAGEM TÍMIDA"}
+                      {selectedOption.tone === "hasty" &&
+                        "❌ ABORDAGEM PRECIPITADA"}
+                    </span>
+                    <div className="flex gap-2 font-mono text-xs font-black">
+                      <span className="rounded bg-slate-950/70 px-2 py-0.5 text-emerald-300">
+                        {selectedOption.trustDelta >= 0
+                          ? `+${selectedOption.trustDelta}%`
+                          : `${selectedOption.trustDelta}%`}{" "}
+                        Ponte
+                      </span>
+                      <span className="rounded bg-slate-950/70 px-2 py-0.5 text-amber-300">
+                        +{selectedOption.xpReward} XP
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="mt-1.5 text-xs leading-relaxed text-slate-100 sm:text-sm">
+                    {selectedOption.feedback}
+                  </p>
+
+                  {selectedOption.bibleRef && (
+                    <div className="mt-2 inline-block rounded bg-slate-950/80 px-2.5 py-1 font-mono text-xs font-bold text-cyan-300">
+                      📖 {selectedOption.bibleRef}
+                    </div>
+                  )}
+
+                  <div className="mt-4">
+                    <MobaButton
+                      variant="gold"
+                      size="lg"
+                      shape="hex"
+                      onClick={handleNextTurn}
+                      className="w-full"
+                    >
+                      {turnIndex + 1 < mission.turns.length
+                        ? "PRÓXIMO TURNO DO DIÁLOGO"
+                        : "⚡ DESBLOQUEAR NEXUS DA PALAVRA AO NORTE!"}
+                      <ArrowRight className="h-4 w-4" />
+                    </MobaButton>
+                  </div>
+                </motion.div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* 3. ULTIMATE SPELL: WORD DECODER MINI-GAME OVERLAY */}
+        {overlay === "decoder" && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/88 p-4 backdrop-blur-md"
+          >
+            <motion.div
+              initial={{ scale: 0.92, y: 18 }}
+              animate={{ scale: 1, y: 0 }}
+              className="max-h-[92vh] w-full max-w-3xl overflow-y-auto"
+            >
+              <WordDecoderGame
+                challenge={mission.decoder}
+                onComplete={handleDecoderComplete}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* 4. MOBA + GTA "VITÓRIA!" POST-MATCH SCREEN */}
+        {overlay === "victory" && victoryStats && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/92 p-4 backdrop-blur-md"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={splash}
+              alt=""
+              className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-25"
+            />
+
+            <motion.div
+              initial={{ scale: 0.88, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              className="moba-panel-gold moba-clip-panel relative z-10 max-h-[92vh] w-full max-w-3xl overflow-y-auto p-5 sm:p-8"
+            >
+              <div className="text-center">
+                <div className="mx-auto mb-3 flex items-center justify-center gap-4">
+                  <HeroPortrait
+                    avatarId={state.agent.avatarId}
+                    size={72}
+                    shape="hex"
+                    active
+                  />
+                  <PassportStampSvg
+                    missionId={mission.id}
+                    stampCode={mission.stampCode}
+                    title={mission.country}
+                    accentColor={mission.accentColor}
+                    size={104}
+                  />
+                  <NpcPortrait
+                    avatarKey={mission.npc.avatarKey}
+                    size={72}
+                    shape="hex"
+                  />
+                </div>
+
+                <h2 className="bg-gradient-to-b from-amber-200 via-amber-400 to-amber-600 bg-clip-text text-4xl font-black tracking-[0.18em] text-transparent uppercase drop-shadow-[0_4px_20px_rgba(245,158,11,0.5)] sm:text-5xl">
+                  VITÓRIA!
+                </h2>
+                <p className="mt-1 text-sm font-bold text-cyan-200">
+                  Região {mission.title} Concluída • Semente Plantada com{" "}
+                  {mission.npc.name}!
+                </p>
+              </div>
+
+              {/* Match & Open-World GTA Stats */}
+              <div className="my-5 grid grid-cols-2 gap-3 text-center sm:grid-cols-4">
+                <div className="rounded-xl border border-amber-500/35 bg-slate-950/85 p-3">
+                  <div className="text-[10px] font-black text-slate-400 uppercase">
+                    PONTE CONFIANÇA
+                  </div>
+                  <div className="mt-0.5 font-mono text-2xl font-black text-emerald-400">
+                    {trust}%
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-amber-500/35 bg-slate-950/85 p-3">
+                  <div className="text-[10px] font-black text-slate-400 uppercase">
+                    PONTOS MUNDO 3D
+                  </div>
+                  <div className="mt-0.5 font-mono text-2xl font-black text-amber-300">
+                    {hudSnap.score.toLocaleString("pt-BR")}
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-amber-500/35 bg-slate-950/85 p-3">
+                  <div className="text-[10px] font-black text-slate-400 uppercase">
+                    XP TOTAL GANHO
+                  </div>
+                  <div className="mt-0.5 font-mono text-2xl font-black text-cyan-300">
+                    +{victoryStats.totalXpEarned}
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-amber-500/35 bg-slate-950/85 p-3">
+                  <div className="text-[10px] font-black text-slate-400 uppercase">
+                    SABEDORIA
+                  </div>
+                  <div className="mt-0.5 font-mono text-2xl font-black text-amber-300">
+                    +{victoryStats.wisdomEarned} 💎
+                  </div>
+                </div>
+              </div>
+
+              {/* Open-World Summary Pill */}
+              <div className="mb-4 flex flex-wrap items-center justify-center gap-3 rounded-xl border border-cyan-500/30 bg-cyan-950/30 px-4 py-2 font-mono text-xs font-bold text-cyan-200">
+                <span>
+                  👥 Pessoas Ajudadas: {helpedPersonIds.length}/
+                  {worldCfg.people.length}
+                </span>
+                <span>•</span>
+                <span>
+                  📜 Pergaminhos: {hudSnap.scrollsCollected}/
+                  {hudSnap.totalScrolls}
+                </span>
+                <span>•</span>
+                <span>
+                  ⚔️ Sombras Vencidas: {hudSnap.enemiesDefeated}/
+                  {hudSnap.totalEnemies}
+                </span>
+              </div>
+
+              {/* 100% Holographic 3D Collectible Card */}
+              {trust >= 100 ? (
+                <div className="my-5">
+                  <div className="mb-2 text-center text-xs font-black tracking-widest text-amber-300 uppercase">
+                    ✨ SKIN / CARD LENDÁRIO 100% DESBLOQUEADO! ✨
+                  </div>
+                  <CollectibleCard
+                    mission={mission}
+                    agentName={state.agent.name}
+                  />
+                </div>
+              ) : (
+                <div className="my-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3.5">
+                  <div className="flex items-center gap-2.5">
+                    <ShieldAlert className="h-5 w-5 shrink-0 text-amber-300" />
+                    <p className="text-xs text-amber-100">
+                      Dica: Ajudar as <strong>Pessoas da Cidade (+10%)</strong> e
+                      escolher respostas empáticas leva sua Ponte a{" "}
+                      <strong>100%</strong> para ganhar o Card Lendário 3D!
+                    </p>
+                  </div>
+                  <MobaButton
+                    variant="obsidian"
+                    size="sm"
+                    shape="slant"
+                    onClick={handleReplayMission}
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    Buscar 100%
+                  </MobaButton>
+                </div>
+              )}
+
+              {/* Weekly School Challenge */}
+              <div className="my-4 rounded-2xl border border-violet-500/40 bg-violet-500/10 p-4">
+                <div className="flex items-center gap-2 text-xs font-black text-violet-300 uppercase">
+                  <School className="h-4 w-4" />
+                  {mission.schoolChallenge.title}
+                </div>
+                <p className="mt-1.5 text-xs leading-relaxed font-semibold text-white sm:text-sm">
+                  {mission.schoolChallenge.action}
+                </p>
+
+                <div className="mt-3">
+                  {schoolAccepted ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/20 px-3 py-1 text-xs font-black text-emerald-300">
+                      <CheckCircle2 className="h-4 w-4" />
+                      Missão na Escola Aceita! (+25 XP)
+                    </span>
+                  ) : (
+                    <MobaButton
+                      variant="violet"
+                      size="sm"
+                      shape="slant"
+                      onClick={() => acceptSchoolChallenge(mission.id)}
+                    >
+                      ✋ Aceitar Missão na Escola (+25 XP)
+                    </MobaButton>
+                  )}
+                </div>
+              </div>
+
+              <MobaButton
+                variant="gold"
+                size="xl"
+                shape="hex"
+                onClick={onExitToHub}
+                className="mt-3 w-full"
+              >
+                CONTINUAR • VOLTAR AO LOBBY 3D
+                <ArrowRight className="h-5 w-5" />
+              </MobaButton>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
