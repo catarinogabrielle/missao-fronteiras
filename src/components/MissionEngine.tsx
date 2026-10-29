@@ -256,18 +256,32 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
     worldCfg.bossName,
   ]);
 
-  // Close Street Citizen Encounter Card with Enter / Escape
+  // Close any open Conversation / Modal with Escape (and Street Encounter with Enter / Space)
   useEffect(() => {
-    if (!activeEncounter) return;
+    if (!activeEncounter && overlay === "none") return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" || e.key === "Enter" || e.key === " ") {
+      if (e.key === "Escape") {
         e.preventDefault();
+        if (activeEncounter) {
+          playSfx("click");
+          setActiveEncounter(null);
+        } else if (
+          overlay === "dialogue" ||
+          overlay === "briefing" ||
+          overlay === "decoder"
+        ) {
+          playSfx("click");
+          setOverlay("none");
+        }
+      } else if (activeEncounter && (e.key === "Enter" || e.key === " ")) {
+        e.preventDefault();
+        playSfx("click");
         setActiveEncounter(null);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [activeEncounter]);
+  }, [activeEncounter, overlay, playSfx]);
 
   // Handle 3D Proximity Interactions (Totem, Main NPC, Nexus, and 4 Regional Street People!)
   const handleInteractTrigger = useCallback(
@@ -1214,12 +1228,17 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            onClick={() => {
+              playSfx("click");
+              setActiveEncounter(null);
+            }}
             className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/65 p-4 pb-8 backdrop-blur-xs sm:items-center"
           >
             <motion.div
               initial={{ scale: 0.92, y: 24 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.94, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
               className="moba-panel-cyan moba-clip-panel w-full max-w-xl p-5 sm:p-6"
             >
               <div className="flex items-start justify-between gap-3 border-b border-cyan-500/30 pb-3">
@@ -1242,10 +1261,15 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setActiveEncounter(null)}
-                  className="rounded-lg border border-slate-700 bg-slate-900 p-1.5 text-slate-300 hover:text-white"
+                  onClick={() => {
+                    playSfx("click");
+                    setActiveEncounter(null);
+                  }}
+                  title="Fechar conversa [Esc]"
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-black text-slate-200 transition hover:border-rose-400 hover:bg-rose-500/20 hover:text-white"
                 >
                   <X className="h-4 w-4" />
+                  Fechar
                 </button>
               </div>
 
@@ -1304,12 +1328,17 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            onClick={() => {
+              playSfx("click");
+              setOverlay("none");
+            }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm"
           >
             <motion.div
               initial={{ scale: 0.92, y: 16 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.94, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
               className="moba-panel-cyan moba-clip-panel max-h-[88vh] w-full max-w-2xl overflow-y-auto p-5 sm:p-7"
             >
               <div className="flex items-start justify-between gap-3 border-b border-cyan-500/30 pb-3">
@@ -1323,10 +1352,15 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setOverlay("none")}
-                  className="rounded-lg border border-slate-700 bg-slate-900 p-1.5 text-slate-300 hover:text-white"
+                  onClick={() => {
+                    playSfx("click");
+                    setOverlay("none");
+                  }}
+                  title="Fechar [Esc]"
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-black text-slate-200 transition hover:border-rose-400 hover:bg-rose-500/20 hover:text-white"
                 >
                   <X className="h-4 w-4" />
+                  Fechar
                 </button>
               </div>
 
@@ -1400,6 +1434,10 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            onClick={() => {
+              playSfx("click");
+              setOverlay("none");
+            }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/88 p-3 backdrop-blur-md sm:p-5"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1413,9 +1451,10 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
             <motion.div
               initial={{ scale: 0.94, y: 18 }}
               animate={{ scale: 1, y: 0 }}
+              onClick={(e) => e.stopPropagation()}
               className="moba-panel-gold moba-clip-panel relative z-10 max-h-[92vh] w-full max-w-4xl overflow-y-auto p-4 sm:p-7"
             >
-              {/* Top VS / Bridge Header */}
+              {/* Top VS / Bridge Header + Prominent Close Button */}
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-amber-500/30 pb-3">
                 <div className="flex items-center gap-3">
                   <HeroPortrait
@@ -1435,7 +1474,7 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
                 </div>
 
                 {/* Center Trust Bridge Meter */}
-                <div className="min-w-[200px] flex-1 px-2 text-center">
+                <div className="min-w-[190px] flex-1 px-2 text-center">
                   <div className="flex items-center justify-center gap-1.5 text-xs font-black tracking-widest text-emerald-300 uppercase">
                     <Swords className="h-3.5 w-3.5 text-amber-300" />
                     PONTE DE CONFIANÇA: {trust}%
@@ -1452,8 +1491,8 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
+                <div className="flex items-center gap-2.5">
+                  <div className="hidden text-right sm:block">
                     <div className="text-[10px] font-black tracking-widest text-cyan-300 uppercase">
                       CONTATO LOCAL
                     </div>
@@ -1466,6 +1505,18 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
                     size={54}
                     shape="hex"
                   />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playSfx("click");
+                      setOverlay("none");
+                    }}
+                    title="Fechar conversa e voltar ao Mapa 3D [Esc]"
+                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border-2 border-rose-400/60 bg-slate-950/90 px-3 py-2 text-xs font-black text-rose-200 shadow-lg transition hover:border-rose-300 hover:bg-rose-500/25 hover:text-white"
+                  >
+                    <X className="h-4 w-4" />
+                    Fechar
+                  </button>
                 </div>
               </div>
 
@@ -1649,6 +1700,25 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
                   </div>
                 </motion.div>
               )}
+
+              {/* Footer Escape / Return to 3D Map Action */}
+              <div className="mt-4 flex items-center justify-between border-t border-amber-500/20 pt-3">
+                <span className="text-[11px] font-semibold text-slate-400">
+                  Seu progresso na conversa fica salvo enquanto você explora.
+                </span>
+                <MobaButton
+                  variant="obsidian"
+                  size="sm"
+                  shape="slant"
+                  onClick={() => {
+                    playSfx("click");
+                    setOverlay("none");
+                  }}
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  Voltar ao Mapa 3D
+                </MobaButton>
+              </div>
             </motion.div>
           </motion.div>
         )}
@@ -1659,16 +1729,22 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            onClick={() => {
+              playSfx("click");
+              setOverlay("none");
+            }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/88 p-4 backdrop-blur-md"
           >
             <motion.div
               initial={{ scale: 0.92, y: 18 }}
               animate={{ scale: 1, y: 0 }}
+              onClick={(e) => e.stopPropagation()}
               className="max-h-[92vh] w-full max-w-3xl overflow-y-auto"
             >
               <WordDecoderGame
                 challenge={mission.decoder}
                 onComplete={handleDecoderComplete}
+                onClose={() => setOverlay("none")}
               />
             </motion.div>
           </motion.div>

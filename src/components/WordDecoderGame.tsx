@@ -9,6 +9,7 @@ import {
   Languages,
   RotateCcw,
   Sparkles,
+  X,
 } from "lucide-react";
 import { WordDecoderChallenge } from "@/types/game";
 import { useGame } from "@/context/GameContext";
@@ -16,6 +17,7 @@ import { useGame } from "@/context/GameContext";
 interface WordDecoderGameProps {
   challenge: WordDecoderChallenge;
   onComplete: (remainingSeconds: number) => void;
+  onClose?: () => void;
 }
 
 interface WordToken {
@@ -46,6 +48,7 @@ function shuffleTokens(chunks: string[]): WordToken[] {
 export function WordDecoderGame({
   challenge,
   onComplete,
+  onClose,
 }: WordDecoderGameProps) {
   const { state, playSfx, spendWisdom } = useGame();
   const isAgileTranslator = state.agent?.giftId === "tradutor";
@@ -203,16 +206,33 @@ export function WordDecoderGame({
           </p>
         </div>
 
-        {/* Countdown Clock */}
-        <div
-          className={`flex items-center gap-2 rounded-2xl border px-4 py-2 font-mono text-base font-black ${
-            secondsLeft <= 12
-              ? "animate-pulse border-rose-500 bg-rose-500/20 text-rose-300"
-              : "border-amber-500/40 bg-amber-500/10 text-amber-300"
-          }`}
-        >
-          <Clock className="h-4 w-4" />
-          <span>{secondsLeft}s</span>
+        {/* Countdown Clock + Close Button */}
+        <div className="flex items-center gap-2">
+          <div
+            className={`flex items-center gap-2 rounded-2xl border px-4 py-2 font-mono text-base font-black ${
+              secondsLeft <= 12
+                ? "animate-pulse border-rose-500 bg-rose-500/20 text-rose-300"
+                : "border-amber-500/40 bg-amber-500/10 text-amber-300"
+            }`}
+          >
+            <Clock className="h-4 w-4" />
+            <span>{secondsLeft}s</span>
+          </div>
+
+          {onClose && (
+            <button
+              type="button"
+              onClick={() => {
+                playSfx("click");
+                onClose();
+              }}
+              title="Fechar [Esc]"
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-2xl border border-slate-700 bg-slate-950/90 px-3 py-2 text-xs font-black text-slate-200 transition hover:border-rose-400 hover:bg-rose-500/20 hover:text-white"
+            >
+              <X className="h-4 w-4" />
+              Fechar
+            </button>
+          )}
         </div>
       </div>
 
