@@ -1,3 +1,5 @@
+import { BiomeId } from "@/types/game";
+import { resolveMissionBiome } from "./assets";
 import { GtaVehicleKind } from "./character3d";
 
 export interface StreetPersonQuest {
@@ -372,8 +374,12 @@ function buildDefaultRace(title: string, description: string): CheckpointRaceCon
   };
 }
 
-export function getOpenWorldConfig(missionId: string): OpenWorldConfig {
-  switch (missionId) {
+export function getOpenWorldConfig(
+  missionId: string,
+  biomeId?: BiomeId
+): OpenWorldConfig {
+  const resolvedBiome = resolveMissionBiome(missionId, biomeId);
+  switch (resolvedBiome) {
     case "amazonia":
       return {
         supplyLabel: "Kit Médico Ribeirinho",

@@ -1,4 +1,4 @@
-import { AvatarId } from "@/types/game";
+import { AvatarId, BiomeId } from "@/types/game";
 
 export const HERO_PORTRAITS: Record<AvatarId, string> = {
   lucas: "/assets/heroes/lucas.jpg",
@@ -25,6 +25,28 @@ export const MAP_SPLASHES: Record<string, string> = {
   mocambique: "/assets/maps/mocambique.jpg",
 };
 
-export function getMissionSplash(missionId: string): string {
-  return MAP_SPLASHES[missionId] || MAP_SPLASHES.amazonia;
+export function resolveMissionBiome(
+  missionId: string,
+  biomeId?: BiomeId
+): BiomeId {
+  if (biomeId && MAP_SPLASHES[biomeId]) {
+    return biomeId;
+  }
+  if (
+    missionId === "amazonia" ||
+    missionId === "janela1040" ||
+    missionId === "toquio" ||
+    missionId === "mocambique"
+  ) {
+    return missionId;
+  }
+  return "toquio";
+}
+
+export function getMissionSplash(
+  missionId: string,
+  biomeId?: BiomeId
+): string {
+  const resolved = resolveMissionBiome(missionId, biomeId);
+  return MAP_SPLASHES[resolved] || MAP_SPLASHES.amazonia;
 }

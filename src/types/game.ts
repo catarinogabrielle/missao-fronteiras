@@ -6,6 +6,38 @@ export type GiftId =
 
 export type AvatarId = "lucas" | "sofia" | "davi" | "ester";
 
+export type SkinId =
+  | "padrao"
+  | "cyber_neon"
+  | "explorador_selva"
+  | "street_gta"
+  | "deserto_1040"
+  | "embaixador_ouro"
+  | "sentinela_fogo"
+  | "celestial_mitico";
+
+export type SkinRarity = "CLÁSSICA" | "ÉPICA" | "LENDÁRIA" | "MÍTICA";
+
+export type HeroEmoteType =
+  | "idle"
+  | "slash_spin"
+  | "victory"
+  | "dance"
+  | "kneel_pray";
+
+export type BiomeId = "amazonia" | "janela1040" | "toquio" | "mocambique";
+
+export interface SkinOption {
+  id: SkinId;
+  name: string;
+  rarity: SkinRarity;
+  costWisdom: number;
+  tagline: string;
+  accentHex: string;
+  badgeEmoji: string;
+  gradientClass: string;
+}
+
 export interface AvatarOption {
   id: AvatarId;
   name: string;
@@ -71,6 +103,7 @@ export interface Mission {
   id: string;
   order: number;
   isCustom?: boolean;
+  biomeId?: BiomeId;
   title: string;
   regionName: string;
   country: string;
@@ -140,6 +173,7 @@ export interface AgentProfile {
   name: string;
   avatarId: AvatarId;
   giftId: GiftId;
+  skinId?: SkinId;
   createdAt: string;
 }
 
@@ -153,6 +187,9 @@ export interface GameState {
   prayedMissionIds: string[];
   studiedGospelSteps: number[];
   unlockedAchievements: string[];
+  unlockedSkins: SkinId[];
+  allSkinsUnlockedByLeader: boolean;
+  leaderPin: string;
   customMissions: Mission[];
   allUnlockedByLeader: boolean;
   muted: boolean;

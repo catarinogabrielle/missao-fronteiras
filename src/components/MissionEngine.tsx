@@ -39,8 +39,13 @@ import {
   Zap,
 } from "lucide-react";
 import { DialogueOption, Mission } from "@/types/game";
+import { SKIN_OPTIONS } from "@/data/avatarsAndGifts";
 import { useGame } from "@/context/GameContext";
-import { getMissionSplash, NPC_PORTRAITS } from "@/lib/assets";
+import {
+  getMissionSplash,
+  NPC_PORTRAITS,
+  resolveMissionBiome,
+} from "@/lib/assets";
 import {
   getOpenWorldConfig,
   RadioTowerMission,
@@ -65,6 +70,8 @@ import { ConfettiCanvas } from "./ConfettiCanvas";
 interface MissionEngineProps {
   mission: Mission;
   onExitToHub: () => void;
+  externalPaused?: boolean;
+  onOpenWardrobe?: () => void;
 }
 
 type OverlayMode = "none" | "briefing" | "dialogue" | "decoder" | "victory";
@@ -139,7 +146,12 @@ const INITIAL_HUD_SNAPSHOT: WorldHudSnapshot = {
   dots: [],
 };
 
-export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
+export function MissionEngine({
+  mission,
+  onExitToHub,
+  externalPaused,
+  onOpenWardrobe,
+}: MissionEngineProps) {
   const {
     state,
     level,
@@ -150,9 +162,14 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
     acceptSchoolChallenge,
   } = useGame();
 
+  const resolvedBiome = useMemo(
+    () => resolveMissionBiome(mission.id, mission.biomeId),
+    [mission.biomeId, mission.id]
+  );
+
   const worldCfg = useMemo(
-    () => getOpenWorldConfig(mission.id),
-    [mission.id]
+    () => getOpenWorldConfig(mission.id, mission.biomeId),
+    [mission.biomeId, mission.id]
   );
 
   const isWelcomingHeart = state.agent?.giftId === "acolhedor";
@@ -211,7 +228,7 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
   } | null>(null);
 
   const currentTurn = mission.turns[turnIndex];
-  const splash = getMissionSplash(mission.id);
+  const splash = getMissionSplash(mission.id, mission.biomeId);
 
   const shuffledOptions = useMemo(() => {
     if (!currentTurn) return [];
@@ -619,12 +636,17 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
     Math.min(100, Math.round((hudSnap.hp / hudSnap.maxHp) * 100))
   );
 
+  const activeSkinId = state.agent.skinId ?? "padrao";
+  const activeSkin =
+    SKIN_OPTIONS.find((s) => s.id === activeSkinId) ?? SKIN_OPTIONS[0];
+
   const nearBossArena =
     !hudSnap.bossDefeated &&
-    Math.hypot(
-      hudSnap.heroX - WORLD_LANDMARKS.boss.x,
-      hudSnap.heroZ - WORLD_LANDMARKS.boss.z
-    ) < 36;
+    (Boolean(hudSnap.bossNear) ||
+      Math.hypot(
+        hudSnap.heroX - WORLD_LANDMARKS.boss.x,
+        hudSnap.heroZ - WORLD_LANDMARKS.boss.z
+      ) < 36);
 
   // Count completed in-map missions out of 12!
   const totalMapMissions =
@@ -641,7 +663,10 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
     (hudSnap.bossDefeated ? 1 : 0);
 
   const isWorldPaused =
-    overlay !== "none" || Boolean(activeEncounter) || missionPhoneOpen;
+    Boolean(externalPaused) ||
+    overlay !== "none" ||
+    Boolean(activeEncounter) ||
+    missionPhoneOpen;
 
   return (
     <div className="relative h-[calc(100vh-66px)] min-h-[580px] w-full overflow-hidden bg-slate-950 select-none">
@@ -655,6 +680,7 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
           key={`${mission.id}-${worldResetSeed}`}
           mission={mission}
           avatarId={state.agent.avatarId}
+          skinId={activeSkinId}
           agentName={state.agent.name}
           dialogueCompleted={dialogueCompleted}
           helpedPersonIds={helpedPersonIds}
@@ -718,7 +744,7 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
                 className="pointer-events-none absolute right-0 left-0 h-1.5 -translate-y-1/2 bg-slate-600/50"
               />
             ))}
-            {mission.id === "amazonia" && (
+            {resolvedBiome === "amazonia" && (
               <div className="pointer-events-none absolute right-0 left-0 top-[63.5%] h-2 bg-cyan-500/45" />
             )}
 
@@ -897,16 +923,33 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
           MISSÕES ({completedMapMissions}/{totalMapMissions})
         </button>
 
-        <MobaButton
-          variant="obsidian"
-          size="sm"
-          shape="slant"
-          sheen={false}
-          onClick={onExitToHub}
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Lobby
-        </MobaButton>
+        <div className="flex items-center gap-1.5">
+          <MobaButton
+            variant="obsidian"
+            size="sm"
+            shape="slant"
+            sheen={false}
+            onClick={onExitToHub}
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Lobby
+          </MobaButton>
+
+          {onOpenWardrobe && (
+            <button
+              type="button"
+              onClick={() => {
+                playSfx("click");
+                onOpenWardrobe();
+              }}
+              title="Trocar Skin 3D em tempo real!"
+              className="flex cursor-pointer items-center gap-1 rounded-xl border border-fuchsia-400/65 bg-gradient-to-r from-fuchsia-950/90 to-slate-950 px-2.5 py-1.5 text-[10px] font-black text-fuchsia-200 shadow-[0_0_14px_rgba(217,70,239,0.3)] transition hover:border-fuchsia-300 hover:text-white"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-fuchsia-300" />
+              SKIN
+            </button>
+          )}
+        </div>
       </div>
 
       {/* =========================================================
@@ -969,21 +1012,26 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
             </div>
           )}
 
-          {/* Live Boss HP Bar */}
+          {/* AAA Live District Shadow Boss HP Bar */}
           {nearBossArena && !hudSnap.raceActive && (
-            <div className="mt-1.5 rounded-lg border border-fuchsia-500/50 bg-fuchsia-950/50 px-2 py-1">
-              <div className="flex items-center justify-between text-[9px] font-black text-fuchsia-200 uppercase">
-                <span className="flex items-center gap-1">
-                  <Crown className="h-3 w-3 text-amber-300" />
-                  BOSS: {worldCfg.bossName}
+            <div className="mt-1.5 rounded-xl border-2 border-fuchsia-400/70 bg-gradient-to-r from-fuchsia-950/90 via-slate-950/95 to-rose-950/85 px-2.5 py-1.5 shadow-[0_0_22px_rgba(217,70,239,0.45)]">
+              <div className="flex items-center justify-between text-[10px] font-black tracking-wide text-fuchsia-100 uppercase">
+                <span className="flex items-center gap-1.5">
+                  <Crown className="h-3.5 w-3.5 text-amber-300" />
+                  LÍDER DE SOMBRA: {worldCfg.bossName}
                 </span>
-                <span>{hudSnap.bossHpPct}%</span>
+                <span className="font-mono text-amber-300">
+                  {hudSnap.bossHpPct}% HP
+                </span>
               </div>
-              <div className="mt-0.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-950">
+              <div className="mt-1 h-2.5 w-full overflow-hidden rounded-full border border-fuchsia-400/40 bg-slate-950">
                 <div
                   style={{ width: `${hudSnap.bossHpPct}%` }}
-                  className="h-full bg-gradient-to-r from-fuchsia-500 to-amber-400 transition-all duration-150"
+                  className="h-full bg-gradient-to-r from-rose-500 via-fuchsia-500 to-amber-400 transition-all duration-150"
                 />
+              </div>
+              <div className="mt-0.5 text-[9px] font-bold text-rose-200/90">
+                ⚡ Atenção ao anel vermelho no chão! Use Escudo [E] ou Dash [2]
               </div>
             </div>
           )}
@@ -1138,6 +1186,9 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
           <div>
             <div className="flex items-center gap-1.5 text-xs font-black text-white uppercase">
               {state.agent.name}
+              <span className="rounded border border-fuchsia-400/45 bg-fuchsia-500/20 px-1.5 py-0.5 text-[9px] text-fuchsia-200">
+                {activeSkin.badgeEmoji} {activeSkin.name}
+              </span>
               {hudSnap.inVehicle && (
                 <span className="rounded bg-cyan-500/25 px-1.5 py-0.5 text-[9px] text-cyan-300">
                   🚙 {hudSnap.activeVehicleName}
@@ -1149,16 +1200,46 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
               Arraste a tela p/ girar visão
             </div>
             <div className="mt-0.5 font-mono text-[9px] text-slate-400">
-              WASD Mover • V Carro/Moto • Shift Turbo • C Câmera • Espaço Atacar
+              WASD Mover • V Veículo • Shift Turbo • 5-8 Emotes 3D • Espaço Atacar
             </div>
           </div>
         </div>
       </div>
 
       {/* =========================================================
-          BOTTOM-RIGHT: GTA + MOBA ACTION, VEHICLE, TURBO & CAMERA PAD
+          BOTTOM-RIGHT: GTA + MOBA ACTION, EMOTES, VEHICLE, TURBO & CAMERA PAD
          ========================================================= */}
       <div className="pointer-events-auto absolute right-3 bottom-3 z-20 flex flex-col items-end gap-2 sm:right-4 sm:bottom-4">
+        {/* AAA 3D Emote Quick-Strip [5, 6, 7, 8] */}
+        <div className="flex items-center justify-end gap-1 rounded-full border border-fuchsia-400/35 bg-slate-950/85 px-2 py-1 shadow-lg backdrop-blur-xs">
+          <span className="mr-1 hidden font-mono text-[9px] font-black text-fuchsia-300 uppercase sm:inline">
+            EMOTES 3D:
+          </span>
+          {(
+            [
+              { act: "emoteSlash", icon: "⚔️", key: "5", title: "Giro Heroico [5]" },
+              { act: "emoteVictory", icon: "🙌", key: "6", title: "Vitória & Louvor [6]" },
+              { act: "emoteDance", icon: "🕺", key: "7", title: "Passinho Street [7]" },
+              { act: "emotePray", icon: "🛡️", key: "8", title: "Postura de Fé [8]" },
+            ] as const
+          ).map((em) => (
+            <motion.button
+              key={em.act}
+              type="button"
+              whileHover={{ scale: 1.14 }}
+              whileTap={{ scale: 0.88 }}
+              onClick={() => fireAction(em.act)}
+              title={em.title}
+              className="flex h-7 cursor-pointer items-center gap-0.5 rounded-full border border-white/15 bg-slate-900/90 px-2 text-xs font-black text-white transition hover:border-amber-300 hover:bg-amber-500/20"
+            >
+              <span>{em.icon}</span>
+              <span className="hidden font-mono text-[9px] text-amber-300 sm:inline">
+                {em.key}
+              </span>
+            </motion.button>
+          ))}
+        </div>
+
         {/* Top Utility Row: Camera [C] + Cultura + Turbo [Shift] + Vehicle [V] + Nexus */}
         <div className="flex flex-wrap items-center justify-end gap-1.5">
           <motion.button

@@ -12,6 +12,7 @@ import { PocketBibleModal } from "./PocketBibleModal";
 import { PrayerRadarModal } from "./PrayerRadarModal";
 import { TribesQuizModal } from "./TribesQuizModal";
 import { LeaderPanelModal } from "./LeaderPanelModal";
+import { SkinWardrobeModal } from "./SkinWardrobeModal";
 import { ToastOverlay } from "./ToastOverlay";
 
 export function GameApp() {
@@ -26,14 +27,23 @@ export function GameApp() {
   const [prayerRadarOpen, setPrayerRadarOpen] = useState(false);
   const [tribesQuizOpen, setTribesQuizOpen] = useState(false);
   const [leaderOpen, setLeaderOpen] = useState(false);
+  const [wardrobeOpen, setWardrobeOpen] = useState(false);
+
+  const anyTopModalOpen =
+    passportOpen ||
+    bibleOpen ||
+    prayerRadarOpen ||
+    tribesQuizOpen ||
+    leaderOpen ||
+    wardrobeOpen;
 
   if (!hydrated) {
     return (
       <div className="bg-cyber-grid flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-cyan-500 border-t-transparent" />
-          <p className="mt-3 font-mono text-xs font-bold tracking-widest text-cyan-300 uppercase">
-            Conectando à Base Missionária Ide...
+          <div className="mx-auto h-11 w-11 animate-spin rounded-full border-4 border-cyan-400 border-t-transparent shadow-[0_0_24px_rgba(34,211,238,0.45)]" />
+          <p className="mt-3 font-mono text-xs font-black tracking-[0.25em] text-cyan-300 uppercase">
+            Inicializando Engine 3D • Base Missionária Ide...
           </p>
         </div>
       </div>
@@ -49,6 +59,7 @@ export function GameApp() {
           <HeaderBar
             onOpenPassport={() => setPassportOpen(true)}
             onOpenLeaderPanel={() => setLeaderOpen(true)}
+            onOpenWardrobe={() => setWardrobeOpen(true)}
             onGoHome={() => setActiveMission(null)}
           />
 
@@ -56,6 +67,8 @@ export function GameApp() {
             <MissionEngine
               key={activeMission.id}
               mission={activeMission}
+              externalPaused={anyTopModalOpen}
+              onOpenWardrobe={() => setWardrobeOpen(true)}
               onExitToHub={() => setActiveMission(null)}
             />
           ) : (
@@ -68,12 +81,14 @@ export function GameApp() {
               onOpenPrayerRadar={() => setPrayerRadarOpen(true)}
               onOpenTribesQuiz={() => setTribesQuizOpen(true)}
               onOpenPassport={() => setPassportOpen(true)}
+              onOpenWardrobe={() => setWardrobeOpen(true)}
+              onOpenLeaderPanel={() => setLeaderOpen(true)}
             />
           )}
         </>
       )}
 
-      {/* Modals */}
+      {/* AAA Modals */}
       <PassportModal
         open={passportOpen}
         onClose={() => setPassportOpen(false)}
@@ -98,9 +113,18 @@ export function GameApp() {
         onClose={() => setTribesQuizOpen(false)}
       />
 
+      <SkinWardrobeModal
+        open={wardrobeOpen}
+        onClose={() => setWardrobeOpen(false)}
+      />
+
       <LeaderPanelModal
         open={leaderOpen}
         onClose={() => setLeaderOpen(false)}
+        onLaunchMission={(m) => setActiveMission(m)}
+        onOpenTribesQuiz={() => setTribesQuizOpen(true)}
+        onOpenWardrobe={() => setWardrobeOpen(true)}
+        onAfterResetClass={() => setActiveMission(null)}
       />
 
       <ToastOverlay />

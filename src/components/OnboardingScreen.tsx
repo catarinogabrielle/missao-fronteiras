@@ -3,25 +3,33 @@
 import React, { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  Box,
   Download,
   HeartHandshake,
+  Image as ImageIcon,
   Languages,
+  Lock,
   MessageSquareHeart,
   Monitor,
-  Shield,
+  ShieldCheck,
   Sparkles,
   Volume2,
   VolumeX,
   Wifi,
   WifiOff,
 } from "lucide-react";
-import { AVATAR_OPTIONS, GIFT_OPTIONS } from "@/data/avatarsAndGifts";
-import { AvatarId, GiftId } from "@/types/game";
+import {
+  AVATAR_OPTIONS,
+  GIFT_OPTIONS,
+  SKIN_OPTIONS,
+} from "@/data/avatarsAndGifts";
+import { AvatarId, GiftId, SkinId } from "@/types/game";
 import { HERO_PORTRAITS, MAP_SPLASHES } from "@/lib/assets";
 import { useGame } from "@/context/GameContext";
 import { usePwa } from "@/context/PwaContext";
 import { MobaButton } from "./MobaButton";
 import { HeroPortrait } from "./GamePortrait";
+import { HeroPreview3D } from "./HeroPreview3D";
 
 interface OnboardingScreenProps {
   onOpenLeaderPanel: () => void;
@@ -73,19 +81,31 @@ const CHAMPION_STATS: Record<
 };
 
 export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
-  const { createAgent, playSfx, state, toggleMute, toggleProjectorMode } =
-    useGame();
+  const {
+    createAgent,
+    isSkinUnlocked,
+    playSfx,
+    state,
+    toggleMute,
+    toggleProjectorMode,
+  } = useGame();
   const { isOnline, offlineReady, isStandalone, triggerInstall } = usePwa();
 
   const [name, setName] = useState("");
   const [selectedAvatar, setSelectedAvatar] = useState<AvatarId>("lucas");
+  const [selectedSkin, setSelectedSkin] = useState<SkinId>("cyber_neon");
+  const [previewSkin, setPreviewSkin] = useState<SkinId>("cyber_neon");
   const [selectedGift, setSelectedGift] = useState<GiftId>("acolhedor");
+  const [viewMode, setViewMode] = useState<"3d" | "art">("3d");
 
   const activeChampion =
     AVATAR_OPTIONS.find((a) => a.id === selectedAvatar) || AVATAR_OPTIONS[0];
   const activeStats = CHAMPION_STATS[selectedAvatar];
   const activeGift =
     GIFT_OPTIONS.find((g) => g.id === selectedGift) || GIFT_OPTIONS[0];
+  const activeSkinMeta =
+    SKIN_OPTIONS.find((s) => s.id === previewSkin) || SKIN_OPTIONS[0];
+  const previewUnlocked = isSkinUnlocked(previewSkin);
 
   const renderGiftIcon = (
     iconName: (typeof GIFT_OPTIONS)[number]["iconName"]
@@ -104,7 +124,13 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
 
   const handleConfirm = (e: React.FormEvent) => {
     e.preventDefault();
-    createAgent(name || `Agente ${activeChampion.name}`, selectedAvatar, selectedGift);
+    const finalSkin = isSkinUnlocked(previewSkin) ? previewSkin : selectedSkin;
+    createAgent(
+      name || `Agente ${activeChampion.name}`,
+      selectedAvatar,
+      selectedGift,
+      finalSkin
+    );
   };
 
   return (
@@ -116,29 +142,29 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
           src={activeStats.arenaBg}
           alt="Arena"
           initial={{ opacity: 0, scale: 1.06 }}
-          animate={{ opacity: 0.34, scale: 1 }}
+          animate={{ opacity: 0.32, scale: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.55 }}
           className="pointer-events-none absolute inset-0 h-full w-full object-cover"
         />
       </AnimatePresence>
 
-      {/* MOBA Cinematic Vignette Gradients */}
+      {/* AAA Cinematic Vignette Gradients */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/65 to-slate-950" />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-slate-950/85" />
 
-      {/* TOP MOBA CLIENT BAR */}
+      {/* TOP AAA CLIENT BAR */}
       <header className="relative z-20 mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-3 px-4 pt-4 sm:px-8">
         <div className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/icons/icon-192.png"
             alt="Missão Fronteiras"
-            className="h-12 w-12 rounded-2xl border border-amber-400/70 shadow-[0_0_22px_rgba(245,158,11,0.5)]"
+            className="h-12 w-12 rounded-2xl border border-amber-400/70 shadow-[0_0_24px_rgba(245,158,11,0.5)]"
           />
           <div>
             <div className="flex items-center gap-2 text-[10px] font-black tracking-[0.25em] text-amber-300 uppercase">
-              <span>BASE MISSIONÁRIA IDE • SELEÇÃO DE CAMPEÃO</span>
+              <span>BASE MISSIONÁRIA IDE • SELEÇÃO DE CAMPEÃO & SKIN 3D</span>
               {offlineReady && (
                 <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/40 bg-emerald-500/15 px-2 py-0.5 text-[9px] tracking-wider text-emerald-300">
                   {isOnline ? (
@@ -166,7 +192,7 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
               title="Instalar Jogo (PWA Offline)"
             >
               <Download className="h-3.5 w-3.5" />
-              <span>Instalar App</span>
+              <span className="hidden sm:inline">Instalar App</span>
             </MobaButton>
           )}
           <MobaButton
@@ -182,15 +208,14 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
           </MobaButton>
 
           <MobaButton
-            variant="obsidian"
+            variant="gold"
             size="sm"
             shape="slant"
-            sheen={false}
             onClick={onOpenLeaderPanel}
-            title="Painel do Professor / Líder (PIN 1234)"
+            title="Central do Líder / Professor (PIN 1234)"
           >
-            <Shield className="h-3.5 w-3.5 text-cyan-300" />
-            <span className="hidden sm:inline">Líder</span>
+            <ShieldCheck className="h-3.5 w-3.5" />
+            <span>Painel do Líder</span>
           </MobaButton>
 
           <MobaButton
@@ -210,10 +235,10 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
         </div>
       </header>
 
-      {/* MAIN 3-COLUMN MOBA CHAMPION SELECT STAGE */}
+      {/* MAIN 3-COLUMN AAA CHAMPION & 3D SKIN SELECT STAGE */}
       <form
         onSubmit={handleConfirm}
-        className="relative z-20 mx-auto my-auto grid w-full max-w-7xl items-center gap-6 px-4 py-5 sm:px-8 lg:grid-cols-12"
+        className="relative z-20 mx-auto my-auto grid w-full max-w-7xl items-center gap-5 px-4 py-4 sm:px-8 lg:grid-cols-12"
       >
         {/* LEFT COLUMN: Champion Lore, Stats & Motto Verses */}
         <div className="order-2 space-y-4 lg:order-1 lg:col-span-4">
@@ -228,11 +253,11 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
             <div className="text-xs font-extrabold text-amber-300">
               {activeChampion.codename} • {activeChampion.styleTag}
             </div>
-            <p className="mt-2.5 text-xs leading-relaxed text-slate-300 sm:text-sm">
+            <p className="mt-2 text-xs leading-relaxed text-slate-300 sm:text-sm">
               {activeChampion.description}
             </p>
 
-            {/* MOBA Power Bars */}
+            {/* AAA Power Bars */}
             <div className="mt-4 space-y-2.5 border-t border-amber-500/20 pt-3.5">
               {[
                 {
@@ -288,16 +313,53 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
           </div>
         </div>
 
-        {/* CENTER COLUMN: Giant 3D Champion Splash Showcase + Roster Dock */}
+        {/* CENTER COLUMN: Live 3D Turntable Showcase + Champion & Skin Selectors */}
         <div className="order-1 flex flex-col items-center lg:order-2 lg:col-span-4">
-          <div className="relative">
-            {/* Rotating Arcane Halo behind Champion */}
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 26, repeat: Infinity, ease: "linear" }}
-              className="pointer-events-none absolute -inset-4 rounded-full border border-dashed border-amber-400/35"
-            />
+          {/* 3D Model vs Official Portrait Mode Switcher */}
+          <div className="mb-2.5 inline-flex rounded-full border border-slate-700/80 bg-slate-950/85 p-1 backdrop-blur">
+            <button
+              type="button"
+              onClick={() => {
+                playSfx("click");
+                setViewMode("3d");
+              }}
+              className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-black tracking-wider uppercase transition ${
+                viewMode === "3d"
+                  ? "bg-amber-400 text-slate-950 shadow"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <Box className="h-3 w-3" />
+              Boneco 3D & Emotes
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                playSfx("click");
+                setViewMode("art");
+              }}
+              className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-black tracking-wider uppercase transition ${
+                viewMode === "art"
+                  ? "bg-cyan-400 text-slate-950 shadow"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <ImageIcon className="h-3 w-3" />
+              Arte 3D
+            </button>
+          </div>
 
+          {viewMode === "3d" ? (
+            <div className="w-full max-w-sm">
+              <HeroPreview3D
+                avatarId={selectedAvatar}
+                skinId={previewSkin}
+                agentName={name || activeChampion.name}
+                heightClass="h-72 sm:h-80"
+                showEmoteBar
+              />
+            </div>
+          ) : (
             <AnimatePresence mode="wait">
               <motion.div
                 key={selectedAvatar}
@@ -315,37 +377,37 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
                 />
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent p-3.5 text-center">
                   <span className="rounded-full border border-amber-400/50 bg-amber-500/20 px-3 py-0.5 text-[11px] font-black tracking-widest text-amber-200 uppercase">
-                    CAMPEÃO 3D SELECIONADO
+                    ARTE OFICIAL • {activeChampion.name}
                   </span>
                 </div>
               </motion.div>
             </AnimatePresence>
-          </div>
+          )}
 
           {/* 4 Hexagonal Champion Roster Portraits */}
-          <div className="mt-5 flex items-center justify-center gap-3">
+          <div className="mt-3.5 flex items-center justify-center gap-3">
             {AVATAR_OPTIONS.map((av) => {
               const isSelected = av.id === selectedAvatar;
               return (
                 <motion.button
                   key={av.id}
                   type="button"
-                  whileHover={{ scale: 1.1, y: -4 }}
+                  whileHover={{ scale: 1.1, y: -3 }}
                   whileTap={{ scale: 0.93 }}
                   onClick={() => {
                     playSfx("click");
                     setSelectedAvatar(av.id);
                   }}
-                  className="group flex flex-col items-center focus:outline-none"
+                  className="group flex cursor-pointer flex-col items-center focus:outline-none"
                 >
                   <HeroPortrait
                     avatarId={av.id}
-                    size={isSelected ? 70 : 60}
+                    size={isSelected ? 64 : 54}
                     shape="hex"
                     active={isSelected}
                   />
                   <span
-                    className={`mt-1 text-[11px] font-black uppercase ${
+                    className={`mt-1 text-[10px] font-black uppercase ${
                       isSelected
                         ? "text-amber-300"
                         : "text-slate-400 group-hover:text-white"
@@ -357,15 +419,65 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
               );
             })}
           </div>
+
+          {/* AAA 3D Skin Picker Strip right on Onboarding! */}
+          <div className="mt-3 w-full max-w-sm rounded-2xl border border-amber-400/30 bg-slate-950/85 p-2.5 backdrop-blur">
+            <div className="mb-1.5 flex items-center justify-between px-1">
+              <span className="text-[10px] font-black tracking-wider text-amber-300 uppercase">
+                👕 Skin 3D: {activeSkinMeta.name}
+              </span>
+              {!previewUnlocked && (
+                <span className="text-[9px] font-bold text-cyan-300">
+                  Desbloqueie no jogo ({activeSkinMeta.costWisdom}💎)
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-8">
+              {SKIN_OPTIONS.map((sk) => {
+                const unlocked = isSkinUnlocked(sk.id);
+                const active = previewSkin === sk.id;
+                return (
+                  <motion.button
+                    key={sk.id}
+                    type="button"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.92 }}
+                    onClick={() => {
+                      playSfx("click");
+                      setPreviewSkin(sk.id);
+                      setViewMode("3d");
+                      if (unlocked) {
+                        setSelectedSkin(sk.id);
+                      }
+                    }}
+                    title={`${sk.name} (${sk.rarity})`}
+                    className={`relative flex h-9 cursor-pointer items-center justify-center rounded-xl border bg-gradient-to-br text-base transition ${
+                      sk.gradientClass
+                    } ${
+                      active
+                        ? "border-amber-300 shadow-[0_0_14px_rgba(251,191,36,0.55)]"
+                        : unlocked
+                          ? "border-slate-700 hover:border-cyan-400"
+                          : "border-slate-800 opacity-65"
+                    }`}
+                  >
+                    <span>{sk.badgeEmoji}</span>
+                    {!unlocked && (
+                      <Lock className="absolute right-0.5 bottom-0.5 h-2.5 w-2.5 text-amber-300" />
+                    )}
+                  </motion.button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         {/* RIGHT COLUMN: Summoner Name + Passive Ability Runes + LOCK IN Button */}
         <div className="order-3 space-y-4 lg:col-span-4">
           <div className="moba-panel-gold moba-clip-panel p-5">
-            {/* Summoner / Agent Name */}
             <div>
               <label className="mb-1.5 block text-xs font-black tracking-widest text-amber-300 uppercase">
-                1. Nome de Invocador / Agente
+                1. Nome de Invocador / Equipe
               </label>
               <input
                 type="text"
@@ -386,7 +498,7 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
                         playSfx("click");
                         setName(preset);
                       }}
-                      className="rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 text-[11px] font-bold text-slate-300 transition hover:border-amber-400 hover:text-amber-200"
+                      className="cursor-pointer rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 text-[11px] font-bold text-slate-300 transition hover:border-amber-400 hover:text-amber-200"
                     >
                       {preset}
                     </button>
@@ -395,7 +507,7 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
               </div>
             </div>
 
-            {/* MOBA Passive Skill Runes (Dons) */}
+            {/* Passive Skill Runes */}
             <div className="mt-5">
               <label className="mb-2.5 block text-xs font-black tracking-widest text-cyan-300 uppercase">
                 2. Runa Passiva de Batalha (Dom Inicial)
@@ -414,7 +526,7 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
                         playSfx("click");
                         setSelectedGift(gift.id);
                       }}
-                      className={`flex flex-col items-center rounded-xl border-2 p-2.5 text-center transition ${
+                      className={`flex cursor-pointer flex-col items-center rounded-xl border-2 p-2.5 text-center transition ${
                         active
                           ? "border-amber-300 bg-amber-500/20 text-amber-200 shadow-[0_0_20px_rgba(245,158,11,0.35)]"
                           : "border-slate-800 bg-slate-950/80 text-slate-400 hover:border-slate-600"
@@ -431,7 +543,6 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
                 })}
               </div>
 
-              {/* Active Passive Skill Tooltip Box */}
               <div className="mt-3 rounded-xl border border-cyan-500/35 bg-slate-950/90 p-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-black text-amber-300 uppercase">
@@ -447,8 +558,8 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
               </div>
             </div>
 
-            {/* Giant MOBA LOCK IN Button */}
-            <div className="mt-6">
+            {/* Giant AAA LOCK IN Button */}
+            <div className="mt-5">
               <MobaButton
                 type="submit"
                 variant="gold"
@@ -456,7 +567,7 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
                 shape="hex"
                 className="w-full"
               >
-                ⚔️ CONFIRMAR CAMPEÃO
+                ⚔️ CONFIRMAR CAMPEÃO & SKIN
               </MobaButton>
             </div>
           </div>
@@ -465,8 +576,8 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
 
       {/* BOTTOM TICKER */}
       <footer className="relative z-20 pb-3 text-center font-mono text-[11px] text-slate-400">
-        ARENA 3D INTERATIVA • JUNIORES (9–12) & ADOLESCENTES (13–17) • CLIQUE E
-        JOGUE
+        MUNDO ABERTO 3D • SKINS & ANIMAÇÕES EM TEMPO REAL • JUNIORES &
+        ADOLESCENTES
       </footer>
     </div>
   );

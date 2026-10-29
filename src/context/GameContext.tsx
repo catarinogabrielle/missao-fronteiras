@@ -15,9 +15,14 @@ import {
   GameState,
   GiftId,
   Mission,
+  SkinId,
 } from "@/types/game";
 import { CORE_MISSIONS } from "@/data/missions";
-import { ACHIEVEMENTS } from "@/data/avatarsAndGifts";
+import {
+  ACHIEVEMENTS,
+  DEFAULT_FREE_SKINS,
+  SKIN_OPTIONS,
+} from "@/data/avatarsAndGifts";
 import { soundEngine, SoundEffect } from "@/lib/sound";
 
 const STORAGE_KEY = "missao_fronteiras_chamado_v1";
@@ -25,13 +30,16 @@ const STORAGE_KEY = "missao_fronteiras_chamado_v1";
 const INITIAL_STATE: GameState = {
   agent: null,
   xp: 0,
-  wisdom: 20,
+  wisdom: 25,
   streak: 1,
   lastActiveDate: "",
   missionProgress: {},
   prayedMissionIds: [],
   studiedGospelSteps: [],
   unlockedAchievements: [],
+  unlockedSkins: [...DEFAULT_FREE_SKINS],
+  allSkinsUnlockedByLeader: false,
+  leaderPin: "1234",
   customMissions: [],
   allUnlockedByLeader: false,
   muted: false,
@@ -56,7 +64,20 @@ interface GameContextValue {
   toasts: ToastNotification[];
   dismissToast: (id: string) => void;
   playSfx: (effect: SoundEffect) => void;
-  createAgent: (name: string, avatarId: AvatarId, giftId: GiftId) => void;
+  createAgent: (
+    name: string,
+    avatarId: AvatarId,
+    giftId: GiftId,
+    skinId?: SkinId
+  ) => void;
+  updateAgentAppearance: (updates: {
+    name?: string;
+    avatarId?: AvatarId;
+    giftId?: GiftId;
+    skinId?: SkinId;
+  }) => void;
+  isSkinUnlocked: (skinId: SkinId) => boolean;
+  unlockAndEquipSkin: (skinId: SkinId, forceFree?: boolean) => boolean;
   completeMission: (
     mission: Mission,
     finalTrust: number,
@@ -68,11 +89,16 @@ interface GameContextValue {
   spendWisdom: (amount: number) => boolean;
   addBonusXp: (amount: number, reason?: string) => void;
   grantFieldLoot: (xp: number, wisdom: number) => void;
+  grantLeaderReward: (xp: number, wisdom: number, reason: string) => void;
+  unlockAllAchievementsByLeader: () => void;
   toggleMute: () => void;
   toggleProjectorMode: () => void;
   addCustomMission: (mission: Mission) => void;
+  updateCustomMission: (mission: Mission) => void;
   deleteCustomMission: (missionId: string) => void;
   toggleAllUnlockedByLeader: () => void;
+  toggleAllSkinsUnlockedByLeader: () => void;
+  setLeaderPin: (newPin: string) => void;
   resetStudentProgress: () => void;
   isMissionUnlocked: (mission: Mission) => boolean;
 }
@@ -120,9 +146,26 @@ function loadInitialGameState(): GameState {
         }
       }
 
+      const mergedSkins = Array.from(
+        new Set([
+          ...DEFAULT_FREE_SKINS,
+          ...(Array.isArray(parsed.unlockedSkins) ? parsed.unlockedSkins : []),
+        ])
+      );
+
+      const migratedAgent = parsed.agent
+        ? {
+            ...parsed.agent,
+            skinId: parsed.agent.skinId || ("padrao" as SkinId),
+          }
+        : null;
+
       const merged: GameState = {
         ...INITIAL_STATE,
         ...parsed,
+        agent: migratedAgent,
+        unlockedSkins: mergedSkins,
+        leaderPin: parsed.leaderPin || "1234",
         streak: updatedStreak,
         lastActiveDate: today,
       };
@@ -206,30 +249,147 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     [state.allUnlockedByLeader, state.missionProgress]
   );
 
+  const isSkinUnlocked = useCallback(
+    (skinId: SkinId) => {
+      if (state.allSkinsUnlockedByLeader) return true;
+      const meta = SKIN_OPTIONS.find((s) => s.id === skinId);
+      if (meta && meta.costWisdom === 0) return true;
+      return state.unlockedSkins.includes(skinId);
+    },
+    [state.allSkinsUnlockedByLeader, state.unlockedSkins]
+  );
+
   const createAgent = useCallback(
-    (name: string, avatarId: AvatarId, giftId: GiftId) => {
+    (
+      name: string,
+      avatarId: AvatarId,
+      giftId: GiftId,
+      skinId: SkinId = "padrao"
+    ) => {
       soundEngine.play("levelUp");
-      const bonusWisdom = giftId === "intercessor" ? 50 : 25;
+      const bonusWisdom = giftId === "intercessor" ? 55 : 30;
       const profile: AgentProfile = {
         name: name.trim() || "Agente Ide",
         avatarId,
         giftId,
+        skinId,
         createdAt: new Date().toISOString(),
       };
       setState((prev) => ({
         ...prev,
         agent: profile,
-        wisdom: bonusWisdom,
+        wisdom: Math.max(prev.wisdom, bonusWisdom),
+        unlockedSkins: Array.from(new Set([...prev.unlockedSkins, skinId])),
         streak: Math.max(1, prev.streak),
         lastActiveDate: getTodayIso(),
       }));
       pushToast(
         `Bem-vindo à Base Ide, ${profile.name}!`,
-        "Seu Passaporte Missionário foi emitido.",
+        "Seu Campeão 3D e Passaporte Missionário foram ativados.",
         "🛂"
       );
     },
     [pushToast]
+  );
+
+  const updateAgentAppearance = useCallback(
+    (updates: {
+      name?: string;
+      avatarId?: AvatarId;
+      giftId?: GiftId;
+      skinId?: SkinId;
+    }) => {
+      soundEngine.play("success");
+      setState((prev) => {
+        const current: AgentProfile = prev.agent || {
+          name: "Equipe Ide",
+          avatarId: "lucas",
+          giftId: "acolhedor",
+          skinId: "padrao",
+          createdAt: new Date().toISOString(),
+        };
+        const nextName =
+          updates.name !== undefined
+            ? updates.name.trim() || current.name
+            : current.name;
+        const nextSkin = updates.skinId ?? current.skinId ?? "padrao";
+        return {
+          ...prev,
+          agent: {
+            ...current,
+            name: nextName,
+            avatarId: updates.avatarId ?? current.avatarId,
+            giftId: updates.giftId ?? current.giftId,
+            skinId: nextSkin,
+          },
+          unlockedSkins: Array.from(
+            new Set([...prev.unlockedSkins, nextSkin])
+          ),
+        };
+      });
+    },
+    []
+  );
+
+  const unlockAndEquipSkin = useCallback(
+    (skinId: SkinId, forceFree = false) => {
+      const meta = SKIN_OPTIONS.find((s) => s.id === skinId);
+      if (!meta) return false;
+
+      const alreadyUnlocked =
+        forceFree ||
+        state.allSkinsUnlockedByLeader ||
+        meta.costWisdom === 0 ||
+        state.unlockedSkins.includes(skinId);
+
+      if (alreadyUnlocked) {
+        soundEngine.play("success");
+        setState((prev) => {
+          if (!prev.agent) return prev;
+          return {
+            ...prev,
+            agent: { ...prev.agent, skinId },
+            unlockedSkins: Array.from(new Set([...prev.unlockedSkins, skinId])),
+          };
+        });
+        pushToast(
+          `Skin Equipada: ${meta.name}`,
+          meta.tagline,
+          meta.badgeEmoji
+        );
+        return true;
+      }
+
+      if (state.wisdom < meta.costWisdom) {
+        soundEngine.play("error");
+        pushToast(
+          "Cristais de Sabedoria Insuficientes",
+          `Você precisa de ${meta.costWisdom} 💎 para desbloquear ${meta.name}.`,
+          "💎"
+        );
+        return false;
+      }
+
+      soundEngine.play("levelUp");
+      setState((prev) => ({
+        ...prev,
+        wisdom: Math.max(0, prev.wisdom - meta.costWisdom),
+        unlockedSkins: Array.from(new Set([...prev.unlockedSkins, skinId])),
+        agent: prev.agent ? { ...prev.agent, skinId } : prev.agent,
+      }));
+      pushToast(
+        `Skin ${meta.rarity} Desbloqueada!`,
+        `${meta.name} agora faz parte do seu Arsenal 3D!`,
+        meta.badgeEmoji
+      );
+      return true;
+    },
+    [
+      pushToast,
+      state.allSkinsUnlockedByLeader,
+      state.unlockedSkins,
+      state.wisdom,
+    ]
   );
 
   const completeMission = useCallback(
@@ -305,7 +465,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       newlyUnlocked.forEach((achId) => {
         const meta = ACHIEVEMENTS.find((a) => a.id === achId);
         if (meta) {
-          pushToast(`Medalha Desbloqueada: ${meta.title}`, meta.description, meta.emoji);
+          pushToast(
+            `Medalha Desbloqueada: ${meta.title}`,
+            meta.description,
+            meta.emoji
+          );
         }
       });
 
@@ -431,7 +595,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const spendWisdom = useCallback(
     (amount: number) => {
       if (state.wisdom < amount) return false;
-      setState((prev) => ({ ...prev, wisdom: Math.max(0, prev.wisdom - amount) }));
+      setState((prev) => ({
+        ...prev,
+        wisdom: Math.max(0, prev.wisdom - amount),
+      }));
       return true;
     },
     [state.wisdom]
@@ -476,6 +643,39 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     [pushToast]
   );
 
+  const grantLeaderReward = useCallback(
+    (xpAmount: number, wisdomAmount: number, reason: string) => {
+      soundEngine.play("levelUp");
+      setState((prev) => ({
+        ...prev,
+        xp: Math.max(0, prev.xp + xpAmount),
+        wisdom: Math.max(0, prev.wisdom + wisdomAmount),
+      }));
+      const parts: string[] = [];
+      if (xpAmount > 0) parts.push(`+${xpAmount} XP`);
+      if (wisdomAmount > 0) parts.push(`+${wisdomAmount} 💎`);
+      pushToast(
+        `Bônus do Líder: ${parts.join(" • ")}`,
+        reason,
+        "👑"
+      );
+    },
+    [pushToast]
+  );
+
+  const unlockAllAchievementsByLeader = useCallback(() => {
+    soundEngine.play("levelUp");
+    setState((prev) => ({
+      ...prev,
+      unlockedAchievements: ACHIEVEMENTS.map((a) => a.id),
+    }));
+    pushToast(
+      "Todas as Medalhas Liberadas!",
+      "Ativado pelo Painel do Líder para demonstração ou premiação.",
+      "🏅"
+    );
+  }, [pushToast]);
+
   const toggleMute = useCallback(() => {
     setState((prev) => {
       const nextMuted = !prev.muted;
@@ -498,29 +698,84 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         customMissions: [...prev.customMissions, mission],
       }));
       pushToast(
-        `Nova Missão Criada: ${mission.title}`,
-        "Já disponível no Mapa Global da Base Ide!",
+        `Nova Missão 3D Criada: ${mission.title}`,
+        "Já disponível no Globo 3D e pronta para jogar!",
         "🗺️"
       );
     },
     [pushToast]
   );
 
-  const deleteCustomMission = useCallback((missionId: string) => {
-    soundEngine.play("click");
-    setState((prev) => ({
-      ...prev,
-      customMissions: prev.customMissions.filter((m) => m.id !== missionId),
-    }));
-  }, []);
+  const updateCustomMission = useCallback(
+    (mission: Mission) => {
+      soundEngine.play("success");
+      setState((prev) => ({
+        ...prev,
+        customMissions: prev.customMissions.map((m) =>
+          m.id === mission.id ? mission : m
+        ),
+      }));
+      pushToast(
+        `Missão Atualizada: ${mission.title}`,
+        "Alterações salvas com sucesso no Mapa Global!",
+        "✨"
+      );
+    },
+    [pushToast]
+  );
+
+  const deleteCustomMission = useCallback(
+    (missionId: string) => {
+      soundEngine.play("click");
+      setState((prev) => ({
+        ...prev,
+        customMissions: prev.customMissions.filter((m) => m.id !== missionId),
+      }));
+      pushToast(
+        "Missão Personalizada Removida",
+        "O Mapa Global foi atualizado.",
+        "🗑️"
+      );
+    },
+    [pushToast]
+  );
 
   const toggleAllUnlockedByLeader = useCallback(() => {
     soundEngine.play("click");
+    setState((prev) => {
+      const next = !prev.allUnlockedByLeader;
+      return {
+        ...prev,
+        allUnlockedByLeader: next,
+      };
+    });
+  }, []);
+
+  const toggleAllSkinsUnlockedByLeader = useCallback(() => {
+    soundEngine.play("levelUp");
     setState((prev) => ({
       ...prev,
-      allUnlockedByLeader: !prev.allUnlockedByLeader,
+      allSkinsUnlockedByLeader: !prev.allSkinsUnlockedByLeader,
     }));
   }, []);
+
+  const setLeaderPin = useCallback(
+    (newPin: string) => {
+      const cleaned = newPin.trim();
+      if (cleaned.length < 4) return;
+      soundEngine.play("success");
+      setState((prev) => ({
+        ...prev,
+        leaderPin: cleaned,
+      }));
+      pushToast(
+        "PIN do Líder Atualizado!",
+        `Novo código de segurança configurado (${cleaned.length} dígitos).`,
+        "🔐"
+      );
+    },
+    [pushToast]
+  );
 
   const resetStudentProgress = useCallback(() => {
     soundEngine.play("click");
@@ -528,12 +783,15 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       ...INITIAL_STATE,
       customMissions: prev.customMissions,
       projectorMode: prev.projectorMode,
+      allUnlockedByLeader: prev.allUnlockedByLeader,
+      allSkinsUnlockedByLeader: prev.allSkinsUnlockedByLeader,
+      leaderPin: prev.leaderPin,
       muted: prev.muted,
       lastActiveDate: getTodayIso(),
     }));
     pushToast(
-      "Progresso Reiniciado",
-      "Pronto para uma nova turma ou novo agente!",
+      "Progresso da Turma Reiniciado",
+      "Pronto para cadastrar uma nova equipe ou novo campeão!",
       "🔄"
     );
   }, [pushToast]);
@@ -550,6 +808,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     dismissToast,
     playSfx,
     createAgent,
+    updateAgentAppearance,
+    isSkinUnlocked,
+    unlockAndEquipSkin,
     completeMission,
     acceptSchoolChallenge,
     prayForRegion,
@@ -557,11 +818,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     spendWisdom,
     addBonusXp,
     grantFieldLoot,
+    grantLeaderReward,
+    unlockAllAchievementsByLeader,
     toggleMute,
     toggleProjectorMode,
     addCustomMission,
+    updateCustomMission,
     deleteCustomMission,
     toggleAllUnlockedByLeader,
+    toggleAllSkinsUnlockedByLeader,
+    setLeaderPin,
     resetStudentProgress,
     isMissionUnlocked,
   };

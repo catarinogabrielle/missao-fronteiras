@@ -1,0 +1,417 @@
+"use client";
+
+import React, { useEffect, useRef, useState } from "react";
+import * as THREE from "three";
+import { motion } from "framer-motion";
+import { RotateCw } from "lucide-react";
+import { AvatarId, HeroEmoteType, SkinId } from "@/types/game";
+import { SKIN_OPTIONS } from "@/data/avatarsAndGifts";
+import {
+  animateHumanRig,
+  ArticulatedRig,
+  createPlayableChampion3D,
+} from "@/lib/character3d";
+import { useGame } from "@/context/GameContext";
+
+interface HeroPreview3DProps {
+  avatarId: AvatarId;
+  skinId: SkinId;
+  agentName?: string;
+  heightClass?: string;
+  showEmoteBar?: boolean;
+  compact?: boolean;
+}
+
+const EMOTE_BUTTONS: {
+  id: HeroEmoteType;
+  label: string;
+  emoji: string;
+}[] = [
+  { id: "slash_spin", label: "Giro", emoji: "⚔️" },
+  { id: "victory", label: "Vitória", emoji: "🙌" },
+  { id: "dance", label: "Passinho", emoji: "🕺" },
+  { id: "kneel_pray", label: "Fé", emoji: "🛡️" },
+];
+
+export function HeroPreview3D({
+  avatarId,
+  skinId,
+  agentName = "Agente Ide",
+  heightClass = "h-80 sm:h-96",
+  showEmoteBar = true,
+  compact = false,
+}: HeroPreview3DProps) {
+  const { playSfx } = useGame();
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [activeEmote, setActiveEmote] = useState<HeroEmoteType>("idle");
+
+  const emoteRef = useRef<HeroEmoteType>("idle");
+  const emoteTimerRef = useRef<number>(0);
+  const emoteElapsedRef = useRef<number>(0);
+
+  const heroHolderRef = useRef<THREE.Group | null>(null);
+  const rigRef = useRef<ArticulatedRig | null>(null);
+  const burstRingRef = useRef<THREE.Mesh | null>(null);
+  const burstAgeRef = useRef<number>(99);
+  const accentRingMatRef = useRef<THREE.MeshBasicMaterial | null>(null);
+
+  const skinMeta =
+    SKIN_OPTIONS.find((s) => s.id === skinId) || SKIN_OPTIONS[0];
+
+  const triggerEmote = (emote: HeroEmoteType) => {
+    playSfx(emote === "slash_spin" ? "slash" : emote === "kneel_pray" ? "prayer" : "success");
+    if (emoteRef.current === emote) {
+      emoteRef.current = "idle";
+      setActiveEmote("idle");
+      return;
+    }
+    emoteRef.current = emote;
+    emoteTimerRef.current = 3.6;
+    emoteElapsedRef.current = 0;
+    setActiveEmote(emote);
+  };
+
+  // Mount WebGL Stage Once
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const width = container.clientWidth || 340;
+    const height = container.clientHeight || 360;
+
+    const scene = new THREE.Scene();
+
+    const camera = new THREE.PerspectiveCamera(
+      compact ? 36 : 38,
+      width / height,
+      0.1,
+      50
+    );
+    camera.position.set(0, compact ? 1.48 : 1.45, compact ? 4.35 : 4.55);
+    camera.lookAt(0, 1.15, 0);
+
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true,
+    });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    container.innerHTML = "";
+    container.appendChild(renderer.domElement);
+
+    // AAA 3-Point Studio Lighting
+    const hemi = new THREE.HemisphereLight(0xdbeafe, 0x0f172a, 1.35);
+    scene.add(hemi);
+
+    const keyLight = new THREE.DirectionalLight(0xfffbeb, 2.5);
+    keyLight.position.set(3.5, 6, 4.5);
+    keyLight.castShadow = true;
+    scene.add(keyLight);
+
+    const cyanRim = new THREE.PointLight(0x22d3ee, 3.2, 12);
+    cyanRim.position.set(-3.2, 2.6, -2.5);
+    scene.add(cyanRim);
+
+    const goldRim = new THREE.PointLight(0xfbbf24, 2.8, 12);
+    goldRim.position.set(3.2, 1.4, -2.2);
+    scene.add(goldRim);
+
+    // AAA Holographic Pedestal Base
+    const stageGroup = new THREE.Group();
+    scene.add(stageGroup);
+
+    const podiumBase = new THREE.Mesh(
+      new THREE.CylinderGeometry(1.18, 1.34, 0.16, 40),
+      new THREE.MeshStandardMaterial({
+        color: 0x0b1325,
+        metalness: 0.78,
+        roughness: 0.24,
+      })
+    );
+    podiumBase.position.y = -0.08;
+    podiumBase.receiveShadow = true;
+    stageGroup.add(podiumBase);
+
+    const accentRingMat = new THREE.MeshBasicMaterial({
+      color: 0x34d399,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.85,
+    });
+    accentRingMatRef.current = accentRingMat;
+
+    const outerRuneRing = new THREE.Mesh(
+      new THREE.RingGeometry(1.06, 1.16, 48),
+      accentRingMat
+    );
+    outerRuneRing.rotation.x = -Math.PI / 2;
+    outerRuneRing.position.y = 0.01;
+    stageGroup.add(outerRuneRing);
+
+    const holoGyro = new THREE.Mesh(
+      new THREE.TorusGeometry(1.26, 0.014, 10, 64),
+      new THREE.MeshBasicMaterial({
+        color: 0xfbbf24,
+        transparent: true,
+        opacity: 0.55,
+      })
+    );
+    holoGyro.rotation.x = Math.PI / 2;
+    holoGyro.position.y = 0.04;
+    stageGroup.add(holoGyro);
+
+    // Skin Swap Shockwave Burst Ring
+    const burstRing = new THREE.Mesh(
+      new THREE.RingGeometry(0.35, 0.58, 36),
+      new THREE.MeshBasicMaterial({
+        color: 0xfde047,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0,
+      })
+    );
+    burstRing.rotation.x = -Math.PI / 2;
+    burstRing.position.y = 0.06;
+    stageGroup.add(burstRing);
+    burstRingRef.current = burstRing;
+
+    // Floating Rising Particle Embers (deterministic golden-ratio spiral)
+    const particleCount = 42;
+    const pPositions = new Float32Array(particleCount * 3);
+    const pSpeeds: number[] = [];
+    const frac = (v: number) => v - Math.floor(v);
+    for (let i = 0; i < particleCount; i++) {
+      const ang = frac(i * 0.61803398875) * Math.PI * 2;
+      const rad = 0.45 + frac(i * 0.381966 + 0.17) * 1.15;
+      pPositions[i * 3] = Math.cos(ang) * rad;
+      pPositions[i * 3 + 1] = frac(i * 0.754877 + 0.31) * 2.8;
+      pPositions[i * 3 + 2] = Math.sin(ang) * rad;
+      pSpeeds.push(0.35 + frac(i * 0.56984 + 0.11) * 0.55);
+    }
+    const pGeo = new THREE.BufferGeometry();
+    pGeo.setAttribute("position", new THREE.BufferAttribute(pPositions, 3));
+    const pMat = new THREE.PointsMaterial({
+      color: 0xfde047,
+      size: 0.055,
+      transparent: true,
+      opacity: 0.75,
+    });
+    const particles = new THREE.Points(pGeo, pMat);
+    scene.add(particles);
+
+    // Hero Turntable Holder
+    const heroHolder = new THREE.Group();
+    stageGroup.add(heroHolder);
+    heroHolderRef.current = heroHolder;
+
+    // Drag to Rotate 360° Interaction
+    let isDragging = false;
+    let prevX = 0;
+    let rotVelocity = 0;
+    let manualHoldUntil = 0;
+
+    const dom = renderer.domElement;
+    dom.style.cursor = "grab";
+
+    const onPointerDown = (e: PointerEvent) => {
+      isDragging = true;
+      prevX = e.clientX;
+      dom.style.cursor = "grabbing";
+    };
+    const onPointerMove = (e: PointerEvent) => {
+      if (!isDragging) return;
+      const dx = e.clientX - prevX;
+      prevX = e.clientX;
+      rotVelocity = dx * 0.014;
+      heroHolder.rotation.y += rotVelocity;
+      manualHoldUntil = performance.now() + 2600;
+    };
+    const onPointerUp = () => {
+      isDragging = false;
+      dom.style.cursor = "grab";
+    };
+
+    dom.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+
+    const onResize = () => {
+      if (!container) return;
+      const w = container.clientWidth || 340;
+      const h = container.clientHeight || 360;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    };
+    window.addEventListener("resize", onResize);
+
+    let lastTime = 0;
+    let idleClock = 0;
+    let animId = 0;
+
+    const animate = (now: number) => {
+      animId = requestAnimationFrame(animate);
+      if (lastTime === 0) lastTime = now;
+      const dt = Math.min(0.05, (now - lastTime) / 1000);
+      lastTime = now;
+      idleClock += dt;
+
+      if (!isDragging) {
+        if (Math.abs(rotVelocity) > 0.0005) {
+          heroHolder.rotation.y += rotVelocity;
+          rotVelocity *= 0.92;
+        } else if (now > manualHoldUntil && emoteRef.current === "idle") {
+          heroHolder.rotation.y += dt * 0.42;
+        }
+      }
+
+      holoGyro.rotation.z += dt * 0.7;
+      holoGyro.position.y = 0.06 + Math.sin(idleClock * 2.4) * 0.03;
+
+      // Update Rising Embers
+      const posAttr = pGeo.getAttribute("position") as THREE.BufferAttribute;
+      for (let i = 0; i < particleCount; i++) {
+        let py = posAttr.getY(i) + pSpeeds[i] * dt;
+        if (py > 2.9) py = 0.05;
+        posAttr.setY(i, py);
+      }
+      posAttr.needsUpdate = true;
+
+      // Update Burst Shockwave
+      if (burstAgeRef.current < 0.65 && burstRingRef.current) {
+        burstAgeRef.current += dt;
+        const p = burstAgeRef.current / 0.65;
+        burstRingRef.current.scale.setScalar(1 + p * 2.6);
+        (
+          burstRingRef.current.material as THREE.MeshBasicMaterial
+        ).opacity = Math.max(0, (1 - p) * 0.9);
+      }
+
+      // Emote Countdown
+      if (emoteRef.current !== "idle") {
+        emoteElapsedRef.current += dt;
+        emoteTimerRef.current -= dt;
+        if (emoteTimerRef.current <= 0) {
+          emoteRef.current = "idle";
+          setActiveEmote("idle");
+        }
+      }
+
+      // Animate Articulated 3D Hero
+      if (rigRef.current) {
+        if (rigRef.current.slashArc && emoteRef.current !== "slash_spin") {
+          (
+            rigRef.current.slashArc.material as THREE.MeshBasicMaterial
+          ).opacity = 0;
+        }
+        if (rigRef.current.shieldDome && emoteRef.current !== "kneel_pray") {
+          (
+            rigRef.current.shieldDome.material as THREE.MeshBasicMaterial
+          ).opacity = 0;
+        }
+        animateHumanRig(
+          rigRef.current,
+          0,
+          false,
+          false,
+          0,
+          idleClock,
+          emoteRef.current,
+          emoteElapsedRef.current
+        );
+      }
+
+      renderer.render(scene, camera);
+    };
+
+    animId = requestAnimationFrame(animate);
+
+    return () => {
+      cancelAnimationFrame(animId);
+      dom.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("resize", onResize);
+      renderer.dispose();
+    };
+  }, [compact]);
+
+  // Swap 3D Hero Rig Reactively When Champion or Skin Changes!
+  useEffect(() => {
+    const holder = heroHolderRef.current;
+    if (!holder) return;
+
+    holder.clear();
+    const newRig = createPlayableChampion3D(
+      avatarId,
+      agentName,
+      skinId,
+      false
+    );
+    holder.add(newRig.root);
+    rigRef.current = newRig;
+
+    // Trigger Golden/Neon Equip Burst VFX
+    burstAgeRef.current = 0;
+    const hexColor = new THREE.Color(skinMeta.accentHex);
+    if (accentRingMatRef.current) {
+      accentRingMatRef.current.color.copy(hexColor);
+    }
+    if (burstRingRef.current) {
+      (
+        burstRingRef.current.material as THREE.MeshBasicMaterial
+      ).color.copy(hexColor);
+    }
+  }, [avatarId, skinId, agentName, skinMeta.accentHex]);
+
+  return (
+    <div
+      className={`relative w-full overflow-hidden rounded-3xl border border-amber-400/45 bg-gradient-to-b from-slate-900/90 via-[#071124] to-slate-950 shadow-[0_0_45px_rgba(6,182,212,0.18)] select-none ${heightClass}`}
+    >
+      {/* Top Rarity & Drag Hint Pill */}
+      <div className="pointer-events-none absolute top-2.5 right-3 left-3 z-10 flex items-center justify-between gap-2">
+        <span
+          className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-slate-950/80 px-2.5 py-0.5 text-[10px] font-black tracking-widest uppercase backdrop-blur"
+          style={{ color: skinMeta.accentHex }}
+        >
+          {skinMeta.badgeEmoji} {skinMeta.rarity}
+        </span>
+
+        <span className="inline-flex items-center gap-1 rounded-full border border-slate-700/80 bg-slate-950/75 px-2 py-0.5 font-mono text-[9px] font-bold text-slate-300 backdrop-blur">
+          <RotateCw className="h-2.5 w-2.5 text-cyan-300" />
+          GIRE 360°
+        </span>
+      </div>
+
+      {/* Live WebGL 3D Canvas */}
+      <div ref={containerRef} className="h-full w-full" />
+
+      {/* Bottom Interactive AAA Emote Animation Bar */}
+      {showEmoteBar && (
+        <div className="absolute right-2.5 bottom-2.5 left-2.5 z-10 flex items-center justify-center gap-1.5">
+          {EMOTE_BUTTONS.map((em) => {
+            const isPlaying = activeEmote === em.id;
+            return (
+              <motion.button
+                key={em.id}
+                type="button"
+                whileHover={{ scale: 1.07, y: -2 }}
+                whileTap={{ scale: 0.93 }}
+                onClick={() => triggerEmote(em.id)}
+                className={`inline-flex cursor-pointer items-center gap-1 rounded-xl border px-2.5 py-1.5 text-[10px] font-black tracking-wide uppercase backdrop-blur-md transition ${
+                  isPlaying
+                    ? "border-amber-300 bg-amber-400/25 text-amber-200 shadow-[0_0_16px_rgba(251,191,36,0.45)]"
+                    : "border-slate-700/85 bg-slate-950/80 text-slate-200 hover:border-cyan-400/70 hover:text-white"
+                }`}
+              >
+                <span>{em.emoji}</span>
+                <span>{em.label}</span>
+              </motion.button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}

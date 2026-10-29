@@ -1,4 +1,100 @@
-import { Achievement, AvatarOption, GiftOption } from "@/types/game";
+import {
+  Achievement,
+  AvatarOption,
+  GiftOption,
+  SkinId,
+  SkinOption,
+} from "@/types/game";
+
+export const DEFAULT_FREE_SKINS: SkinId[] = [
+  "padrao",
+  "cyber_neon",
+  "explorador_selva",
+  "street_gta",
+];
+
+export const SKIN_OPTIONS: SkinOption[] = [
+  {
+    id: "padrao",
+    name: "Agente Tático Ide",
+    rarity: "CLÁSSICA",
+    costWisdom: 0,
+    tagline: "Traje oficial de campo da Base Ide com mochila e lâmina de luz.",
+    accentHex: "#34d399",
+    badgeEmoji: "🛡️",
+    gradientClass: "from-slate-700 via-emerald-900/60 to-slate-900",
+  },
+  {
+    id: "cyber_neon",
+    name: "Cyber Neon Tóquio",
+    rarity: "ÉPICA",
+    costWisdom: 0,
+    tagline: "Jaqueta obsidiana futurista, viseira LED holográfica e plasma ciano.",
+    accentHex: "#22d3ee",
+    badgeEmoji: "⚡",
+    gradientClass: "from-cyan-500/35 via-sky-900/60 to-slate-950",
+  },
+  {
+    id: "explorador_selva",
+    name: "Guardião da Floresta",
+    rarity: "ÉPICA",
+    costWisdom: 0,
+    tagline: "Visual expedicionário amazônico com chapéu tático e aura esmeralda.",
+    accentHex: "#10b981",
+    badgeEmoji: "🌿",
+    gradientClass: "from-emerald-500/35 via-teal-900/60 to-slate-950",
+  },
+  {
+    id: "street_gta",
+    name: "Lenda Streetwear",
+    rarity: "ÉPICA",
+    costWisdom: 0,
+    tagline: "Jaqueta bomber urbana roxa & ouro, headphones neon e tênis especiais.",
+    accentHex: "#c084fc",
+    badgeEmoji: "🎧",
+    gradientClass: "from-violet-500/35 via-fuchsia-900/50 to-slate-950",
+  },
+  {
+    id: "deserto_1040",
+    name: "Nômade da Janela 10/40",
+    rarity: "ÉPICA",
+    costWisdom: 30,
+    tagline: "Manto areia dourada & turquesa real com capuz e capa de viagem.",
+    accentHex: "#f59e0b",
+    badgeEmoji: "🏜️",
+    gradientClass: "from-amber-500/35 via-orange-950/60 to-slate-950",
+  },
+  {
+    id: "embaixador_ouro",
+    name: "Embaixador Real Dourado",
+    rarity: "LENDÁRIA",
+    costWisdom: 45,
+    tagline: "Armadura branca imperial & ouro 24k, coroa real, capa e Espada Solar!",
+    accentHex: "#fbbf24",
+    badgeEmoji: "👑",
+    gradientClass: "from-amber-300/40 via-yellow-800/55 to-slate-950",
+  },
+  {
+    id: "sentinela_fogo",
+    name: "Chama do Avivamento",
+    rarity: "LENDÁRIA",
+    costWisdom: 60,
+    tagline: "Armadura carmesim vulcânica, ombreiras de fogo, capa rubi e Lâmina Ígnea!",
+    accentHex: "#fb7185",
+    badgeEmoji: "🔥",
+    gradientClass: "from-rose-500/45 via-orange-900/60 to-slate-950",
+  },
+  {
+    id: "celestial_mitico",
+    name: "Arcanjo Cyber Celestial",
+    rarity: "MÍTICA",
+    costWisdom: 85,
+    tagline: "Armadura platina estelar, asas holográficas de luz, halo giratório e Lâmina Astral!",
+    accentHex: "#38bdf8",
+    badgeEmoji: "🪽",
+    gradientClass: "from-cyan-300/45 via-indigo-800/65 to-fuchsia-950",
+  },
+];
 
 export const AVATAR_OPTIONS: AvatarOption[] = [
   {

@@ -2,7 +2,8 @@
 
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
-import { AvatarId, Mission } from "@/types/game";
+import { AvatarId, HeroEmoteType, Mission, SkinId } from "@/types/game";
+import { resolveMissionBiome } from "@/lib/assets";
 import { soundEngine } from "@/lib/sound";
 import {
   createBuildingFacadeTexture,
@@ -38,7 +39,11 @@ export type CombatActionType =
   | "vehicle"
   | "nitro"
   | "camera"
-  | "interact";
+  | "interact"
+  | "emoteSlash"
+  | "emoteVictory"
+  | "emoteDance"
+  | "emotePray";
 
 export interface CombatTrigger {
   id: number;
@@ -95,6 +100,7 @@ export interface WorldHudSnapshot {
   totalEnemies: number;
   bossDefeated: boolean;
   bossHpPct: number;
+  bossNear?: boolean;
   helpedPersonIds: string[];
   activatedTowerIds: string[];
   totalTowers: number;
@@ -120,6 +126,7 @@ export const WORLD_LANDMARKS = {
 interface MobaGtaWorld3DProps {
   mission: Mission;
   avatarId: AvatarId;
+  skinId: SkinId;
   agentName: string;
   dialogueCompleted: boolean;
   helpedPersonIds: string[];
@@ -140,6 +147,7 @@ interface MobaGtaWorld3DProps {
 export function MobaGtaWorld3D({
   mission,
   avatarId,
+  skinId,
   agentName,
   dialogueCompleted,
   helpedPersonIds,
@@ -157,6 +165,11 @@ export function MobaGtaWorld3D({
   onEarnRewards,
 }: MobaGtaWorld3DProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const heroHolderRef = useRef<THREE.Group | null>(null);
+  const heroRigRef = useRef<ArticulatedRig | null>(null);
+  const avatarIdRef = useRef(avatarId);
+  const skinIdRef = useRef(skinId);
+  const agentNameRef = useRef(agentName);
 
   const pausedRef = useRef(paused);
   const dialogueDoneRef = useRef(dialogueCompleted);
@@ -221,18 +234,38 @@ export function MobaGtaWorld3D({
     triggerActionFnRef.current?.(combatTrigger.action);
   }, [combatTrigger]);
 
+  // Live reactive 3D Champion & Skin Swapper (zero mission reset!)
+  useEffect(() => {
+    avatarIdRef.current = avatarId;
+    skinIdRef.current = skinId;
+    agentNameRef.current = agentName;
+
+    const holder = heroHolderRef.current;
+    if (!holder) return;
+    holder.clear();
+    const updatedRig = createPlayableChampion3D(
+      avatarId,
+      agentName,
+      skinId,
+      true
+    );
+    holder.add(updatedRig.root);
+    heroRigRef.current = updatedRig;
+  }, [avatarId, skinId, agentName]);
+
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    const worldCfg = getOpenWorldConfig(mission.id);
+    const resolvedBiome = resolveMissionBiome(mission.id, mission.biomeId);
+    const worldCfg = getOpenWorldConfig(mission.id, mission.biomeId);
     const width = container.clientWidth || window.innerWidth;
     const height = container.clientHeight || window.innerHeight;
 
     const scene = new THREE.Scene();
 
     const palette = (() => {
-      switch (mission.id) {
+      switch (resolvedBiome) {
         case "amazonia":
           return {
             fog: 0x164e63,
@@ -300,7 +333,7 @@ export function MobaGtaWorld3D({
     container.appendChild(renderer.domElement);
 
     // --- 360° PROCEDURAL REALISTIC SKY DOME ---
-    const skyTex = createSkyDomeTexture(mission.id);
+    const skyTex = createSkyDomeTexture(resolvedBiome);
     const skyDome = new THREE.Mesh(
       new THREE.SphereGeometry(210, 32, 20),
       new THREE.MeshBasicMaterial({
@@ -329,7 +362,7 @@ export function MobaGtaWorld3D({
     scene.add(sun);
 
     // --- MASSIVE 220 x 220 OPEN-WORLD TERRAIN ---
-    const terrainTex = createTerrainTexture(mission.id);
+    const terrainTex = createTerrainTexture(resolvedBiome);
     const groundMesh = new THREE.Mesh(
       new THREE.PlaneGeometry(230, 230),
       new THREE.MeshStandardMaterial({ map: terrainTex, roughness: 0.88 })
@@ -339,7 +372,7 @@ export function MobaGtaWorld3D({
     scene.add(groundMesh);
 
     // --- FULL GTA URBAN GRID: 3 N-S AVENUES x 4 E-W AVENUES + ZEBRA CROSSWALKS ---
-    const roadTexNS = createRoadTexture(mission.id);
+    const roadTexNS = createRoadTexture(resolvedBiome);
     const roadMatNS = new THREE.MeshStandardMaterial({
       map: roadTexNS,
       roughness: 0.65,
@@ -396,7 +429,7 @@ export function MobaGtaWorld3D({
         scene.add(cw);
 
         // GTA Traffic Light at intersection corners
-        if (mission.id !== "amazonia" && (ix === 0 || zIdx % 2 === 0)) {
+        if (resolvedBiome !== "amazonia" && (ix === 0 || zIdx % 2 === 0)) {
           const tlGroup = new THREE.Group();
           tlGroup.position.set(ix + 6.4, 0, iz - 6.4);
 
@@ -440,7 +473,7 @@ export function MobaGtaWorld3D({
     });
 
     // --- RAISED CONCRETE / TILED SIDEWALK CITY BLOCKS ---
-    const sidewalkTex = createSidewalkTexture(mission.id);
+    const sidewalkTex = createSidewalkTexture(resolvedBiome);
     const sidewalkMat = new THREE.MeshStandardMaterial({
       map: sidewalkTex,
       roughness: 0.72,
@@ -452,7 +485,7 @@ export function MobaGtaWorld3D({
     blockColumns.forEach((bx) => {
       blockRows.forEach((bz) => {
         // Leave river corridor open in Amazonia around z = 27..36? River is at z=27, so shrink z=36 sidewalk slightly
-        if (mission.id === "amazonia" && bz === 36) return;
+        if (resolvedBiome === "amazonia" && bz === 36) return;
         const swW = Math.abs(bx) > 50 ? 28 : 31;
         const swD = 22;
         const sw = new THREE.Mesh(
@@ -533,7 +566,7 @@ export function MobaGtaWorld3D({
     );
     const facade2 = createBuildingFacadeTexture(
       palette.bldgBase2,
-      mission.id === "toquio" ? "#f472b6" : "#38bdf8",
+      resolvedBiome === "toquio" ? "#f472b6" : "#38bdf8",
       palette.modern
     );
 
@@ -655,7 +688,7 @@ export function MobaGtaWorld3D({
           );
           spire.position.set(bw * 0.25, bh + 2.5, 0);
           bGroup.add(spire);
-        } else if (mission.id === "janela1040") {
+        } else if (resolvedBiome === "janela1040") {
           // Sandstone Rooftop Dome & Ornate Arch Trim
           const dome = new THREE.Mesh(
             new THREE.SphereGeometry(
@@ -675,7 +708,7 @@ export function MobaGtaWorld3D({
           );
           dome.position.y = bh + 0.4;
           bGroup.add(dome);
-        } else if (mission.id === "amazonia") {
+        } else if (resolvedBiome === "amazonia") {
           // Timber Pitched Roof + Wooden Stilt Pillars
           const roof = new THREE.Mesh(
             new THREE.ConeGeometry(bw * 0.72, 2.8, 4),
@@ -712,7 +745,7 @@ export function MobaGtaWorld3D({
       limit: number;
     }[] = [];
 
-    if (mission.id === "amazonia") {
+    if (resolvedBiome === "amazonia") {
       const river = new THREE.Mesh(
         new THREE.PlaneGeometry(230, 9.2),
         new THREE.MeshStandardMaterial({
@@ -1345,17 +1378,42 @@ export function MobaGtaWorld3D({
       };
     });
 
-    // --- PLAYABLE HERO + GPS ARROW + WAYPOINT SKY BEAM ---
-    const heroRig = createPlayableChampion3D(avatarId, agentName);
+    // --- PLAYABLE HERO + LIVE SKIN HOLDER + GPS ARROW + WAYPOINT SKY BEAM ---
+    const heroHolder = new THREE.Group();
+    const initialRig = createPlayableChampion3D(
+      avatarIdRef.current,
+      agentNameRef.current,
+      skinIdRef.current,
+      true
+    );
+    heroHolder.add(initialRig.root);
+    heroHolderRef.current = heroHolder;
+    heroRigRef.current = initialRig;
+
     const heroPos = new THREE.Vector3(
       WORLD_LANDMARKS.spawn.x,
       0,
       WORLD_LANDMARKS.spawn.z
     );
     let heroAngle = Math.PI;
-    heroRig.root.position.copy(heroPos);
-    heroRig.root.rotation.y = heroAngle;
-    scene.add(heroRig.root);
+    heroHolder.position.copy(heroPos);
+    heroHolder.rotation.y = heroAngle;
+    scene.add(heroHolder);
+
+    // AAA Boss Telegraphed Ground AoE Shockwave Ring
+    const bossAoeRing = new THREE.Mesh(
+      new THREE.RingGeometry(0.6, 6.2, 36),
+      new THREE.MeshBasicMaterial({
+        color: 0xf43f5e,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0,
+      })
+    );
+    bossAoeRing.rotation.x = -Math.PI / 2;
+    bossAoeRing.position.set(WORLD_LANDMARKS.boss.x, 0.14, WORLD_LANDMARKS.boss.z);
+    scene.add(bossAoeRing);
+    let bossAoeCharge = 0;
 
     // 3D GTA GPS Arrow at feet
     const gpsPivot = new THREE.Group();
@@ -1425,6 +1483,9 @@ export function MobaGtaWorld3D({
     let dashTimer = 0;
     let dashDirX = 0;
     let dashDirZ = 0;
+    let activeEmote: HeroEmoteType = "idle";
+    let emoteTimer = 0;
+    let emoteElapsed = 0;
     const cooldowns = { q: 0, w: 0, e: 0, r: 0 };
     let currentNearby: NearbyInteractionInfo | null = null;
 
@@ -1520,6 +1581,41 @@ export function MobaGtaWorld3D({
     // --- ACTION DISPATCHER ---
     const performAction = (action: CombatActionType) => {
       if (pausedRef.current) return;
+
+      if (
+        action === "emoteSlash" ||
+        action === "emoteVictory" ||
+        action === "emoteDance" ||
+        action === "emotePray"
+      ) {
+        if (activeVehicle) dismountVehicle();
+        const mapEmote: Record<string, { type: HeroEmoteType; msg: string; col: string }> = {
+          emoteSlash: { type: "slash_spin", msg: "⚔️ GIRO HEROICO!", col: "#38bdf8" },
+          emoteVictory: { type: "victory", msg: "🙌 VITÓRIA & LOUVOR!", col: "#fbbf24" },
+          emoteDance: { type: "dance", msg: "🕺 PASSINHO STREET!", col: "#c084fc" },
+          emotePray: { type: "kneel_pray", msg: "🛡️ POSTURA DE FÉ!", col: "#34d399" },
+        };
+        const chosen = mapEmote[action];
+        soundEngine.play(action === "emoteSlash" ? "slash" : action === "emotePray" ? "prayer" : "success");
+        activeEmote = chosen.type;
+        emoteTimer = 3.4;
+        emoteElapsed = 0;
+        emitPopup(chosen.msg, chosen.col);
+
+        const emoteWave = new THREE.Mesh(
+          new THREE.RingGeometry(0.45, 1.1, 28),
+          new THREE.MeshBasicMaterial({
+            color: chosen.col,
+            side: THREE.DoubleSide,
+            transparent: true,
+          })
+        );
+        emoteWave.rotation.x = -Math.PI / 2;
+        emoteWave.position.set(heroPos.x, 0.16, heroPos.z);
+        scene.add(emoteWave);
+        vfxList.push({ mesh: emoteWave, age: 0, duration: 0.7, maxScale: 3.4 });
+        return;
+      }
 
       if (action === "camera") {
         soundEngine.play("click");
@@ -1738,6 +1834,17 @@ export function MobaGtaWorld3D({
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (pausedRef.current) return;
+      const activeEl = document.activeElement;
+      if (
+        activeEl &&
+        (activeEl.tagName === "INPUT" ||
+          activeEl.tagName === "TEXTAREA" ||
+          activeEl.tagName === "SELECT" ||
+          (activeEl as HTMLElement).isContentEditable)
+      ) {
+        return;
+      }
+
       const k = e.key.toLowerCase();
       keys[k] = true;
 
@@ -1752,6 +1859,14 @@ export function MobaGtaWorld3D({
         performAction("skillE");
       } else if (k === "4" || k === "r") {
         performAction("skillR");
+      } else if (k === "5") {
+        performAction("emoteSlash");
+      } else if (k === "6") {
+        performAction("emoteVictory");
+      } else if (k === "7") {
+        performAction("emoteDance");
+      } else if (k === "8") {
+        performAction("emotePray");
       } else if (k === "v") {
         performAction("vehicle");
       } else if (k === "shift") {
@@ -1866,7 +1981,7 @@ export function MobaGtaWorld3D({
           }
         }
       }
-      if (mission.id === "amazonia" && !activeVehicle) {
+      if (resolvedBiome === "amazonia" && !activeVehicle) {
         if (Math.abs(rz - 27) < 4.2) {
           const onBridge =
             Math.abs(rx) < 6.0 ||
@@ -1888,6 +2003,7 @@ export function MobaGtaWorld3D({
     let lastTime = performance.now();
     let lastHudSync = 0;
     let walkCycle = 0;
+    let idleClock = 0;
 
     const animate = (now: number) => {
       animId = requestAnimationFrame(animate);
@@ -1930,6 +2046,7 @@ export function MobaGtaWorld3D({
       });
 
       if (!pausedRef.current) {
+        idleClock += dt;
         cooldowns.q = Math.max(0, cooldowns.q - dt);
         cooldowns.w = Math.max(0, cooldowns.w - dt);
         cooldowns.e = Math.max(0, cooldowns.e - dt);
@@ -1943,6 +2060,13 @@ export function MobaGtaWorld3D({
         }
         if (attackAnimTimer > 0) attackAnimTimer -= dt;
         if (shieldTimer > 0) shieldTimer -= dt;
+        if (emoteTimer > 0) {
+          emoteTimer = Math.max(0, emoteTimer - dt);
+          emoteElapsed += dt;
+          if (emoteTimer <= 0) {
+            activeEmote = "idle";
+          }
+        }
 
         // Timed GTA Checkpoint Express Race Logic!
         if (raceActive) {
@@ -2093,9 +2217,9 @@ export function MobaGtaWorld3D({
           });
         }
 
-        // Sync Hero & Active Vehicle Transforms + Realistic Knee-Bending Animations!
-        heroRig.root.position.copy(heroPos);
-        heroRig.root.rotation.y = heroAngle;
+        // Sync Hero & Active Vehicle Transforms + Realistic Knee-Bending & Emote Animations!
+        heroHolder.position.copy(heroPos);
+        heroHolder.rotation.y = heroAngle;
 
         if (activeVehicle) {
           activeVehicle.x = heroPos.x;
@@ -2110,33 +2234,46 @@ export function MobaGtaWorld3D({
           }
         }
 
-        if (isMoving && !activeVehicle) {
-          walkCycle += dt * 13.5;
-        }
-        animateHumanRig(
-          heroRig,
-          walkCycle,
-          isMoving,
-          Boolean(activeVehicle),
-          attackAnimTimer
-        );
-
-        // Sword Slash Arc & Shield Dome
-        if (heroRig.slashArc) {
-          if (attackAnimTimer > 0) {
-            heroRig.rightArmPivot.rotation.x = -1.4 + attackAnimTimer * 4;
-            heroRig.slashArc.rotation.z += dt * 18;
-            (heroRig.slashArc.material as THREE.MeshBasicMaterial).opacity =
-              Math.min(0.9, attackAnimTimer * 4);
-          } else {
-            (heroRig.slashArc.material as THREE.MeshBasicMaterial).opacity = 0;
+        if (isMoving) {
+          if (activeEmote !== "idle") {
+            activeEmote = "idle";
+            emoteTimer = 0;
+          }
+          if (!activeVehicle) {
+            walkCycle += dt * 13.5;
           }
         }
 
-        if (heroRig.shieldDome) {
-          heroRig.shieldDome.rotation.y += dt * 2.5;
-          (heroRig.shieldDome.material as THREE.MeshBasicMaterial).opacity =
-            shieldTimer > 0 ? 0.42 : 0;
+        const currentRig = heroRigRef.current;
+        if (currentRig) {
+          animateHumanRig(
+            currentRig,
+            walkCycle,
+            isMoving,
+            Boolean(activeVehicle),
+            attackAnimTimer,
+            idleClock,
+            activeEmote,
+            emoteElapsed
+          );
+
+          // Sword Slash Arc & Shield Dome
+          if (currentRig.slashArc) {
+            if (attackAnimTimer > 0) {
+              currentRig.rightArmPivot.rotation.x = -1.4 + attackAnimTimer * 4;
+              currentRig.slashArc.rotation.z += dt * 18;
+              (currentRig.slashArc.material as THREE.MeshBasicMaterial).opacity =
+                Math.min(0.9, attackAnimTimer * 4);
+            } else {
+              (currentRig.slashArc.material as THREE.MeshBasicMaterial).opacity = 0;
+            }
+          }
+
+          if (currentRig.shieldDome) {
+            currentRig.shieldDome.rotation.y += dt * 2.5;
+            (currentRig.shieldDome.material as THREE.MeshBasicMaterial).opacity =
+              shieldTimer > 0 ? 0.42 : 0;
+          }
         }
 
         // GPS Arrow & Destination Sky Beam (locks onto Race Checkpoint during active race!)
@@ -2295,6 +2432,64 @@ export function MobaGtaWorld3D({
           en.rig.rightArmPivot.rotation.x *= 0.9;
           en.rig.root.position.set(en.x, 0, en.z);
         });
+
+        // AAA District Shadow Boss Telegraphed Ground AoE Shockwave!
+        const liveBoss = enemies.find((e) => e.isBoss && !e.dead);
+        if (
+          liveBoss &&
+          Math.hypot(heroPos.x - liveBoss.x, heroPos.z - liveBoss.z) < 16
+        ) {
+          bossAoeRing.position.set(liveBoss.x, 0.14, liveBoss.z);
+          bossAoeCharge += dt * 0.42;
+          bossAoeRing.scale.setScalar(0.35 + bossAoeCharge * 0.72);
+          (bossAoeRing.material as THREE.MeshBasicMaterial).opacity = Math.min(
+            0.65,
+            bossAoeCharge * 0.68
+          );
+          if (bossAoeCharge >= 1.0) {
+            bossAoeCharge = 0;
+            const slamRing = new THREE.Mesh(
+              new THREE.RingGeometry(0.8, 2.2, 32),
+              new THREE.MeshBasicMaterial({
+                color: 0xe879f9,
+                side: THREE.DoubleSide,
+                transparent: true,
+              })
+            );
+            slamRing.rotation.x = -Math.PI / 2;
+            slamRing.position.set(liveBoss.x, 0.25, liveBoss.z);
+            scene.add(slamRing);
+            vfxList.push({
+              mesh: slamRing,
+              age: 0,
+              duration: 0.65,
+              maxScale: 3.4,
+            });
+            if (
+              Math.hypot(heroPos.x - liveBoss.x, heroPos.z - liveBoss.z) < 6.4
+            ) {
+              if (shieldTimer <= 0) {
+                hp = Math.max(0, hp - 20);
+                soundEngine.play("error");
+                emitPopup("💥 ONDA SOMBRIA -20 HP!", "#f43f5e");
+                if (hp <= 0) {
+                  hp = maxHp;
+                  heroPos.set(
+                    WORLD_LANDMARKS.spawn.x,
+                    0,
+                    WORLD_LANDMARKS.spawn.z
+                  );
+                  emitPopup("✨ RESTAURADO NA BASE IDE!", "#38bdf8");
+                }
+              } else {
+                emitPopup("🛡️ ONDA DO CHEFE BLOQUEADA!", "#fde047");
+              }
+            }
+          }
+        } else {
+          bossAoeCharge = 0;
+          (bossAoeRing.material as THREE.MeshBasicMaterial).opacity = 0;
+        }
 
         // Detect Contextual Nearby Interaction
         let foundNearby: NearbyInteractionInfo | null = null;
@@ -2508,6 +2703,11 @@ export function MobaGtaWorld3D({
           totalEnemies: enemies.length,
           bossDefeated: Boolean(boss?.dead),
           bossHpPct: boss ? Math.round((boss.hp / boss.maxHp) * 100) : 0,
+          bossNear: Boolean(
+            boss &&
+              !boss.dead &&
+              Math.hypot(heroPos.x - boss.x, heroPos.z - boss.z) < 34
+          ),
           helpedPersonIds: helpedIdsRef.current,
           activatedTowerIds: towerIdsRef.current,
           totalTowers: radioTowerObjs.length,
@@ -2529,6 +2729,8 @@ export function MobaGtaWorld3D({
 
     return () => {
       cancelAnimationFrame(animId);
+      heroHolderRef.current = null;
+      heroRigRef.current = null;
       dom.removeEventListener("pointerdown", onPointerDown);
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);
@@ -2537,7 +2739,13 @@ export function MobaGtaWorld3D({
       window.removeEventListener("resize", onResize);
       renderer.dispose();
     };
-  }, [mission.id, mission.npc.avatarKey, mission.npc.id, mission.npc.name, avatarId, agentName]);
+  }, [
+    mission.id,
+    mission.biomeId,
+    mission.npc.avatarKey,
+    mission.npc.id,
+    mission.npc.name,
+  ]);
 
   return (
     <div
