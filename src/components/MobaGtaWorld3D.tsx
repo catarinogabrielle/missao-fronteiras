@@ -6,20 +6,27 @@ import { AvatarId, Mission } from "@/types/game";
 import { soundEngine } from "@/lib/sound";
 import {
   createBuildingFacadeTexture,
+  createCrosswalkTexture,
   createRoadTexture,
+  createSidewalkTexture,
+  createSkyDomeTexture,
+  createStoreSignTexture,
   createTerrainTexture,
 } from "@/lib/textures3d";
 import {
+  animateHumanRig,
   ArticulatedRig,
   buildStylizedHumanRig,
+  createGtaVehicle3D,
   createNameplateSprite,
   createPlayableChampion3D,
   createShadowEnemyRig,
-  createTacticalVehicle3D,
 } from "@/lib/character3d";
 import {
   getOpenWorldConfig,
+  RadioTowerMission,
   StreetPersonQuest,
+  VehicleSpawnConfig,
 } from "@/lib/worldData";
 
 export type CombatActionType =
@@ -29,6 +36,8 @@ export type CombatActionType =
   | "skillE"
   | "skillR"
   | "vehicle"
+  | "nitro"
+  | "camera"
   | "interact";
 
 export interface CombatTrigger {
@@ -45,15 +54,26 @@ export interface WorldFloatingPopup {
 export interface RadarEntityDot {
   x: number;
   z: number;
-  kind: "enemy" | "boss" | "person" | "mainNpc" | "scroll" | "nexus" | "totem";
+  kind:
+    | "enemy"
+    | "boss"
+    | "person"
+    | "tower"
+    | "race"
+    | "vehicle"
+    | "mainNpc"
+    | "scroll"
+    | "nexus"
+    | "totem";
   done?: boolean;
 }
 
 export interface NearbyInteractionInfo {
-  kind: "mainNpc" | "person" | "totem" | "nexus";
+  kind: "mainNpc" | "person" | "totem" | "nexus" | "tower" | "race";
   id: string;
   label: string;
   person?: StreetPersonQuest;
+  tower?: RadioTowerMission;
 }
 
 export interface WorldHudSnapshot {
@@ -63,6 +83,9 @@ export interface WorldHudSnapshot {
   hp: number;
   maxHp: number;
   inVehicle: boolean;
+  activeVehicleName: string;
+  cameraMode: "gta" | "moba";
+  nitroCooldown: number;
   score: number;
   combo: number;
   suppliesHeld: number;
@@ -73,17 +96,25 @@ export interface WorldHudSnapshot {
   bossDefeated: boolean;
   bossHpPct: number;
   helpedPersonIds: string[];
+  activatedTowerIds: string[];
+  totalTowers: number;
+  raceActive: boolean;
+  raceCompleted: boolean;
+  raceTimeLeft: number;
+  raceCheckpointIdx: number;
+  raceTotalCheckpoints: number;
   cooldowns: { q: number; w: number; e: number; r: number };
   nearby: NearbyInteractionInfo | null;
   dots: RadarEntityDot[];
 }
 
 export const WORLD_LANDMARKS = {
-  spawn: { x: 0, z: 52 },
-  totem: { x: -11, z: 38 },
+  spawn: { x: 0, z: 68 },
+  totem: { x: -12, z: 54 },
+  raceStart: { x: 18, z: 54 },
   mainNpc: { x: 0, z: 0 },
-  boss: { x: 0, z: -36 },
-  nexus: { x: 0, z: -56 },
+  boss: { x: 0, z: -42 },
+  nexus: { x: 0, z: -74 },
 };
 
 interface MobaGtaWorld3DProps {
@@ -92,6 +123,8 @@ interface MobaGtaWorld3DProps {
   agentName: string;
   dialogueCompleted: boolean;
   helpedPersonIds: string[];
+  activatedTowerIds: string[];
+  raceCompleted: boolean;
   paused: boolean;
   joystickVec: { x: number; y: number };
   combatTrigger: CombatTrigger | null;
@@ -99,6 +132,8 @@ interface MobaGtaWorld3DProps {
   onHudUpdate: (snap: WorldHudSnapshot) => void;
   onPopup: (popup: WorldFloatingPopup) => void;
   onInteractTrigger: (info: NearbyInteractionInfo, suppliesHeld: number) => boolean;
+  onTowerActivated: (tower: RadioTowerMission) => void;
+  onRaceCompleted: () => void;
   onEarnRewards: (xp: number, wisdom: number) => void;
 }
 
@@ -108,6 +143,8 @@ export function MobaGtaWorld3D({
   agentName,
   dialogueCompleted,
   helpedPersonIds,
+  activatedTowerIds,
+  raceCompleted,
   paused,
   joystickVec,
   combatTrigger,
@@ -115,22 +152,26 @@ export function MobaGtaWorld3D({
   onHudUpdate,
   onPopup,
   onInteractTrigger,
+  onTowerActivated,
+  onRaceCompleted,
   onEarnRewards,
 }: MobaGtaWorld3DProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // Live synced refs for 60fps WebGL loop
   const pausedRef = useRef(paused);
   const dialogueDoneRef = useRef(dialogueCompleted);
   const helpedIdsRef = useRef<string[]>(helpedPersonIds);
+  const towerIdsRef = useRef<string[]>(activatedTowerIds);
+  const raceDoneRef = useRef(raceCompleted);
   const joystickRef = useRef(joystickVec);
   const gpsTargetRef = useRef(gpsTarget);
   const onHudUpdateRef = useRef(onHudUpdate);
   const onPopupRef = useRef(onPopup);
   const onInteractRef = useRef(onInteractTrigger);
+  const onTowerRef = useRef(onTowerActivated);
+  const onRaceRef = useRef(onRaceCompleted);
   const onEarnRef = useRef(onEarnRewards);
 
-  // Action handler ref wired inside WebGL effect
   const triggerActionFnRef = useRef<((act: CombatActionType) => void) | null>(
     null
   );
@@ -144,6 +185,12 @@ export function MobaGtaWorld3D({
   useEffect(() => {
     helpedIdsRef.current = helpedPersonIds;
   }, [helpedPersonIds]);
+  useEffect(() => {
+    towerIdsRef.current = activatedTowerIds;
+  }, [activatedTowerIds]);
+  useEffect(() => {
+    raceDoneRef.current = raceCompleted;
+  }, [raceCompleted]);
   useEffect(() => {
     joystickRef.current = joystickVec;
   }, [joystickVec]);
@@ -159,6 +206,12 @@ export function MobaGtaWorld3D({
   useEffect(() => {
     onInteractRef.current = onInteractTrigger;
   }, [onInteractTrigger]);
+  useEffect(() => {
+    onTowerRef.current = onTowerActivated;
+  }, [onTowerActivated]);
+  useEffect(() => {
+    onRaceRef.current = onRaceCompleted;
+  }, [onRaceCompleted]);
   useEffect(() => {
     onEarnRef.current = onEarnRewards;
   }, [onEarnRewards]);
@@ -182,243 +235,463 @@ export function MobaGtaWorld3D({
       switch (mission.id) {
         case "amazonia":
           return {
-            sky: 0x07222b,
-            fog: 0x07222b,
-            sun: 0xffe8b3,
+            fog: 0x164e63,
+            sun: 0xffe4a0,
             accent: 0x10b981,
-            bldgBase: "#5c3a21",
-            bldgWin: "#fde047",
+            bldgBase1: "#7c4a27",
+            bldgBase2: "#5c3419",
+            bldgWin: "#fef08a",
             modern: false,
             treeColor: 0x15803d,
+            awningColors: [0x10b981, 0x0284c7, 0xd97706],
           };
         case "janela1040":
           return {
-            sky: 0x241409,
-            fog: 0x241409,
-            sun: 0xffd28a,
+            fog: 0x451a03,
+            sun: 0xffcfa0,
             accent: 0xf59e0b,
-            bldgBase: "#c28e5c",
+            bldgBase1: "#d4a373",
+            bldgBase2: "#b88454",
             bldgWin: "#fef08a",
             modern: false,
             treeColor: 0x166534,
+            awningColors: [0xe11d48, 0xd97706, 0x0284c7],
           };
         case "toquio":
           return {
-            sky: 0x060b1e,
-            fog: 0x060b1e,
-            sun: 0xc4e0ff,
+            fog: 0x0b132b,
+            sun: 0xdbeafe,
             accent: 0x06b6d4,
-            bldgBase: "#1e293b",
+            bldgBase1: "#1e293b",
+            bldgBase2: "#0f172a",
             bldgWin: "#38bdf8",
             modern: true,
             treeColor: 0xf472b6,
+            awningColors: [0x06b6d4, 0xf43f5e, 0x8b5cf6],
           };
         default:
           return {
-            sky: 0x211230,
-            fog: 0x211230,
+            fog: 0x3b1d2a,
             sun: 0xffd89b,
             accent: 0xa855f7,
-            bldgBase: "#9a5b32",
+            bldgBase1: "#b46939",
+            bldgBase2: "#925229",
             bldgWin: "#fde68a",
             modern: false,
             treeColor: 0x65a30d,
+            awningColors: [0xf59e0b, 0x10b981, 0x8b5cf6],
           };
       }
     })();
 
-    scene.background = new THREE.Color(palette.sky);
-    scene.fog = new THREE.FogExp2(palette.fog, 0.0085);
+    scene.fog = new THREE.FogExp2(palette.fog, 0.0044);
 
-    const camera = new THREE.PerspectiveCamera(48, width / height, 0.1, 220);
-    camera.position.set(0, 18, 68);
+    const camera = new THREE.PerspectiveCamera(54, width / height, 0.1, 360);
+    camera.position.set(0, 9, 82);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.12;
+    renderer.toneMappingExposure = 1.15;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.innerHTML = "";
     container.appendChild(renderer.domElement);
 
-    // Rich Hemisphere + Directional Sun Lighting
-    const hemi = new THREE.HemisphereLight(0xdbeafe, 0x334155, 1.05);
+    // --- 360° PROCEDURAL REALISTIC SKY DOME ---
+    const skyTex = createSkyDomeTexture(mission.id);
+    const skyDome = new THREE.Mesh(
+      new THREE.SphereGeometry(210, 32, 20),
+      new THREE.MeshBasicMaterial({
+        map: skyTex,
+        side: THREE.BackSide,
+        fog: false,
+      })
+    );
+    scene.add(skyDome);
+
+    // Rich GTA Atmospheric Lighting
+    const hemi = new THREE.HemisphereLight(0xe0f2fe, 0x334155, 1.12);
     scene.add(hemi);
 
-    const sun = new THREE.DirectionalLight(palette.sun, 1.9);
-    sun.position.set(35, 55, 30);
+    const sun = new THREE.DirectionalLight(palette.sun, 2.05);
+    sun.position.set(45, 70, 42);
     sun.castShadow = true;
     sun.shadow.mapSize.set(1024, 1024);
     sun.shadow.camera.near = 5;
-    sun.shadow.camera.far = 160;
-    const d = 55;
-    sun.shadow.camera.left = -d;
-    sun.shadow.camera.right = d;
-    sun.shadow.camera.top = d;
-    sun.shadow.camera.bottom = -d;
+    sun.shadow.camera.far = 210;
+    const sd = 78;
+    sun.shadow.camera.left = -sd;
+    sun.shadow.camera.right = sd;
+    sun.shadow.camera.top = sd;
+    sun.shadow.camera.bottom = -sd;
     scene.add(sun);
 
-    // --- MASSIVE 150 x 150 OPEN-WORLD TERRAIN ---
+    // --- MASSIVE 220 x 220 OPEN-WORLD TERRAIN ---
     const terrainTex = createTerrainTexture(mission.id);
     const groundMesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(160, 160),
-      new THREE.MeshStandardMaterial({ map: terrainTex, roughness: 0.85 })
+      new THREE.PlaneGeometry(230, 230),
+      new THREE.MeshStandardMaterial({ map: terrainTex, roughness: 0.88 })
     );
     groundMesh.rotation.x = -Math.PI / 2;
     groundMesh.receiveShadow = true;
     scene.add(groundMesh);
 
-    // --- GTA CITY ROAD NETWORK & PLAZAS ---
-    const roadTex = createRoadTexture(mission.id);
-    const roadMat = new THREE.MeshStandardMaterial({
-      map: roadTex,
+    // --- FULL GTA URBAN GRID: 3 N-S AVENUES x 4 E-W AVENUES + ZEBRA CROSSWALKS ---
+    const roadTexNS = createRoadTexture(mission.id);
+    const roadMatNS = new THREE.MeshStandardMaterial({
+      map: roadTexNS,
       roughness: 0.65,
     });
 
-    // Main North-South Boulevard
-    const nsRoad = new THREE.Mesh(new THREE.PlaneGeometry(10.5, 142), roadMat);
-    nsRoad.rotation.x = -Math.PI / 2;
-    nsRoad.position.y = 0.03;
-    scene.add(nsRoad);
+    const nsAvenues = [-46, 0, 46];
+    const ewAvenues = [54, 18, -18, -54];
 
-    // South & North East-West Cross Avenues
-    [24, -24].forEach((rz) => {
-      const ewRoadTex = roadTex.clone();
-      ewRoadTex.needsUpdate = true;
-      const ewRoad = new THREE.Mesh(
-        new THREE.PlaneGeometry(132, 9.5),
-        new THREE.MeshStandardMaterial({ map: ewRoadTex, roughness: 0.65 })
+    nsAvenues.forEach((rx) => {
+      const road = new THREE.Mesh(
+        new THREE.PlaneGeometry(11.4, 204),
+        roadMatNS
       );
-      ewRoad.rotation.x = -Math.PI / 2;
-      ewRoad.rotation.z = Math.PI / 2;
-      ewRoad.position.set(0, 0.035, rz);
-      scene.add(ewRoad);
+      road.rotation.x = -Math.PI / 2;
+      road.position.set(rx, 0.03, 0);
+      road.receiveShadow = true;
+      scene.add(road);
     });
 
-    // Central Grand Plaza Circle (where Main NPC stands)
+    ewAvenues.forEach((rz) => {
+      const ewTex = roadTexNS.clone();
+      ewTex.needsUpdate = true;
+      const road = new THREE.Mesh(
+        new THREE.PlaneGeometry(11.0, 204),
+        new THREE.MeshStandardMaterial({ map: ewTex, roughness: 0.65 })
+      );
+      road.rotation.x = -Math.PI / 2;
+      road.rotation.z = Math.PI / 2;
+      road.position.set(0, 0.035, rz);
+      road.receiveShadow = true;
+      scene.add(road);
+    });
+
+    // 12 Zebra Crosswalk Intersections + Traffic Lights!
+    const crossTex = createCrosswalkTexture();
+    const crossMat = new THREE.MeshStandardMaterial({
+      map: crossTex,
+      roughness: 0.6,
+    });
+
+    const trafficPoleMat = new THREE.MeshStandardMaterial({
+      color: 0x1e293b,
+      metalness: 0.6,
+    });
+
+    nsAvenues.forEach((ix) => {
+      ewAvenues.forEach((iz, zIdx) => {
+        const cw = new THREE.Mesh(
+          new THREE.PlaneGeometry(11.6, 11.4),
+          crossMat
+        );
+        cw.rotation.x = -Math.PI / 2;
+        cw.position.set(ix, 0.045, iz);
+        scene.add(cw);
+
+        // GTA Traffic Light at intersection corners
+        if (mission.id !== "amazonia" && (ix === 0 || zIdx % 2 === 0)) {
+          const tlGroup = new THREE.Group();
+          tlGroup.position.set(ix + 6.4, 0, iz - 6.4);
+
+          const pole = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.11, 0.14, 5.2, 10),
+            trafficPoleMat
+          );
+          pole.position.y = 2.6;
+          tlGroup.add(pole);
+
+          const arm = new THREE.Mesh(
+            new THREE.BoxGeometry(2.6, 0.12, 0.12),
+            trafficPoleMat
+          );
+          arm.position.set(-1.2, 5.05, 0);
+          tlGroup.add(arm);
+
+          const box = new THREE.Mesh(
+            new THREE.BoxGeometry(0.45, 1.05, 0.32),
+            trafficPoleMat
+          );
+          box.position.set(-2.2, 4.85, 0);
+          tlGroup.add(box);
+
+          [
+            { y: 5.15, col: 0xef4444 },
+            { y: 4.85, col: 0xfacc15 },
+            { y: 4.55, col: 0x22c55e },
+          ].forEach((lamp) => {
+            const lMesh = new THREE.Mesh(
+              new THREE.SphereGeometry(0.11, 8, 8),
+              new THREE.MeshBasicMaterial({ color: lamp.col })
+            );
+            lMesh.position.set(-2.2, lamp.y, 0.16);
+            tlGroup.add(lMesh);
+          });
+
+          scene.add(tlGroup);
+        }
+      });
+    });
+
+    // --- RAISED CONCRETE / TILED SIDEWALK CITY BLOCKS ---
+    const sidewalkTex = createSidewalkTexture(mission.id);
+    const sidewalkMat = new THREE.MeshStandardMaterial({
+      map: sidewalkTex,
+      roughness: 0.72,
+    });
+
+    const blockColumns = [-72, -23, 23, 72];
+    const blockRows = [36, 0, -36, -72];
+
+    blockColumns.forEach((bx) => {
+      blockRows.forEach((bz) => {
+        // Leave river corridor open in Amazonia around z = 27..36? River is at z=27, so shrink z=36 sidewalk slightly
+        if (mission.id === "amazonia" && bz === 36) return;
+        const swW = Math.abs(bx) > 50 ? 28 : 31;
+        const swD = 22;
+        const sw = new THREE.Mesh(
+          new THREE.BoxGeometry(swW, 0.22, swD),
+          sidewalkMat
+        );
+        sw.position.set(bx, 0.11, bz);
+        sw.receiveShadow = true;
+        scene.add(sw);
+      });
+    });
+
+    // --- CENTRAL FOUNTAIN PARK PLAZA AT (0, 0) ---
     const plaza = new THREE.Mesh(
-      new THREE.CylinderGeometry(11, 11.4, 0.14, 36),
-      new THREE.MeshStandardMaterial({
-        color: mission.id === "toquio" ? 0x1e293b : 0x64748b,
-        roughness: 0.5,
-      })
+      new THREE.CylinderGeometry(13.5, 14, 0.2, 44),
+      sidewalkMat
     );
-    plaza.position.set(0, 0.05, 0);
+    plaza.position.set(0, 0.1, 0);
     plaza.receiveShadow = true;
     scene.add(plaza);
 
     const plazaRing = new THREE.Mesh(
-      new THREE.RingGeometry(9.6, 10.2, 40),
+      new THREE.RingGeometry(12.2, 12.9, 44),
       new THREE.MeshBasicMaterial({
         color: palette.accent,
         side: THREE.DoubleSide,
       })
     );
     plazaRing.rotation.x = -Math.PI / 2;
-    plazaRing.position.y = 0.14;
+    plazaRing.position.y = 0.22;
     scene.add(plazaRing);
 
-    // --- BIOME MEGA-FEATURES (RIVER & BRIDGES / SKYSCRAPERS / BAOBAB / ARCHES) ---
+    // 3D Sculpted Multi-Tier Water Fountain right behind Main NPC at (0, -5.2)
+    const fountain = new THREE.Group();
+    fountain.position.set(0, 0.2, -5.2);
+    const basinWall = new THREE.Mesh(
+      new THREE.CylinderGeometry(2.7, 2.9, 0.55, 24),
+      new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.45 })
+    );
+    basinWall.position.y = 0.27;
+    fountain.add(basinWall);
+    const basinWater = new THREE.Mesh(
+      new THREE.CylinderGeometry(2.45, 2.45, 0.48, 24),
+      new THREE.MeshStandardMaterial({
+        color: 0x38bdf8,
+        emissive: 0x0284c7,
+        emissiveIntensity: 0.45,
+        roughness: 0.12,
+      })
+    );
+    basinWater.position.y = 0.34;
+    fountain.add(basinWater);
+    const fountainPillar = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.36, 0.52, 2.1, 16),
+      new THREE.MeshStandardMaterial({ color: 0xcbd5e1 })
+    );
+    fountainPillar.position.y = 1.1;
+    fountain.add(fountainPillar);
+    const fountainSpout = new THREE.Mesh(
+      new THREE.SphereGeometry(0.48, 14, 12),
+      new THREE.MeshBasicMaterial({ color: 0x7dd3fc })
+    );
+    fountainSpout.position.y = 2.25;
+    fountain.add(fountainSpout);
+    scene.add(fountain);
+
+    // --- 22 MULTI-PART REALISTIC GTA BUILDINGS WITH STOREFRONTS, AWNINGS & SIGNS ---
     const buildingColliders: { x: number; z: number; rx: number; rz: number }[] =
       [];
 
-    const facadeTex1 = createBuildingFacadeTexture(
-      palette.bldgBase,
+    // Add fountain collider
+    buildingColliders.push({ x: 0, z: -5.2, rx: 3.1, rz: 3.1 });
+
+    const facade1 = createBuildingFacadeTexture(
+      palette.bldgBase1,
       palette.bldgWin,
       palette.modern
     );
-    const facadeTex2 = createBuildingFacadeTexture(
-      mission.id === "toquio" ? "#0f172a" : palette.bldgBase,
+    const facade2 = createBuildingFacadeTexture(
+      palette.bldgBase2,
       mission.id === "toquio" ? "#f472b6" : "#38bdf8",
       palette.modern
     );
 
-    // 20 City Block Buildings / Village Houses across the 4 Quadrants!
-    const buildingSpots: [number, number, number, number, number][] = [
-      // [x, z, width, depth, height]
-      [-18, 40, 8, 8, palette.modern ? 17 : 6],
-      [18, 40, 8, 8, palette.modern ? 15 : 6],
-      [-44, 40, 9, 8, palette.modern ? 20 : 6.5],
-      [44, 40, 9, 8, palette.modern ? 18 : 6.5],
-      [-20, 12, 8, 7, palette.modern ? 16 : 5.5],
-      [20, 12, 8, 7, palette.modern ? 19 : 5.5],
-      [-48, 12, 10, 8, palette.modern ? 22 : 6.5],
-      [48, 12, 10, 8, palette.modern ? 21 : 6.5],
-      [-22, -10, 8, 8, palette.modern ? 15 : 6],
-      [22, -10, 8, 8, palette.modern ? 18 : 6],
-      [-50, -10, 9, 9, palette.modern ? 24 : 7],
-      [50, -10, 9, 9, palette.modern ? 20 : 7],
-      [-22, -40, 8, 8, palette.modern ? 17 : 6],
-      [22, -40, 8, 8, palette.modern ? 17 : 6],
-      [-48, -42, 10, 9, palette.modern ? 21 : 6.5],
-      [48, -42, 10, 9, palette.modern ? 19 : 6.5],
+    const signTextures = worldCfg.storeSigns.map((sText, idx) =>
+      createStoreSignTexture(
+        sText,
+        idx % 2 === 0 ? "#0f172a" : "#1e1b4b",
+        idx % 2 === 0 ? "#38bdf8" : "#fbbf24"
+      )
+    );
+
+    const buildingDefinitions: [number, number, number, number, number][] = [
+      // South-Mid Blocks (z = 38)
+      [-23, 39, 10, 9, palette.modern ? 19 : 7.5],
+      [23, 39, 10, 9, palette.modern ? 17 : 7.5],
+      [-72, 36, 11, 10, palette.modern ? 23 : 8],
+      [72, 36, 11, 10, palette.modern ? 21 : 8],
+      // Midtown Central Blocks (z = 0, outer of fountain plaza)
+      [-25, 0, 10.5, 9.5, palette.modern ? 20 : 8],
+      [25, 0, 10.5, 9.5, palette.modern ? 22 : 8],
+      [-72, 0, 12, 10, palette.modern ? 26 : 8.5],
+      [72, 0, 12, 10, palette.modern ? 24 : 8.5],
+      // Midtown North Blocks (z = -36)
+      [-23, -36, 10.5, 9.5, palette.modern ? 21 : 7.5],
+      [23, -36, 10.5, 9.5, palette.modern ? 19 : 7.5],
+      [-72, -36, 11, 10, palette.modern ? 25 : 8.5],
+      [72, -36, 11, 10, palette.modern ? 23 : 8.5],
+      // Far North Nexus Skyline Blocks (z = -72)
+      [-24, -72, 11, 9, palette.modern ? 22 : 8],
+      [24, -72, 11, 9, palette.modern ? 22 : 8],
+      [-72, -72, 12, 11, palette.modern ? 28 : 9],
+      [72, -72, 12, 11, palette.modern ? 27 : 9],
+      // Far South Skyline Blocks (z = 74)
+      [-28, 74, 11, 9, palette.modern ? 18 : 7],
+      [28, 74, 11, 9, palette.modern ? 18 : 7],
     ];
 
-    buildingSpots.forEach(([bx, bz, bw, bd, bh], idx) => {
-      // Skip river strip in Amazonia
-      if (mission.id === "amazonia" && Math.abs(bz - 12) < 6) return;
-
+    buildingDefinitions.forEach(([bx, bz, bw, bd, bh], idx) => {
       const bGroup = new THREE.Group();
-      bGroup.position.set(bx, 0, bz);
+      bGroup.position.set(bx, 0.2, bz);
 
       const bMat = new THREE.MeshStandardMaterial({
-        map: idx % 2 === 0 ? facadeTex1 : facadeTex2,
-        roughness: palette.modern ? 0.25 : 0.7,
-        metalness: palette.modern ? 0.45 : 0.1,
+        map: idx % 2 === 0 ? facade1 : facade2,
+        roughness: palette.modern ? 0.22 : 0.68,
+        metalness: palette.modern ? 0.5 : 0.08,
       });
 
-      if (mission.id === "mocambique" && idx % 2 === 0) {
-        // Traditional Round Village House with Conical Thatched Roof
+      if (mission.id === "mocambique" && idx % 3 === 1) {
+        // Large Sculpted Round Cultural Building with Veranda & Conical Thatched Roof
         const wall = new THREE.Mesh(
-          new THREE.CylinderGeometry(bw * 0.45, bw * 0.48, 4.2, 16),
+          new THREE.CylinderGeometry(bw * 0.46, bw * 0.48, 4.8, 22),
           bMat
         );
-        wall.position.y = 2.1;
+        wall.position.y = 2.4;
         wall.castShadow = true;
         bGroup.add(wall);
 
-        const coneRoof = new THREE.Mesh(
-          new THREE.ConeGeometry(bw * 0.58, 2.8, 16),
+        const roof = new THREE.Mesh(
+          new THREE.ConeGeometry(bw * 0.6, 3.2, 22),
           new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.85 })
         );
-        coneRoof.position.y = 5.4;
-        bGroup.add(coneRoof);
+        roof.position.y = 6.2;
+        bGroup.add(roof);
       } else {
-        const box = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bd), bMat);
-        box.position.y = bh / 2;
-        box.castShadow = true;
-        box.receiveShadow = true;
-        bGroup.add(box);
+        // Main Architectural Mass
+        const mainTower = new THREE.Mesh(
+          new THREE.BoxGeometry(bw, bh, bd),
+          bMat
+        );
+        mainTower.position.y = bh / 2;
+        mainTower.castShadow = true;
+        mainTower.receiveShadow = true;
+        bGroup.add(mainTower);
+
+        // Rooftop Parapet Ledge
+        const parapet = new THREE.Mesh(
+          new THREE.BoxGeometry(bw + 0.45, 0.45, bd + 0.45),
+          new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5 })
+        );
+        parapet.position.y = bh + 0.2;
+        bGroup.add(parapet);
+
+        // Ground-Floor Storefront 3D Awning (Toldo) + Store Signboard!
+        const awningCol =
+          palette.awningColors[idx % palette.awningColors.length];
+        const awning = new THREE.Mesh(
+          new THREE.BoxGeometry(bw * 0.78, 0.28, 1.45),
+          new THREE.MeshStandardMaterial({ color: awningCol, roughness: 0.5 })
+        );
+        const faceDir = bz >= 0 ? -1 : 1;
+        awning.position.set(0, 2.35, faceDir * (bd / 2 + 0.6));
+        awning.rotation.x = faceDir * 0.18;
+        bGroup.add(awning);
+
+        const signMat = new THREE.MeshBasicMaterial({
+          map: signTextures[idx % signTextures.length],
+        });
+        const signBoard = new THREE.Mesh(
+          new THREE.BoxGeometry(bw * 0.68, 1.15, 0.16),
+          signMat
+        );
+        signBoard.position.set(0, 3.45, faceDir * (bd / 2 + 0.1));
+        bGroup.add(signBoard);
 
         if (palette.modern) {
-          // Glowing Neon Rooftop Trim for Tokyo!
-          const neon = new THREE.Mesh(
-            new THREE.BoxGeometry(bw + 0.3, 0.35, bd + 0.3),
+          // Tokyo Rooftop Helipad / AC Units / Vertical Neon Billboard + Antenna Spire
+          const neonFrame = new THREE.Mesh(
+            new THREE.BoxGeometry(bw + 0.52, 0.35, bd + 0.52),
             new THREE.MeshBasicMaterial({
-              color: idx % 2 === 0 ? 0x06b6d4 : 0xf43f5e,
+              color: idx % 2 === 0 ? 0x22d3ee : 0xf43f5e,
             })
           );
-          neon.position.y = bh + 0.15;
-          bGroup.add(neon);
-        } else if (mission.id === "janela1040") {
-          // Golden Sandstone Dome on rooftops
-          const dome = new THREE.Mesh(
-            new THREE.SphereGeometry(bw * 0.32, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2),
-            new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.4 })
+          neonFrame.position.y = bh + 0.52;
+          bGroup.add(neonFrame);
+
+          const spire = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.06, 0.18, 4.5, 8),
+            new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.8 })
           );
-          dome.position.y = bh;
+          spire.position.set(bw * 0.25, bh + 2.5, 0);
+          bGroup.add(spire);
+        } else if (mission.id === "janela1040") {
+          // Sandstone Rooftop Dome & Ornate Arch Trim
+          const dome = new THREE.Mesh(
+            new THREE.SphereGeometry(
+              bw * 0.3,
+              18,
+              12,
+              0,
+              Math.PI * 2,
+              0,
+              Math.PI / 2
+            ),
+            new THREE.MeshStandardMaterial({
+              color: 0xf59e0b,
+              roughness: 0.35,
+              metalness: 0.25,
+            })
+          );
+          dome.position.y = bh + 0.4;
           bGroup.add(dome);
-        } else {
-          // Pitched Wooden Roof for Amazonia
+        } else if (mission.id === "amazonia") {
+          // Timber Pitched Roof + Wooden Stilt Pillars
           const roof = new THREE.Mesh(
-            new THREE.ConeGeometry(bw * 0.72, 2.4, 4),
-            new THREE.MeshStandardMaterial({ color: 0x92400e })
+            new THREE.ConeGeometry(bw * 0.72, 2.8, 4),
+            new THREE.MeshStandardMaterial({ color: 0x92400e, roughness: 0.8 })
           );
           roof.rotation.y = Math.PI / 4;
-          roof.position.y = bh + 1.2;
+          roof.position.y = bh + 1.6;
           bGroup.add(roof);
+        } else {
+          // Rooftop Water Tank / Solar Panel
+          const acBox = new THREE.Mesh(
+            new THREE.BoxGeometry(2.1, 1.3, 1.8),
+            new THREE.MeshStandardMaterial({ color: 0x64748b })
+          );
+          acBox.position.set(-bw * 0.2, bh + 1.0, 0);
+          bGroup.add(acBox);
         }
       }
 
@@ -426,13 +699,13 @@ export function MobaGtaWorld3D({
       buildingColliders.push({
         x: bx,
         z: bz,
-        rx: bw / 2 + 0.9,
-        rz: bd / 2 + 0.9,
+        rx: bw / 2 + 1.05,
+        rz: bd / 2 + 1.05,
       });
     });
 
-    // Special Biome Landmarks & Moving Ambient Traffic/Boats!
-    const ambientMovers: {
+    // --- AMAZÔNIA RIVER + 3 BRIDGES + HOSPITAL SHIP / CITY MOVING TRAFFIC & PEDESTRIANS ---
+    const ambientCars: {
       mesh: THREE.Group;
       axis: "x" | "z";
       speed: number;
@@ -440,155 +713,355 @@ export function MobaGtaWorld3D({
     }[] = [];
 
     if (mission.id === "amazonia") {
-      // Wide Turquoise River cutting East-West at z = 12 + 3 Bridges!
       const river = new THREE.Mesh(
-        new THREE.PlaneGeometry(160, 8.5),
+        new THREE.PlaneGeometry(230, 9.2),
         new THREE.MeshStandardMaterial({
-          color: 0x06b6d4,
+          color: 0x0891b2,
           emissive: 0x0e7490,
           emissiveIntensity: 0.35,
-          roughness: 0.15,
-          metalness: 0.65,
+          roughness: 0.12,
+          metalness: 0.75,
         })
       );
       river.rotation.x = -Math.PI / 2;
-      river.position.set(0, 0.06, 12);
+      river.position.set(0, 0.06, 27);
       scene.add(river);
 
-      // 3 Wooden Bridges across the river
-      [-34, 0, 34].forEach((brX) => {
-        const bridge = new THREE.Mesh(
-          new THREE.BoxGeometry(brX === 0 ? 11 : 6.5, 0.45, 10.5),
-          new THREE.MeshStandardMaterial({ color: 0x78350f })
+      // 3 Realistic Wooden/Steel Bridges at x = -46, 0, 46
+      nsAvenues.forEach((brX) => {
+        const bridgeGrp = new THREE.Group();
+        const deck = new THREE.Mesh(
+          new THREE.BoxGeometry(11.8, 0.45, 11.5),
+          new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.7 })
         );
-        bridge.position.set(brX, 0.25, 12);
-        scene.add(bridge);
+        deck.position.set(brX, 0.28, 27);
+        bridgeGrp.add(deck);
+
+        [-5.6, 5.6].forEach((railX) => {
+          const rail = new THREE.Mesh(
+            new THREE.BoxGeometry(0.35, 1.1, 11.5),
+            new THREE.MeshStandardMaterial({ color: 0xb45309 })
+          );
+          rail.position.set(brX + railX, 0.95, 27);
+          bridgeGrp.add(rail);
+        });
+        scene.add(bridgeGrp);
       });
 
-      // Detailed Barco-Hospital Esperança docked on river!
+      // Docked Barco-Hospital Esperança
       const ship = new THREE.Group();
       const hull = new THREE.Mesh(
-        new THREE.BoxGeometry(9.5, 1.8, 4.2),
-        new THREE.MeshStandardMaterial({ color: 0x0284c7 })
+        new THREE.BoxGeometry(11.5, 2.0, 4.6),
+        new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.35 })
       );
-      hull.position.y = 0.9;
+      hull.position.y = 1.0;
       ship.add(hull);
-      const deck1 = new THREE.Mesh(
-        new THREE.BoxGeometry(7.2, 1.8, 3.6),
-        new THREE.MeshStandardMaterial({
-          color: 0xf8fafc,
-          emissive: 0xfef08a,
-          emissiveIntensity: 0.2,
-        })
+      const cabin1 = new THREE.Mesh(
+        new THREE.BoxGeometry(8.5, 2.0, 3.9),
+        new THREE.MeshStandardMaterial({ color: 0xf8fafc })
       );
-      deck1.position.y = 2.6;
-      ship.add(deck1);
+      cabin1.position.y = 2.9;
+      ship.add(cabin1);
       const roof = new THREE.Mesh(
-        new THREE.BoxGeometry(7.8, 0.35, 3.9),
+        new THREE.BoxGeometry(9.0, 0.35, 4.2),
         new THREE.MeshStandardMaterial({ color: 0x10b981 })
       );
-      roof.position.y = 3.65;
+      roof.position.y = 4.05;
       ship.add(roof);
       const shipTag = createNameplateSprite("🚢 BARCO-HOSPITAL IDE", "#34d399");
-      shipTag.position.y = 5.1;
+      shipTag.position.y = 5.4;
       ship.add(shipTag);
-      ship.position.set(-17, 0.05, 12);
+      ship.position.set(-22, 0.05, 27);
       scene.add(ship);
     } else {
-      // Moving GTA Ambient City Cars cruising along East-West Avenues!
-      const carColors = [0xef4444, 0x3b82f6, 0xeab308, 0x10b981];
-      [
-        { z: 22.2, spd: 9.5, startX: -45 },
-        { z: 25.8, spd: -10.5, startX: 40 },
-        { z: -22.2, spd: 11.0, startX: -20 },
-        { z: -25.8, spd: -9.0, startX: 35 },
-      ].forEach((cInfo, idx) => {
-        const car = new THREE.Group();
-        const body = new THREE.Mesh(
-          new THREE.BoxGeometry(3.4, 1.05, 1.8),
-          new THREE.MeshStandardMaterial({
-            color: carColors[idx % carColors.length],
-            metalness: 0.5,
-            roughness: 0.3,
-          })
-        );
-        body.position.y = 0.7;
-        car.add(body);
-        const cabin = new THREE.Mesh(
-          new THREE.BoxGeometry(1.9, 0.75, 1.6),
-          new THREE.MeshStandardMaterial({ color: 0x0f172a })
-        );
-        cabin.position.y = 1.45;
-        car.add(cabin);
-        car.position.set(cInfo.startX, 0, cInfo.z);
+      // 8 Realistic Cruising GTA Traffic Vehicles along E-W and N-S Avenues!
+      const trafficSpecs: {
+        kind: "sports" | "suv";
+        col: number;
+        axis: "x" | "z";
+        lanePos: number;
+        start: number;
+        spd: number;
+      }[] = [
+        { kind: "sports", col: 0xef4444, axis: "x", lanePos: 15.6, start: -60, spd: 12.5 },
+        { kind: "suv", col: 0x3b82f6, axis: "x", lanePos: 20.4, start: 55, spd: -11.0 },
+        { kind: "sports", col: 0xeab308, axis: "x", lanePos: -15.6, start: -25, spd: 13.5 },
+        { kind: "suv", col: 0x10b981, axis: "x", lanePos: -20.4, start: 40, spd: -10.5 },
+        { kind: "sports", col: 0xa855f7, axis: "z", lanePos: -43.5, start: -50, spd: 12.0 },
+        { kind: "suv", col: 0xf97316, axis: "z", lanePos: 48.5, start: 45, spd: -11.5 },
+      ];
+
+      trafficSpecs.forEach((ts) => {
+        const car = createGtaVehicle3D(ts.kind, ts.col, "");
+        const tag = car.getObjectByName("vehicleTag");
+        if (tag) tag.visible = false;
+
+        if (ts.axis === "x") {
+          car.position.set(ts.start, 0, ts.lanePos);
+          car.rotation.y = ts.spd > 0 ? Math.PI / 2 : -Math.PI / 2;
+        } else {
+          car.position.set(ts.lanePos, 0, ts.start);
+          car.rotation.y = ts.spd > 0 ? 0 : Math.PI;
+        }
         scene.add(car);
-        ambientMovers.push({
+        ambientCars.push({
           mesh: car,
-          axis: "x",
-          speed: cInfo.spd,
-          limit: 66,
+          axis: ts.axis,
+          speed: ts.spd,
+          limit: 94,
         });
       });
     }
 
-    if (mission.id === "mocambique") {
-      // Giant Central Ubuntu Baobab Tree beside Plaza
-      const trunk = new THREE.Mesh(
-        new THREE.CylinderGeometry(2.1, 3.0, 7.5, 14),
-        new THREE.MeshStandardMaterial({ color: 0x6b4423 })
-      );
-      trunk.position.set(-9.5, 3.75, -4);
-      scene.add(trunk);
-      const canopy = new THREE.Mesh(
-        new THREE.SphereGeometry(5.8, 16, 12),
-        new THREE.MeshStandardMaterial({ color: 0x65a30d })
-      );
-      canopy.scale.set(1.3, 0.55, 1.3);
-      canopy.position.set(-9.5, 8.2, -4);
-      scene.add(canopy);
+    // --- 8 AMBIENT WALKING SIDEWALK PEDESTRIANS (LIVING GTA CITY!) ---
+    interface AmbientPedestrian {
+      rig: ArticulatedRig;
+      baseX: number;
+      z: number;
+      range: number;
+      speed: number;
+      dir: number;
+      phase: number;
     }
+    const pedestrians: AmbientPedestrian[] = [
+      { baseX: -23, z: 26, range: 11, speed: 2.3, col: 0x3b82f6, skin: "#e5a975" },
+      { baseX: 23, z: 26, range: 11, speed: 2.5, col: 0xec4899, skin: "#fad0b1" },
+      { baseX: -24, z: -11, range: 10, speed: 2.2, col: 0x10b981, skin: "#c68652" },
+      { baseX: 24, z: -11, range: 10, speed: 2.4, col: 0xf59e0b, skin: "#9c6234" },
+      { baseX: -23, z: -26, range: 11, speed: 2.6, col: 0x8b5cf6, skin: "#fde2ce" },
+      { baseX: 23, z: -26, range: 11, speed: 2.1, col: 0x06b6d4, skin: "#d49a6a" },
+    ].map((p, idx) => {
+      const rig = buildStylizedHumanRig({
+        skin: p.skin,
+        eye: "#0ea5e9",
+        shirt: p.col,
+        secondary: 0xe2e8f0,
+        pants: 0x1e293b,
+        hair: idx % 2 === 0 ? 0x1e293b : 0x451a03,
+        showGroundRing: false,
+      });
+      rig.root.position.set(p.baseX, 0.22, p.z);
+      scene.add(rig.root);
+      return {
+        rig,
+        baseX: p.baseX,
+        z: p.z,
+        range: p.range,
+        speed: p.speed,
+        dir: idx % 2 === 0 ? 1 : -1,
+        phase: idx * 1.4,
+      };
+    });
 
-    // Lush Trees & Streetlamps across the Open World
+    // --- REALISTIC LAYERED TREES & STREETLAMPS ---
+    const treePositions: [number, number][] = [
+      [-11, 11],
+      [11, 11],
+      [-11, -11],
+      [11, -11],
+      [-36, 36],
+      [36, 36],
+      [-36, -36],
+      [36, -36],
+      [-58, 36],
+      [58, 36],
+      [-58, -36],
+      [58, -36],
+    ];
     for (let i = 0; i < 36; i++) {
-      const angle = (i / 36) * Math.PI * 2;
-      const rad = 60 + (i % 3) * 4;
-      const tx = Math.cos(angle) * rad;
-      const tz = Math.sin(angle) * rad;
-      const trunk = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.28, 0.42, 2.4, 8),
-        new THREE.MeshStandardMaterial({ color: 0x5c3a21 })
-      );
-      trunk.position.set(tx, 1.2, tz);
-      scene.add(trunk);
-
-      const foliage = new THREE.Mesh(
-        new THREE.DodecahedronGeometry(1.9),
-        new THREE.MeshStandardMaterial({ color: palette.treeColor })
-      );
-      foliage.position.set(tx, 3.4, tz);
-      scene.add(foliage);
+      const a = (i / 36) * Math.PI * 2;
+      treePositions.push([Math.cos(a) * 90, Math.sin(a) * 90]);
     }
 
-    // Glowing Streetlights along Main Boulevard
-    [-42, -16, 16, 42].forEach((lz) => {
-      [-6.2, 6.2].forEach((lx) => {
-        const pole = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.1, 0.14, 4.4, 8),
-          new THREE.MeshStandardMaterial({ color: 0x334155 })
+    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5c3a21, roughness: 0.85 });
+    const leafMat = new THREE.MeshStandardMaterial({ color: palette.treeColor, roughness: 0.65 });
+
+    treePositions.forEach(([tx, tz]) => {
+      if (mission.id === "amazonia" && Math.abs(tz - 27) < 6) return;
+      const tGrp = new THREE.Group();
+      tGrp.position.set(tx, 0, tz);
+
+      const trunk = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.24, 0.38, 3.0, 10),
+        trunkMat
+      );
+      trunk.position.y = 1.5;
+      trunk.castShadow = true;
+      tGrp.add(trunk);
+
+      // Multi-sphere lush organic tree canopy
+      [
+        [0, 3.6, 0, 1.55],
+        [-0.75, 3.2, 0.4, 1.15],
+        [0.75, 3.25, -0.35, 1.15],
+        [0, 4.35, 0.1, 1.2],
+      ].forEach(([cx, cy, cz, cr]) => {
+        const crown = new THREE.Mesh(
+          new THREE.SphereGeometry(cr, 12, 10),
+          leafMat
         );
-        pole.position.set(lx, 2.2, lz);
+        crown.position.set(cx, cy, cz);
+        crown.castShadow = true;
+        tGrp.add(crown);
+      });
+      scene.add(tGrp);
+    });
+
+    // Streetlamps along Grand Boulevard
+    [-64, -32, 32, 64].forEach((lz) => {
+      [-6.5, 6.5].forEach((lx) => {
+        const pole = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.09, 0.13, 5.0, 8),
+          trafficPoleMat
+        );
+        pole.position.set(lx, 2.5, lz);
         scene.add(pole);
 
-        const bulb = new THREE.Mesh(
-          new THREE.SphereGeometry(0.28, 10, 10),
+        const lamp = new THREE.Mesh(
+          new THREE.SphereGeometry(0.26, 10, 10),
           new THREE.MeshBasicMaterial({ color: 0xfef08a })
         );
-        bulb.position.set(lx, 4.5, lz);
-        scene.add(bulb);
+        lamp.position.set(lx, 5.1, lz);
+        scene.add(lamp);
       });
     });
 
-    // --- LANDMARKS: CULTURAL TOTEM & NEXUS DA PALAVRA ---
+    // --- 3 RADIO BROADCAST TOWERS (NEW IN-MAP GTA SIDE MISSIONS!) ---
+    interface LiveRadioTower {
+      data: RadioTowerMission;
+      beacon: THREE.Mesh;
+      ring: THREE.Mesh;
+      dish: THREE.Mesh;
+    }
+
+    const radioTowerObjs: LiveRadioTower[] = worldCfg.radioTowers.map((tw) => {
+      const grp = new THREE.Group();
+      grp.position.set(tw.x, 0, tw.z);
+
+      const base = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.5, 1.8, 0.6, 12),
+        trafficPoleMat
+      );
+      base.position.y = 0.3;
+      grp.add(base);
+
+      const mast = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.18, 0.85, 10.5, 8, 1, true),
+        new THREE.MeshStandardMaterial({
+          color: 0x94a3b8,
+          wireframe: true,
+          metalness: 0.7,
+        })
+      );
+      mast.position.y = 5.5;
+      grp.add(mast);
+
+      const dish = new THREE.Mesh(
+        new THREE.ConeGeometry(0.95, 0.6, 16, 1, true),
+        new THREE.MeshStandardMaterial({
+          color: 0xe2e8f0,
+          side: THREE.DoubleSide,
+          metalness: 0.6,
+        })
+      );
+      dish.rotation.x = Math.PI / 2;
+      dish.position.set(0, 7.8, 0.45);
+      grp.add(dish);
+
+      const isDone = towerIdsRef.current.includes(tw.id);
+      const beacon = new THREE.Mesh(
+        new THREE.SphereGeometry(0.55, 14, 14),
+        new THREE.MeshBasicMaterial({
+          color: isDone ? 0x10b981 : 0xf43f5e,
+        })
+      );
+      beacon.position.y = 11.1;
+      grp.add(beacon);
+
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(2.0, 2.45, 32),
+        new THREE.MeshBasicMaterial({
+          color: isDone ? 0x10b981 : 0x38bdf8,
+          side: THREE.DoubleSide,
+        })
+      );
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y = 0.07;
+      grp.add(ring);
+
+      const tag = createNameplateSprite(`📡 ${tw.name}`, "#38bdf8");
+      tag.position.y = 12.4;
+      grp.add(tag);
+
+      scene.add(grp);
+      return { data: tw, beacon, ring, dish };
+    });
+
+    // --- GTA TIMED CHECKPOINT EXPRESS RACE START ARCH & 5 GOLDEN RINGS! ---
+    const raceCfg = worldCfg.race;
+    const raceStartGroup = new THREE.Group();
+    raceStartGroup.position.set(raceCfg.startX, 0, raceCfg.startZ);
+
+    [-3.2, 3.2].forEach((px) => {
+      const pillar = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.28, 0.32, 5.2, 12),
+        new THREE.MeshStandardMaterial({
+          color: 0xfbbf24,
+          emissive: 0xd97706,
+          emissiveIntensity: 0.5,
+        })
+      );
+      pillar.position.set(px, 2.6, 0);
+      raceStartGroup.add(pillar);
+    });
+    const archBanner = new THREE.Mesh(
+      new THREE.BoxGeometry(7.0, 0.9, 0.45),
+      new THREE.MeshStandardMaterial({
+        color: 0x10b981,
+        emissive: 0x059669,
+        emissiveIntensity: 0.7,
+      })
+    );
+    archBanner.position.y = 5.2;
+    raceStartGroup.add(archBanner);
+
+    const startRing = new THREE.Mesh(
+      new THREE.RingGeometry(2.6, 3.2, 32),
+      new THREE.MeshBasicMaterial({ color: 0x34d399, side: THREE.DoubleSide })
+    );
+    startRing.rotation.x = -Math.PI / 2;
+    startRing.position.y = 0.07;
+    raceStartGroup.add(startRing);
+
+    const raceTag = createNameplateSprite("🏁 CORRIDA EXPRESSA [F]", "#34d399");
+    raceTag.position.y = 6.6;
+    raceStartGroup.add(raceTag);
+    scene.add(raceStartGroup);
+
+    // Active Checkpoint 3D Golden Ring + Skyscraper Light Beacon (GTA Waypoint Pillar!)
+    const activeCheckpointGroup = new THREE.Group();
+    const cpTorus = new THREE.Mesh(
+      new THREE.TorusGeometry(3.4, 0.28, 14, 36),
+      new THREE.MeshBasicMaterial({ color: 0xfacc15 })
+    );
+    cpTorus.position.y = 3.2;
+    activeCheckpointGroup.add(cpTorus);
+
+    const cpLightPillar = new THREE.Mesh(
+      new THREE.CylinderGeometry(2.6, 2.6, 36, 24, 1, true),
+      new THREE.MeshBasicMaterial({
+        color: 0xfde047,
+        transparent: true,
+        opacity: 0.25,
+        side: THREE.DoubleSide,
+      })
+    );
+    cpLightPillar.position.y = 18;
+    activeCheckpointGroup.add(cpLightPillar);
+    activeCheckpointGroup.visible = false;
+    scene.add(activeCheckpointGroup);
+
+    // --- CULTURAL TOTEM & NEXUS DA PALAVRA ---
     const totemGroup = new THREE.Group();
     totemGroup.position.set(WORLD_LANDMARKS.totem.x, 0, WORLD_LANDMARKS.totem.z);
     const totemCrystal = new THREE.Mesh(
@@ -596,50 +1069,50 @@ export function MobaGtaWorld3D({
       new THREE.MeshStandardMaterial({
         color: 0x22d3ee,
         emissive: 0x06b6d4,
-        emissiveIntensity: 1.1,
+        emissiveIntensity: 1.2,
       })
     );
-    totemCrystal.position.y = 2.1;
+    totemCrystal.position.y = 2.2;
     totemGroup.add(totemCrystal);
     const totemTag = createNameplateSprite("🧭 TOTEM CULTURAL", "#22d3ee");
-    totemTag.position.y = 3.6;
+    totemTag.position.y = 3.7;
     totemGroup.add(totemTag);
     scene.add(totemGroup);
 
     const nexusGroup = new THREE.Group();
     nexusGroup.position.set(WORLD_LANDMARKS.nexus.x, 0, WORLD_LANDMARKS.nexus.z);
     const nexusBase = new THREE.Mesh(
-      new THREE.CylinderGeometry(3.8, 4.4, 0.55, 12),
+      new THREE.CylinderGeometry(4.2, 4.8, 0.55, 16),
       new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.7 })
     );
     nexusBase.position.y = 0.28;
     nexusGroup.add(nexusBase);
     const nexusRing = new THREE.Mesh(
-      new THREE.TorusGeometry(2.6, 0.24, 14, 48),
+      new THREE.TorusGeometry(2.8, 0.26, 16, 48),
       new THREE.MeshStandardMaterial({
         color: 0xfbbf24,
         emissive: 0xf59e0b,
-        emissiveIntensity: 1.1,
-      })
-    );
-    nexusRing.position.y = 3.2;
-    nexusGroup.add(nexusRing);
-    const nexusCore = new THREE.Mesh(
-      new THREE.IcosahedronGeometry(1.1, 0),
-      new THREE.MeshStandardMaterial({
-        color: 0x38bdf8,
-        emissive: 0x06b6d4,
         emissiveIntensity: 1.2,
       })
     );
-    nexusCore.position.y = 3.2;
+    nexusRing.position.y = 3.4;
+    nexusGroup.add(nexusRing);
+    const nexusCore = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(1.15, 0),
+      new THREE.MeshStandardMaterial({
+        color: 0x38bdf8,
+        emissive: 0x06b6d4,
+        emissiveIntensity: 1.3,
+      })
+    );
+    nexusCore.position.y = 3.4;
     nexusGroup.add(nexusCore);
     const nexusTag = createNameplateSprite("⚡ NEXUS DA PALAVRA", "#fbbf24");
-    nexusTag.position.y = 6.5;
+    nexusTag.position.y = 6.8;
     nexusGroup.add(nexusTag);
     scene.add(nexusGroup);
 
-    // --- MAIN STORY NPC AT CENTRAL PLAZA (0, 0) ---
+    // --- MAIN STORY NPC AT CENTRAL FOUNTAIN PLAZA (0, 0) ---
     const mainNpcVisuals = {
       caua: {
         skin: "#c68652",
@@ -690,12 +1163,12 @@ export function MobaGtaWorld3D({
     });
     mainNpcRig.root.position.set(
       WORLD_LANDMARKS.mainNpc.x,
-      0,
+      0.2,
       WORLD_LANDMARKS.mainNpc.z
     );
     scene.add(mainNpcRig.root);
 
-    // --- 4 OPEN-WORLD STREET PEOPLE (SIDE-QUESTS!) ---
+    // --- 6 STREET PEOPLE QUESTS ---
     const streetPeopleObjs = worldCfg.people.map((p) => {
       const rig = buildStylizedHumanRig({
         skin: p.skin,
@@ -710,9 +1183,8 @@ export function MobaGtaWorld3D({
       });
       rig.root.position.set(p.x, 0, p.z);
 
-      // Quest Ring under their feet
       const qRing = new THREE.Mesh(
-        new THREE.RingGeometry(1.4, 1.75, 28),
+        new THREE.RingGeometry(1.45, 1.85, 32),
         new THREE.MeshBasicMaterial({
           color: 0x38bdf8,
           side: THREE.DoubleSide,
@@ -726,7 +1198,7 @@ export function MobaGtaWorld3D({
       return { data: p, rig, qRing };
     });
 
-    // --- COLLECTIBLE ITEMS ACROSS THE WORLD ---
+    // --- 32 COLLECTIBLES ACROSS THE CITY ---
     interface LiveCollectible {
       id: string;
       kind: "scroll" | "supply" | "gem" | "heart";
@@ -757,35 +1229,35 @@ export function MobaGtaWorld3D({
           new THREE.MeshStandardMaterial({
             color: 0xfef3c7,
             emissive: 0xf59e0b,
-            emissiveIntensity: 0.85,
+            emissiveIntensity: 0.9,
           })
         );
         cyl.rotation.z = Math.PI / 4;
         grp.add(cyl);
       } else if (c.kind === "supply") {
         const box = new THREE.Mesh(
-          new THREE.BoxGeometry(0.75, 0.65, 0.75),
+          new THREE.BoxGeometry(0.78, 0.68, 0.78),
           new THREE.MeshStandardMaterial({
             color: 0x0284c7,
             emissive: 0x38bdf8,
-            emissiveIntensity: 0.65,
+            emissiveIntensity: 0.7,
           })
         );
         grp.add(box);
       } else {
         const gem = new THREE.Mesh(
-          new THREE.OctahedronGeometry(0.45, 0),
+          new THREE.OctahedronGeometry(0.46, 0),
           new THREE.MeshStandardMaterial({
             color: col,
             emissive: col,
-            emissiveIntensity: 1.0,
+            emissiveIntensity: 1.05,
           })
         );
         grp.add(gem);
       }
 
       const halo = new THREE.Mesh(
-        new THREE.RingGeometry(0.55, 0.75, 20),
+        new THREE.RingGeometry(0.55, 0.76, 22),
         new THREE.MeshBasicMaterial({
           color: col,
           side: THREE.DoubleSide,
@@ -810,7 +1282,7 @@ export function MobaGtaWorld3D({
       };
     });
 
-    // --- SHADOW ENEMIES & DISTRICT BOSS ---
+    // --- 15 HUMANOID ARMORED SHADOW ENEMIES + DISTRICT BOSS ---
     interface LiveEnemy {
       id: string;
       name: string;
@@ -850,37 +1322,65 @@ export function MobaGtaWorld3D({
       };
     });
 
-    // --- PLAYABLE HERO + GTA TACTICAL VEHICLE + GPS ARROW ---
+    // --- 3 PARKED DRIVABLE REALISTIC GTA VEHICLES ---
+    interface LiveVehicle {
+      cfg: VehicleSpawnConfig;
+      mesh: THREE.Group;
+      x: number;
+      z: number;
+      rotY: number;
+    }
+
+    const vehicles: LiveVehicle[] = worldCfg.vehicles.map((vCfg) => {
+      const mesh = createGtaVehicle3D(vCfg.kind, vCfg.color, vCfg.name);
+      mesh.position.set(vCfg.x, 0, vCfg.z);
+      mesh.rotation.y = vCfg.rotY;
+      scene.add(mesh);
+      return {
+        cfg: vCfg,
+        mesh,
+        x: vCfg.x,
+        z: vCfg.z,
+        rotY: vCfg.rotY,
+      };
+    });
+
+    // --- PLAYABLE HERO + GPS ARROW + WAYPOINT SKY BEAM ---
     const heroRig = createPlayableChampion3D(avatarId, agentName);
     const heroPos = new THREE.Vector3(
       WORLD_LANDMARKS.spawn.x,
       0,
       WORLD_LANDMARKS.spawn.z
     );
-    let heroAngle = Math.PI; // Facing North (-Z)
+    let heroAngle = Math.PI;
     heroRig.root.position.copy(heroPos);
     heroRig.root.rotation.y = heroAngle;
     scene.add(heroRig.root);
 
-    // 3D Rideable Vehicle parked near Spawn
-    const vehicleMesh = createTacticalVehicle3D(mission.id);
-    const vehiclePos = new THREE.Vector3(5.5, 0, 48);
-    vehicleMesh.position.copy(vehiclePos);
-    vehicleMesh.rotation.y = Math.PI;
-    scene.add(vehicleMesh);
-
-    // 3D GTA GPS Directional Arrow Ring around Hero!
+    // 3D GTA GPS Arrow at feet
     const gpsPivot = new THREE.Group();
     const gpsCone = new THREE.Mesh(
-      new THREE.ConeGeometry(0.36, 0.95, 6),
+      new THREE.ConeGeometry(0.38, 1.05, 8),
       new THREE.MeshBasicMaterial({ color: 0xfacc15 })
     );
     gpsCone.rotation.x = Math.PI / 2;
-    gpsCone.position.set(0, 0.35, 2.25);
+    gpsCone.position.set(0, 0.35, 2.3);
     gpsPivot.add(gpsCone);
     scene.add(gpsPivot);
 
-    // --- ACTIVE PROJECTILES & VFX ---
+    // Vertical GTA Waypoint Light Beam at active GPS target!
+    const gpsDestinationBeam = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.85, 0.85, 28, 18, 1, true),
+      new THREE.MeshBasicMaterial({
+        color: 0x38bdf8,
+        transparent: true,
+        opacity: 0.22,
+        side: THREE.DoubleSide,
+      })
+    );
+    scene.add(gpsDestinationBeam);
+
+    // --- PROJECTILES & VFX ---
     interface LightProjectile {
       mesh: THREE.Mesh;
       vx: number;
@@ -898,10 +1398,15 @@ export function MobaGtaWorld3D({
     }
     const vfxList: ExpandingEffect[] = [];
 
-    // --- GAMEPLAY STATE ---
+    // --- GAMEPLAY & CAMERA STATE ---
     let hp = 120;
     const maxHp = 120;
-    let inVehicle = false;
+    let activeVehicle: LiveVehicle | null = null;
+    let cameraMode: "gta" | "moba" = "gta";
+    let camYaw = 0; // 0 = Camera South looking North (-Z)
+    let nitroTimer = 0;
+    let nitroCooldown = 0;
+
     let score = 0;
     let combo = 0;
     let comboTimer = 0;
@@ -909,6 +1414,11 @@ export function MobaGtaWorld3D({
     let scrollsCollected = 0;
     const totalScrolls = collectibles.filter((c) => c.kind === "scroll").length;
     let enemiesDefeated = 0;
+
+    // Timed GTA Checkpoint Express Race State
+    let raceActive = false;
+    let raceTimeLeft = 0;
+    let raceCheckpointIdx = 0;
 
     let attackAnimTimer = 0;
     let shieldTimer = 0;
@@ -926,6 +1436,18 @@ export function MobaGtaWorld3D({
       });
     };
 
+    const startCheckpointRace = () => {
+      if (raceActive) return;
+      raceActive = true;
+      raceCheckpointIdx = 0;
+      raceTimeLeft = raceCfg.timeLimitSeconds;
+      soundEngine.play("vehicle");
+      emitPopup(
+        `🏁 ${raceCfg.title.toUpperCase()} INICIADA! (${raceCfg.timeLimitSeconds}s)`,
+        "#34d399"
+      );
+    };
+
     const damageEnemy = (enemy: LiveEnemy, amount: number, knockback = 1.6) => {
       if (enemy.dead) return;
       enemy.hp = Math.max(0, enemy.hp - amount);
@@ -937,7 +1459,6 @@ export function MobaGtaWorld3D({
       enemy.x += (dx / dist) * knockback;
       enemy.z += (dz / dist) * knockback;
 
-      // Update 3D HP bar
       if (enemy.rig.hpBarFill) {
         const pct = Math.max(0.01, enemy.hp / enemy.maxHp);
         enemy.rig.hpBarFill.scale.x = pct;
@@ -955,9 +1476,8 @@ export function MobaGtaWorld3D({
         const pts = Math.round(enemy.points * mult);
         score += pts;
 
-        // Burst VFX
         const ring = new THREE.Mesh(
-          new THREE.RingGeometry(0.4, 1.2, 24),
+          new THREE.RingGeometry(0.4, 1.3, 24),
           new THREE.MeshBasicMaterial({
             color: enemy.isBoss ? 0xfbbf24 : 0x34d399,
             side: THREE.DoubleSide,
@@ -967,14 +1487,14 @@ export function MobaGtaWorld3D({
         ring.rotation.x = -Math.PI / 2;
         ring.position.set(enemy.x, 0.25, enemy.z);
         scene.add(ring);
-        vfxList.push({ mesh: ring, age: 0, duration: 0.55, maxScale: 3.5 });
+        vfxList.push({ mesh: ring, age: 0, duration: 0.55, maxScale: 3.6 });
 
         if (enemy.isBoss) {
           soundEngine.play("levelUp");
-          onEarnRef.current(80, 25);
+          onEarnRef.current(90, 30);
           emitPopup(`👑 BOSS VENCIDO! +${pts} PTS!`, "#fbbf24");
         } else {
-          onEarnRef.current(15, 3);
+          onEarnRef.current(15, 4);
           emitPopup(`⚔️ +${pts} PTS (${combo}x COMBO!)`, "#34d399");
         }
       } else {
@@ -982,51 +1502,132 @@ export function MobaGtaWorld3D({
       }
     };
 
-    // --- ACTION DISPATCHER (COMBAT, SKILLS, VEHICLE, INTERACT) ---
+    const dismountVehicle = () => {
+      if (!activeVehicle) return;
+      const tag = activeVehicle.mesh.getObjectByName("vehicleTag");
+      if (tag) tag.visible = true;
+      const flame = activeVehicle.mesh.getObjectByName("nitroFlame");
+      if (flame) flame.visible = false;
+
+      activeVehicle.x = heroPos.x + 2.6;
+      activeVehicle.z = heroPos.z;
+      activeVehicle.rotY = heroAngle;
+      activeVehicle.mesh.position.set(activeVehicle.x, 0, activeVehicle.z);
+      activeVehicle = null;
+      nitroTimer = 0;
+    };
+
+    // --- ACTION DISPATCHER ---
     const performAction = (action: CombatActionType) => {
       if (pausedRef.current) return;
 
+      if (action === "camera") {
+        soundEngine.play("click");
+        cameraMode = cameraMode === "gta" ? "moba" : "gta";
+        if (cameraMode === "moba") {
+          camYaw = 0;
+          emitPopup("🎥 CÂMERA TÁTICA MOBA", "#fbbf24");
+        } else {
+          emitPopup("🎥 CÂMERA GTA 3ª PESSOA (Arraste p/ Girar)", "#38bdf8");
+        }
+        return;
+      }
+
+      if (action === "nitro") {
+        if (!activeVehicle) {
+          emitPopup("🚙 Entre em um Veículo [V] para usar o Turbo!", "#fbbf24");
+          return;
+        }
+        if (nitroCooldown > 0) return;
+        nitroTimer = 2.2;
+        nitroCooldown = 4.5;
+        soundEngine.play("dash");
+        emitPopup("🚀 NITRO TURBO ATIVADO!", "#38bdf8");
+        return;
+      }
+
       if (action === "vehicle") {
         soundEngine.play("vehicle");
-        inVehicle = !inVehicle;
-        const tag = vehicleMesh.getObjectByName("vehicleTag");
-        if (inVehicle) {
-          if (tag) tag.visible = false;
-          emitPopup(`🚙 ${worldCfg.vehicleName} ATIVADO!`, "#38bdf8");
-        } else {
-          if (tag) tag.visible = true;
-          vehiclePos.set(heroPos.x + 2.4, 0, heroPos.z);
-          vehicleMesh.position.copy(vehiclePos);
+        if (activeVehicle) {
+          dismountVehicle();
           emitPopup("🏃 MODO A PÉ", "#e2e8f0");
+        } else {
+          // Board nearest parked GTA vehicle (or summon closest one if far away!)
+          let bestV = vehicles[0];
+          let bestD = Infinity;
+          for (const v of vehicles) {
+            const d = Math.hypot(v.x - heroPos.x, v.z - heroPos.z);
+            if (d < bestD) {
+              bestD = d;
+              bestV = v;
+            }
+          }
+          if (bestD < 12) {
+            heroPos.set(bestV.x, 0, bestV.z);
+            heroAngle = bestV.rotY;
+          } else {
+            bestV.x = heroPos.x;
+            bestV.z = heroPos.z;
+            bestV.mesh.position.copy(heroPos);
+          }
+          activeVehicle = bestV;
+          const tag = bestV.mesh.getObjectByName("vehicleTag");
+          if (tag) tag.visible = false;
+          emitPopup(`🚙 ${bestV.cfg.name.toUpperCase()}! [Shift = Turbo]`, "#38bdf8");
         }
         return;
       }
 
       if (action === "interact") {
-        if (currentNearby) {
-          const consumedSupplies = onInteractRef.current(
-            currentNearby,
-            suppliesHeld
-          );
-          if (
-            consumedSupplies &&
-            currentNearby.person?.questType === "supply"
-          ) {
-            const need = currentNearby.person.neededSupplies || 2;
-            suppliesHeld = Math.max(0, suppliesHeld - need);
-            score += currentNearby.person.pointsReward;
-          } else if (consumedSupplies && currentNearby.person) {
-            score += currentNearby.person.pointsReward;
+        if (!currentNearby) return;
+
+        if (currentNearby.kind === "race") {
+          startCheckpointRace();
+          return;
+        }
+
+        if (currentNearby.kind === "tower" && currentNearby.tower) {
+          const tw = currentNearby.tower;
+          if (!towerIdsRef.current.includes(tw.id)) {
+            soundEngine.play("levelUp");
+            score += tw.pointsReward;
+            onTowerRef.current(tw);
+
+            // Expanding Sonic Broadcast Wave VFX!
+            const wave = new THREE.Mesh(
+              new THREE.RingGeometry(1.0, 2.2, 32),
+              new THREE.MeshBasicMaterial({
+                color: 0x22d3ee,
+                side: THREE.DoubleSide,
+                transparent: true,
+              })
+            );
+            wave.rotation.x = -Math.PI / 2;
+            wave.position.set(tw.x, 0.4, tw.z);
+            scene.add(wave);
+            vfxList.push({ mesh: wave, age: 0, duration: 1.1, maxScale: 8.5 });
+
+            emitPopup(`📡 ${tw.name.toUpperCase()} ATIVADA! +${tw.pointsReward} PTS`, "#22d3ee");
+          } else {
+            emitPopup("📡 Esta Torre já está transmitindo!", "#34d399");
           }
+          return;
+        }
+
+        const consumed = onInteractRef.current(currentNearby, suppliesHeld);
+        if (consumed && currentNearby.person?.questType === "supply") {
+          const need = currentNearby.person.neededSupplies || 2;
+          suppliesHeld = Math.max(0, suppliesHeld - need);
+          score += currentNearby.person.pointsReward;
+        } else if (consumed && currentNearby.person) {
+          score += currentNearby.person.pointsReward;
         }
         return;
       }
 
-      // Dismount automatically if casting sword/magic skills
-      if (inVehicle && action !== "skillW") {
-        inVehicle = false;
-        vehiclePos.set(heroPos.x + 2.5, 0, heroPos.z);
-        vehicleMesh.position.copy(vehiclePos);
+      // Dismount if casting sword/magic skills
+      if (activeVehicle && action !== "skillW") {
+        dismountVehicle();
       }
 
       const fwdX = Math.sin(heroAngle);
@@ -1034,11 +1635,10 @@ export function MobaGtaWorld3D({
 
       if (action === "attack") {
         soundEngine.play("slash");
-        attackAnimTimer = 0.26;
+        attackAnimTimer = 0.28;
 
-        // Auto-face nearest close enemy for crisp MOBA game feel!
         let closest: LiveEnemy | null = null;
-        let bestD = 5.2;
+        let bestD = 5.4;
         for (const e of enemies) {
           if (e.dead) continue;
           const d = Math.hypot(e.x - heroPos.x, e.z - heroPos.z);
@@ -1055,38 +1655,37 @@ export function MobaGtaWorld3D({
         }
 
         const isCrit = combo > 0 && combo % 3 === 2;
-        const dmg = isCrit ? 68 : 42;
+        const dmg = isCrit ? 72 : 45;
         enemies.forEach((e) => {
           if (e.dead) return;
-          const dist = Math.hypot(e.x - heroPos.x, e.z - heroPos.z);
-          if (dist <= 4.7) {
-            damageEnemy(e, dmg, 1.5);
+          if (Math.hypot(e.x - heroPos.x, e.z - heroPos.z) <= 4.9) {
+            damageEnemy(e, dmg, 1.6);
           }
         });
       } else if (action === "skillQ") {
         if (cooldowns.q > 0) return;
         cooldowns.q = 3.5;
         soundEngine.play("slash");
-        attackAnimTimer = 0.25;
+        attackAnimTimer = 0.26;
 
         const orb = new THREE.Mesh(
           new THREE.SphereGeometry(0.65, 14, 14),
           new THREE.MeshBasicMaterial({ color: 0x22d3ee })
         );
-        orb.position.set(heroPos.x + fwdX, 1.1, heroPos.z + fwdZ);
+        orb.position.set(heroPos.x + fwdX, 1.2, heroPos.z + fwdZ);
         scene.add(orb);
         projectiles.push({
           mesh: orb,
-          vx: fwdX * 28,
-          vz: fwdZ * 28,
-          life: 0.9,
+          vx: fwdX * 30,
+          vz: fwdZ * 30,
+          life: 0.95,
           hitIds: new Set(),
         });
       } else if (action === "skillW") {
         if (cooldowns.w > 0) return;
         cooldowns.w = 4.2;
         soundEngine.play("dash");
-        dashTimer = 0.22;
+        dashTimer = 0.24;
         dashDirX = fwdX;
         dashDirZ = fwdZ;
       } else if (action === "skillE") {
@@ -1094,13 +1693,13 @@ export function MobaGtaWorld3D({
         cooldowns.e = 7.5;
         soundEngine.play("prayer");
         shieldTimer = 4.0;
-        hp = Math.min(maxHp, hp + 40);
-        emitPopup("🙏 ESCUDO DE FÉ +40 VIDA!", "#fde047");
+        hp = Math.min(maxHp, hp + 42);
+        emitPopup("🙏 ESCUDO DE FÉ +42 VIDA!", "#fde047");
 
         enemies.forEach((e) => {
           if (e.dead) return;
-          if (Math.hypot(e.x - heroPos.x, e.z - heroPos.z) < 5.5) {
-            damageEnemy(e, 55, 2.8);
+          if (Math.hypot(e.x - heroPos.x, e.z - heroPos.z) < 5.8) {
+            damageEnemy(e, 60, 2.9);
           }
         });
       } else if (action === "skillR") {
@@ -1108,9 +1707,8 @@ export function MobaGtaWorld3D({
         cooldowns.r = 12.0;
         soundEngine.play("ult");
 
-        // Massive Heavenly Pillar of Light!
         const pillar = new THREE.Mesh(
-          new THREE.CylinderGeometry(1.5, 5.5, 26, 24, 1, true),
+          new THREE.CylinderGeometry(1.6, 5.8, 28, 24, 1, true),
           new THREE.MeshBasicMaterial({
             color: 0xfde047,
             side: THREE.DoubleSide,
@@ -1118,15 +1716,15 @@ export function MobaGtaWorld3D({
             opacity: 0.85,
           })
         );
-        pillar.position.set(heroPos.x, 13, heroPos.z);
+        pillar.position.set(heroPos.x, 14, heroPos.z);
         scene.add(pillar);
-        vfxList.push({ mesh: pillar, age: 0, duration: 0.85, maxScale: 1.9 });
+        vfxList.push({ mesh: pillar, age: 0, duration: 0.85, maxScale: 2.0 });
 
         emitPopup("⚡ ULTIMATE: LUZ DAS NAÇÕES!", "#fbbf24");
         enemies.forEach((e) => {
           if (e.dead) return;
-          if (Math.hypot(e.x - heroPos.x, e.z - heroPos.z) < 10.5) {
-            damageEnemy(e, 195, 3.6);
+          if (Math.hypot(e.x - heroPos.x, e.z - heroPos.z) < 11.0) {
+            damageEnemy(e, 210, 3.8);
           }
         });
       }
@@ -1134,7 +1732,7 @@ export function MobaGtaWorld3D({
 
     triggerActionFnRef.current = performAction;
 
-    // --- KEYBOARD & CLICK-TO-MOVE / ATTACK INPUTS ---
+    // --- KEYBOARD + MOUSE ORBIT / CLICK-TO-MOVE INPUTS ---
     const keys: Record<string, boolean> = {};
     let clickMoveTarget: THREE.Vector3 | null = null;
 
@@ -1156,6 +1754,10 @@ export function MobaGtaWorld3D({
         performAction("skillR");
       } else if (k === "v") {
         performAction("vehicle");
+      } else if (k === "shift") {
+        performAction("nitro");
+      } else if (k === "c") {
+        performAction("camera");
       } else if (k === "f" || k === "enter") {
         performAction("interact");
       }
@@ -1170,10 +1772,44 @@ export function MobaGtaWorld3D({
 
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
+    let isOrbitDragging = false;
+    let pointerDownX = 0;
+    let pointerDownY = 0;
+    let lastOrbitX = 0;
+    let movedDuringDrag = false;
+
+    const dom = renderer.domElement;
 
     const onPointerDown = (e: PointerEvent) => {
       if (pausedRef.current) return;
-      const rect = renderer.domElement.getBoundingClientRect();
+      isOrbitDragging = true;
+      movedDuringDrag = false;
+      pointerDownX = e.clientX;
+      pointerDownY = e.clientY;
+      lastOrbitX = e.clientX;
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (!isOrbitDragging || pausedRef.current) return;
+      const dxTotal = e.clientX - pointerDownX;
+      const dyTotal = e.clientY - pointerDownY;
+      if (Math.hypot(dxTotal, dyTotal) > 7) {
+        movedDuringDrag = true;
+      }
+      if (movedDuringDrag && cameraMode === "gta") {
+        const deltaX = e.clientX - lastOrbitX;
+        camYaw -= deltaX * 0.0065;
+        lastOrbitX = e.clientX;
+      }
+    };
+
+    const onPointerUp = (e: PointerEvent) => {
+      if (!isOrbitDragging) return;
+      isOrbitDragging = false;
+      if (pausedRef.current || movedDuringDrag) return;
+
+      // Quick Tap / Click -> Click-to-Move or Click-Enemy-to-Attack!
+      const rect = dom.getBoundingClientRect();
       pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
       raycaster.setFromCamera(pointer, camera);
@@ -1181,17 +1817,16 @@ export function MobaGtaWorld3D({
       const hits = raycaster.intersectObject(groundMesh);
       if (hits.length > 0) {
         const pt = hits[0].point;
-        const cx = Math.max(-70, Math.min(70, pt.x));
-        const cz = Math.max(-70, Math.min(70, pt.z));
+        const cx = Math.max(-96, Math.min(96, pt.x));
+        const cz = Math.max(-96, Math.min(96, pt.z));
 
-        // If user clicked directly on/near an enemy within range, swing attack!
         const clickedEnemy = enemies.find(
-          (en) => !en.dead && Math.hypot(en.x - cx, en.z - cz) < 2.6
+          (en) => !en.dead && Math.hypot(en.x - cx, en.z - cz) < 2.8
         );
         if (
           clickedEnemy &&
           Math.hypot(clickedEnemy.x - heroPos.x, clickedEnemy.z - heroPos.z) <
-            5.0
+            5.2
         ) {
           performAction("attack");
         } else {
@@ -1200,8 +1835,9 @@ export function MobaGtaWorld3D({
       }
     };
 
-    const dom = renderer.domElement;
     dom.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
 
     const onResize = () => {
       if (!container) return;
@@ -1213,68 +1849,94 @@ export function MobaGtaWorld3D({
     };
     window.addEventListener("resize", onResize);
 
-    // --- MAIN 60FPS OPEN-WORLD GAME LOOP ---
-    let animId = 0;
-    let lastTime = performance.now();
-    let lastHudSync = 0;
-    let walkCycle = 0;
-
-    const resolveBuildingCollision = (nx: number, nz: number) => {
+    // --- COLLISION RESOLVER ---
+    const resolveWorldCollision = (nx: number, nz: number) => {
       let rx = nx;
       let rz = nz;
       for (const b of buildingColliders) {
         const dx = rx - b.x;
         const dz = rz - b.z;
         if (Math.abs(dx) < b.rx && Math.abs(dz) < b.rz) {
-          const overlapX = b.rx - Math.abs(dx);
-          const overlapZ = b.rz - Math.abs(dz);
-          if (overlapX < overlapZ) {
-            rx += dx >= 0 ? overlapX : -overlapX;
+          const ox = b.rx - Math.abs(dx);
+          const oz = b.rz - Math.abs(dz);
+          if (ox < oz) {
+            rx += dx >= 0 ? ox : -ox;
           } else {
-            rz += dz >= 0 ? overlapZ : -overlapZ;
+            rz += dz >= 0 ? oz : -oz;
           }
         }
       }
-      // Amazonia river bank restriction (except on the 3 bridges or in Amphibious vehicle!)
-      if (mission.id === "amazonia" && !inVehicle) {
-        if (Math.abs(rz - 12) < 3.6) {
+      if (mission.id === "amazonia" && !activeVehicle) {
+        if (Math.abs(rz - 27) < 4.2) {
           const onBridge =
-            Math.abs(rx) < 5.5 ||
-            Math.abs(rx + 34) < 3.3 ||
-            Math.abs(rx - 34) < 3.3;
+            Math.abs(rx) < 6.0 ||
+            Math.abs(rx + 46) < 6.0 ||
+            Math.abs(rx - 46) < 6.0;
           if (!onBridge) {
-            rz = heroPos.z > 12 ? 15.65 : 8.35;
+            rz = heroPos.z > 27 ? 31.25 : 22.75;
           }
         }
       }
       return {
-        x: Math.max(-71, Math.min(71, rx)),
-        z: Math.max(-71, Math.min(71, rz)),
+        x: Math.max(-96, Math.min(96, rx)),
+        z: Math.max(-96, Math.min(96, rz)),
       };
     };
+
+    // --- MAIN 60FPS GTA + MOBA OPEN-WORLD GAME LOOP ---
+    let animId = 0;
+    let lastTime = performance.now();
+    let lastHudSync = 0;
+    let walkCycle = 0;
 
     const animate = (now: number) => {
       animId = requestAnimationFrame(animate);
       const dt = Math.min(0.05, (now - lastTime) / 1000);
       lastTime = now;
 
-      // Ambient city traffic movers
-      ambientMovers.forEach((m) => {
-        m.mesh.position[m.axis] += m.speed * dt;
-        if (m.mesh.position[m.axis] > m.limit) m.mesh.position[m.axis] = -m.limit;
-        if (m.mesh.position[m.axis] < -m.limit) m.mesh.position[m.axis] = m.limit;
+      // Ambient Cruising GTA Traffic
+      ambientCars.forEach((c) => {
+        c.mesh.position[c.axis] += c.speed * dt;
+        if (c.mesh.position[c.axis] > c.limit) c.mesh.position[c.axis] = -c.limit;
+        if (c.mesh.position[c.axis] < -c.limit) c.mesh.position[c.axis] = c.limit;
+      });
+
+      // Ambient Walking Sidewalk Pedestrians
+      pedestrians.forEach((ped) => {
+        ped.phase += dt * 7.5;
+        ped.rig.root.position.x += ped.speed * ped.dir * dt;
+        if (ped.rig.root.position.x > ped.baseX + ped.range) ped.dir = -1;
+        if (ped.rig.root.position.x < ped.baseX - ped.range) ped.dir = 1;
+        ped.rig.root.rotation.y = ped.dir > 0 ? Math.PI / 2 : -Math.PI / 2;
+        animateHumanRig(ped.rig, ped.phase, true, false, 0);
       });
 
       totemCrystal.rotation.y += 1.5 * dt;
       nexusRing.rotation.z += (dialogueDoneRef.current ? 2.5 : 0.6) * dt;
       nexusCore.rotation.y += 2.0 * dt;
 
+      // Sync Radio Tower Visuals
+      radioTowerObjs.forEach((twObj) => {
+        const done = towerIdsRef.current.includes(twObj.data.id);
+        (twObj.beacon.material as THREE.MeshBasicMaterial).color.setHex(
+          done ? 0x10b981 : Math.sin(now * 0.008) > 0 ? 0xf43f5e : 0x881337
+        );
+        (twObj.ring.material as THREE.MeshBasicMaterial).color.setHex(
+          done ? 0x10b981 : 0x38bdf8
+        );
+        if (done) {
+          twObj.dish.rotation.z += dt * 1.4;
+        }
+      });
+
       if (!pausedRef.current) {
-        // Cooldowns & timers
         cooldowns.q = Math.max(0, cooldowns.q - dt);
         cooldowns.w = Math.max(0, cooldowns.w - dt);
         cooldowns.e = Math.max(0, cooldowns.e - dt);
         cooldowns.r = Math.max(0, cooldowns.r - dt);
+        nitroCooldown = Math.max(0, nitroCooldown - dt);
+        if (nitroTimer > 0) nitroTimer = Math.max(0, nitroTimer - dt);
+
         if (comboTimer > 0) {
           comboTimer -= dt;
           if (comboTimer <= 0) combo = 0;
@@ -1282,52 +1944,131 @@ export function MobaGtaWorld3D({
         if (attackAnimTimer > 0) attackAnimTimer -= dt;
         if (shieldTimer > 0) shieldTimer -= dt;
 
-        // Movement Input (WASD / Arrows / Touch Joystick / ClickTarget)
-        let mx = joystickRef.current.x;
-        let mz = joystickRef.current.y;
-        if (keys["w"] || keys["arrowup"]) mz -= 1;
-        if (keys["s"] || keys["arrowdown"]) mz += 1;
-        if (keys["a"] || keys["arrowleft"]) mx -= 1;
-        if (keys["d"] || keys["arrowright"]) mx += 1;
+        // Timed GTA Checkpoint Express Race Logic!
+        if (raceActive) {
+          raceTimeLeft -= dt;
+          const cp = raceCfg.checkpoints[raceCheckpointIdx];
+          if (cp) {
+            activeCheckpointGroup.visible = true;
+            activeCheckpointGroup.position.set(cp.x, 0, cp.z);
+            cpTorus.rotation.y += dt * 3.0;
+
+            if (Math.hypot(heroPos.x - cp.x, heroPos.z - cp.z) < 5.6) {
+              soundEngine.play("pickup");
+              raceCheckpointIdx += 1;
+              score += 120;
+              if (raceCheckpointIdx >= raceCfg.checkpoints.length) {
+                // RACE WON!
+                raceActive = false;
+                activeCheckpointGroup.visible = false;
+                score += raceCfg.pointsReward;
+                soundEngine.play("levelUp");
+                onRaceRef.current();
+                emitPopup(
+                  `🏆 CORRIDA CONCLUÍDA! +${raceCfg.pointsReward} PTS!`,
+                  "#fbbf24"
+                );
+              } else {
+                emitPopup(
+                  `🏁 CHECKPOINT ${raceCheckpointIdx}/${raceCfg.checkpoints.length}!`,
+                  "#34d399"
+                );
+              }
+            }
+          }
+          if (raceTimeLeft <= 0 && raceActive) {
+            raceActive = false;
+            activeCheckpointGroup.visible = false;
+            soundEngine.play("error");
+            emitPopup("⏰ Tempo Esgotado! Volte à Largada 🏁 para tentar de novo!", "#f43f5e");
+          }
+        } else {
+          activeCheckpointGroup.visible = false;
+          // Auto-trigger race if driving a vehicle right through the Start Arch!
+          if (
+            activeVehicle &&
+            !raceDoneRef.current &&
+            Math.hypot(heroPos.x - raceCfg.startX, heroPos.z - raceCfg.startZ) <
+              3.4
+          ) {
+            startCheckpointRace();
+          }
+        }
+
+        // Camera-Relative Movement Input (WASD / Arrows / Touch Thumbstick / Click)
+        let rawX = joystickRef.current.x;
+        let rawY = joystickRef.current.y; // negative = up/forward
+        if (keys["w"] || keys["arrowup"]) rawY -= 1;
+        if (keys["s"] || keys["arrowdown"]) rawY += 1;
+        if (keys["a"] || keys["arrowleft"]) rawX -= 1;
+        if (keys["d"] || keys["arrowright"]) rawX += 1;
 
         let isMoving = false;
-        const baseSpeed = inVehicle ? 19.5 : 9.6;
+        const vehSpeed = activeVehicle ? activeVehicle.cfg.topSpeed : 10.2;
+        const baseSpeed =
+          activeVehicle && nitroTimer > 0 ? vehSpeed * 1.55 : vehSpeed;
 
         if (dashTimer > 0) {
           dashTimer -= dt;
-          const next = resolveBuildingCollision(
-            heroPos.x + dashDirX * 32 * dt,
-            heroPos.z + dashDirZ * 32 * dt
+          const next = resolveWorldCollision(
+            heroPos.x + dashDirX * 34 * dt,
+            heroPos.z + dashDirZ * 34 * dt
           );
           heroPos.set(next.x, 0, next.z);
           isMoving = true;
           enemies.forEach((en) => {
             if (
               !en.dead &&
-              Math.hypot(en.x - heroPos.x, en.z - heroPos.z) < 2.6
+              Math.hypot(en.x - heroPos.x, en.z - heroPos.z) < 2.8
             ) {
-              damageEnemy(en, 35, 2.0);
+              damageEnemy(en, 38, 2.2);
             }
           });
-        } else if (Math.hypot(mx, mz) > 0.08) {
+        } else if (Math.hypot(rawX, rawY) > 0.08) {
           clickMoveTarget = null;
-          const len = Math.hypot(mx, mz);
-          const nx = (mx / len) * baseSpeed * dt;
-          const nz = (mz / len) * baseSpeed * dt;
-          const resolved = resolveBuildingCollision(
-            heroPos.x + nx,
-            heroPos.z + nz
+          const len = Math.hypot(rawX, rawY);
+          const normRight = rawX / len;
+          const normFwd = -rawY / len; // +1 when pressing W / Joystick Up
+
+          // Transform relative to current Camera Yaw!
+          const camFwdX = -Math.sin(camYaw);
+          const camFwdZ = -Math.cos(camYaw);
+          const camRightX = Math.cos(camYaw);
+          const camRightZ = -Math.sin(camYaw);
+
+          const worldDirX = camFwdX * normFwd + camRightX * normRight;
+          const worldDirZ = camFwdZ * normFwd + camRightZ * normRight;
+
+          const resolved = resolveWorldCollision(
+            heroPos.x + worldDirX * baseSpeed * dt,
+            heroPos.z + worldDirZ * baseSpeed * dt
           );
           heroPos.set(resolved.x, 0, resolved.z);
-          heroAngle = Math.atan2(mx, mz);
+          heroAngle = Math.atan2(worldDirX, worldDirZ);
           isMoving = true;
+
+          // Gently swing GTA chase camera behind vehicle when accelerating straight forward
+          if (
+            cameraMode === "gta" &&
+            activeVehicle &&
+            !isOrbitDragging &&
+            normFwd > 0.55 &&
+            Math.abs(normRight) < 0.38
+          ) {
+            const targetYaw = heroAngle + Math.PI;
+            const diff = Math.atan2(
+              Math.sin(targetYaw - camYaw),
+              Math.cos(targetYaw - camYaw)
+            );
+            camYaw += diff * 1.9 * dt;
+          }
         } else if (clickMoveTarget) {
           const dx = clickMoveTarget.x - heroPos.x;
           const dz = clickMoveTarget.z - heroPos.z;
           const dist = Math.hypot(dx, dz);
-          if (dist > 0.45) {
+          if (dist > 0.5) {
             const step = Math.min(dist, baseSpeed * dt);
-            const resolved = resolveBuildingCollision(
+            const resolved = resolveWorldCollision(
               heroPos.x + (dx / dist) * step,
               heroPos.z + (dz / dist) * step
             );
@@ -1339,54 +2080,51 @@ export function MobaGtaWorld3D({
           }
         }
 
-        // Vehicle Ramming Impact against Shadows!
-        if (inVehicle && isMoving) {
+        // Vehicle Ramming Damage
+        if (activeVehicle && isMoving) {
+          const ramDmg = nitroTimer > 0 ? 110 : 65;
           enemies.forEach((en) => {
             if (
               !en.dead &&
-              Math.hypot(en.x - heroPos.x, en.z - heroPos.z) < 2.9
+              Math.hypot(en.x - heroPos.x, en.z - heroPos.z) < 3.1
             ) {
-              damageEnemy(en, 60, 3.5);
+              damageEnemy(en, ramDmg, nitroTimer > 0 ? 5.2 : 3.5);
             }
           });
         }
 
-        // Sync Hero & Vehicle Transforms + Articulated Animations
+        // Sync Hero & Active Vehicle Transforms + Realistic Knee-Bending Animations!
         heroRig.root.position.copy(heroPos);
         heroRig.root.rotation.y = heroAngle;
 
-        if (inVehicle) {
-          vehicleMesh.position.copy(heroPos);
-          vehicleMesh.rotation.y = heroAngle;
-          heroRig.bodyGroup.position.y = 0.45;
-          heroRig.leftLegPivot.rotation.x = -0.7;
-          heroRig.rightLegPivot.rotation.x = -0.7;
-        } else {
-          heroRig.bodyGroup.position.y = isMoving
-            ? Math.abs(Math.sin(walkCycle)) * 0.14
-            : 0;
-          if (isMoving) {
-            walkCycle += dt * 15;
-            heroRig.leftLegPivot.rotation.x = Math.sin(walkCycle) * 0.75;
-            heroRig.rightLegPivot.rotation.x = -Math.sin(walkCycle) * 0.75;
-            heroRig.leftArmPivot.rotation.x = -Math.sin(walkCycle) * 0.65;
-            if (attackAnimTimer <= 0) {
-              heroRig.rightArmPivot.rotation.x = Math.sin(walkCycle) * 0.65;
-            }
-          } else {
-            heroRig.leftLegPivot.rotation.x *= 0.85;
-            heroRig.rightLegPivot.rotation.x *= 0.85;
-            heroRig.leftArmPivot.rotation.x *= 0.85;
-            if (attackAnimTimer <= 0) {
-              heroRig.rightArmPivot.rotation.x *= 0.85;
-            }
+        if (activeVehicle) {
+          activeVehicle.x = heroPos.x;
+          activeVehicle.z = heroPos.z;
+          activeVehicle.rotY = heroAngle;
+          activeVehicle.mesh.position.copy(heroPos);
+          activeVehicle.mesh.rotation.y = heroAngle;
+          const flame = activeVehicle.mesh.getObjectByName("nitroFlame");
+          if (flame) {
+            flame.visible = nitroTimer > 0;
+            flame.scale.setScalar(0.85 + Math.random() * 0.45);
           }
         }
 
-        // Sword Slash Arc & Shield Dome visuals
+        if (isMoving && !activeVehicle) {
+          walkCycle += dt * 13.5;
+        }
+        animateHumanRig(
+          heroRig,
+          walkCycle,
+          isMoving,
+          Boolean(activeVehicle),
+          attackAnimTimer
+        );
+
+        // Sword Slash Arc & Shield Dome
         if (heroRig.slashArc) {
           if (attackAnimTimer > 0) {
-            heroRig.rightArmPivot.rotation.x = -1.35 + attackAnimTimer * 4;
+            heroRig.rightArmPivot.rotation.x = -1.4 + attackAnimTimer * 4;
             heroRig.slashArc.rotation.z += dt * 18;
             (heroRig.slashArc.material as THREE.MeshBasicMaterial).opacity =
               Math.min(0.9, attackAnimTimer * 4);
@@ -1401,28 +2139,35 @@ export function MobaGtaWorld3D({
             shieldTimer > 0 ? 0.42 : 0;
         }
 
-        // GPS Waypoint Arrow rotation
-        gpsPivot.position.set(heroPos.x, 0.05, heroPos.z);
-        const gx = gpsTargetRef.current.x - heroPos.x;
-        const gz = gpsTargetRef.current.z - heroPos.z;
-        gpsPivot.rotation.y = Math.atan2(gx, gz);
-        gpsPivot.visible = Math.hypot(gx, gz) > 4.2;
+        // GPS Arrow & Destination Sky Beam (locks onto Race Checkpoint during active race!)
+        const activeTarget =
+          raceActive && raceCfg.checkpoints[raceCheckpointIdx]
+            ? raceCfg.checkpoints[raceCheckpointIdx]
+            : gpsTargetRef.current;
 
-        // Collectibles Magnet & Pickup!
+        gpsPivot.position.set(heroPos.x, 0.06, heroPos.z);
+        const gx = activeTarget.x - heroPos.x;
+        const gz = activeTarget.z - heroPos.z;
+        gpsPivot.rotation.y = Math.atan2(gx, gz);
+        gpsPivot.visible = Math.hypot(gx, gz) > 4.5;
+
+        gpsDestinationBeam.position.set(activeTarget.x, 14, activeTarget.z);
+        gpsDestinationBeam.visible = !raceActive && Math.hypot(gx, gz) > 6.0;
+
+        // Collectibles Magnet & Pickup
         collectibles.forEach((c) => {
           if (c.collected) return;
           c.mesh.rotation.y += 2.2 * dt;
           c.mesh.position.y = 0.85 + Math.sin(now * 0.004 + c.x) * 0.16;
 
           const dist = Math.hypot(c.x - heroPos.x, c.z - heroPos.z);
-          if (dist < 4.2) {
-            // Smooth magnet pull toward Hero!
-            c.x += ((heroPos.x - c.x) / Math.max(0.2, dist)) * 15 * dt;
-            c.z += ((heroPos.z - c.z) / Math.max(0.2, dist)) * 15 * dt;
+          if (dist < 4.8) {
+            c.x += ((heroPos.x - c.x) / Math.max(0.2, dist)) * 17 * dt;
+            c.z += ((heroPos.z - c.z) / Math.max(0.2, dist)) * 17 * dt;
             c.mesh.position.x = c.x;
             c.mesh.position.z = c.z;
           }
-          if (dist < 1.8) {
+          if (dist < 2.0) {
             c.collected = true;
             c.mesh.visible = false;
             soundEngine.play("pickup");
@@ -1449,7 +2194,7 @@ export function MobaGtaWorld3D({
           }
         });
 
-        // Update Projectiles (Skill Q)
+        // Projectiles
         for (let i = projectiles.length - 1; i >= 0; i--) {
           const p = projectiles[i];
           p.life -= dt;
@@ -1462,10 +2207,10 @@ export function MobaGtaWorld3D({
               Math.hypot(
                 en.x - p.mesh.position.x,
                 en.z - p.mesh.position.z
-              ) < 2.2
+              ) < 2.3
             ) {
               p.hitIds.add(en.id);
-              damageEnemy(en, 85, 2.2);
+              damageEnemy(en, 88, 2.2);
             }
           });
 
@@ -1475,7 +2220,7 @@ export function MobaGtaWorld3D({
           }
         }
 
-        // Update VFX
+        // Expanding VFX
         for (let i = vfxList.length - 1; i >= 0; i--) {
           const fx = vfxList[i];
           fx.age += dt;
@@ -1492,39 +2237,34 @@ export function MobaGtaWorld3D({
           }
         }
 
-        // Enemy AI (Patrol, Aggro Chase & Melee Strike)
-        enemies.forEach((en) => {
+        // Humanoid Shadow Enemy AI & Articulated Stride
+        enemies.forEach((en, eIdx) => {
           if (en.dead) return;
           if (en.attackCd > 0) en.attackCd -= dt;
-          if (en.hitFlash > 0) {
-            en.hitFlash -= dt;
-            en.rig.bodyGroup.position.y = 0.25;
-          } else {
-            en.rig.bodyGroup.position.y =
-              Math.sin(now * 0.005 + en.homeX) * 0.15;
-          }
 
           const dx = heroPos.x - en.x;
           const dz = heroPos.z - en.z;
           const distHero = Math.hypot(dx, dz);
           const distHome = Math.hypot(en.x - en.homeX, en.z - en.homeZ);
 
-          const aggroRadius = en.isBoss ? 15 : 11.5;
-          if (distHero < aggroRadius && distHome < 22) {
+          let enemyMoving = false;
+          const aggroRadius = en.isBoss ? 17 : 12.5;
+          if (distHero < aggroRadius && distHome < 26) {
             en.rig.root.rotation.y = Math.atan2(dx, dz);
-            if (distHero > (en.isBoss ? 2.6 : 1.85)) {
-              const spd = en.isBoss ? 4.2 : 4.8;
+            if (distHero > (en.isBoss ? 2.8 : 1.95)) {
+              const spd = en.isBoss ? 4.5 : 5.1;
               en.x += (dx / distHero) * spd * dt;
               en.z += (dz / distHero) * spd * dt;
+              enemyMoving = true;
             } else if (en.attackCd <= 0) {
               en.attackCd = 1.45;
+              en.rig.rightArmPivot.rotation.x = -1.3;
               if (shieldTimer <= 0) {
                 const dmgTaken = en.isBoss ? 18 : 10;
                 hp = Math.max(0, hp - dmgTaken);
                 soundEngine.play("error");
                 emitPopup(`-${dmgTaken} HP`, "#f43f5e");
                 if (hp <= 0) {
-                  // Respawn at Base Fountain with full HP!
                   hp = maxHp;
                   heroPos.set(
                     WORLD_LANDMARKS.spawn.x,
@@ -1540,20 +2280,29 @@ export function MobaGtaWorld3D({
           } else if (distHome > 1.0) {
             const hx = en.homeX - en.x;
             const hz = en.homeZ - en.z;
-            en.x += (hx / distHome) * 3.5 * dt;
-            en.z += (hz / distHome) * 3.5 * dt;
+            en.x += (hx / distHome) * 3.8 * dt;
+            en.z += (hz / distHome) * 3.8 * dt;
+            en.rig.root.rotation.y = Math.atan2(hx, hz);
+            enemyMoving = true;
           }
 
+          if (enemyMoving) {
+            const ph = now * 0.009 + eIdx;
+            en.rig.leftLegPivot.rotation.x = Math.sin(ph) * 0.55;
+            en.rig.rightLegPivot.rotation.x = -Math.sin(ph) * 0.55;
+            en.rig.leftArmPivot.rotation.x = -Math.sin(ph) * 0.45;
+          }
+          en.rig.rightArmPivot.rotation.x *= 0.9;
           en.rig.root.position.set(en.x, 0, en.z);
         });
 
-        // Detect Nearby Contextual Interaction (Main NPC, Street People, Totem, Nexus)
+        // Detect Contextual Nearby Interaction
         let foundNearby: NearbyInteractionInfo | null = null;
         if (
           Math.hypot(
             heroPos.x - WORLD_LANDMARKS.mainNpc.x,
             heroPos.z - WORLD_LANDMARKS.mainNpc.z
-          ) < 4.5
+          ) < 4.8
         ) {
           foundNearby = {
             kind: "mainNpc",
@@ -1564,7 +2313,7 @@ export function MobaGtaWorld3D({
           Math.hypot(
             heroPos.x - WORLD_LANDMARKS.nexus.x,
             heroPos.z - WORLD_LANDMARKS.nexus.z
-          ) < 5.0
+          ) < 5.5
         ) {
           foundNearby = {
             kind: "nexus",
@@ -1577,46 +2326,101 @@ export function MobaGtaWorld3D({
           Math.hypot(
             heroPos.x - WORLD_LANDMARKS.totem.x,
             heroPos.z - WORLD_LANDMARKS.totem.z
-          ) < 4.0
+          ) < 4.4
         ) {
           foundNearby = {
             kind: "totem",
             id: "totem",
             label: "Ler Totem de Inteligência Cultural",
           };
+        } else if (
+          !raceActive &&
+          Math.hypot(heroPos.x - raceCfg.startX, heroPos.z - raceCfg.startZ) <
+            5.2
+        ) {
+          foundNearby = {
+            kind: "race",
+            id: raceCfg.id,
+            label: raceDoneRef.current
+              ? `🏁 Correr Novamente: ${raceCfg.title}`
+              : `🏁 Iniciar ${raceCfg.title}!`,
+          };
         } else {
-          for (const sp of streetPeopleObjs) {
-            const alreadyHelped = helpedIdsRef.current.includes(sp.data.id);
-            (sp.qRing.material as THREE.MeshBasicMaterial).color.setHex(
-              alreadyHelped ? 0x10b981 : 0x38bdf8
-            );
+          for (const twObj of radioTowerObjs) {
             if (
-              Math.hypot(heroPos.x - sp.data.x, heroPos.z - sp.data.z) < 4.2
+              Math.hypot(heroPos.x - twObj.data.x, heroPos.z - twObj.data.z) <
+              4.8
             ) {
+              const done = towerIdsRef.current.includes(twObj.data.id);
               foundNearby = {
-                kind: "person",
-                id: sp.data.id,
-                label: alreadyHelped
-                  ? `Falar com ${sp.data.name} (Ajudado ✓)`
-                  : `Ajudar ${sp.data.name}`,
-                person: sp.data,
+                kind: "tower",
+                id: twObj.data.id,
+                label: done
+                  ? `📡 ${twObj.data.name} (Transmitindo ✓)`
+                  : `📡 Sintonizar ${twObj.data.name}`,
+                tower: twObj.data,
               };
               break;
+            }
+          }
+
+          if (!foundNearby) {
+            for (const sp of streetPeopleObjs) {
+              const alreadyHelped = helpedIdsRef.current.includes(sp.data.id);
+              (sp.qRing.material as THREE.MeshBasicMaterial).color.setHex(
+                alreadyHelped ? 0x10b981 : 0x38bdf8
+              );
+              if (
+                Math.hypot(heroPos.x - sp.data.x, heroPos.z - sp.data.z) < 4.5
+              ) {
+                foundNearby = {
+                  kind: "person",
+                  id: sp.data.id,
+                  label: alreadyHelped
+                    ? `Falar com ${sp.data.name} (Ajudado ✓)`
+                    : `Ajudar ${sp.data.name}`,
+                  person: sp.data,
+                };
+                break;
+              }
             }
           }
         }
         currentNearby = foundNearby;
       }
 
-      // Dynamic GTA / MOBA Chase-Isometric Camera (zooms slightly back when driving vehicle!)
-      const camHeight = inVehicle ? 20.5 : 16.5;
-      const camBack = inVehicle ? 21.0 : 17.5;
-      camera.position.x += (heroPos.x - camera.position.x) * 0.1;
-      camera.position.z += (heroPos.z + camBack - camera.position.z) * 0.1;
-      camera.position.y += (camHeight - camera.position.y) * 0.08;
-      camera.lookAt(heroPos.x, 1.1, heroPos.z - 2.2);
+      // --- GTA 3RD-PERSON STREET CAMERA vs TACTICAL MOBA CAMERA ---
+      if (cameraMode === "gta") {
+        const camDist = activeVehicle
+          ? nitroTimer > 0
+            ? 16.5
+            : 14.5
+          : 11.2;
+        const camHeight = activeVehicle ? 7.0 : 5.6;
+        const targetCamX = heroPos.x + Math.sin(camYaw) * camDist;
+        const targetCamZ = heroPos.z + Math.cos(camYaw) * camDist;
 
-      // Emit HUD Snapshot (~14fps)
+        camera.position.x += (targetCamX - camera.position.x) * 0.14;
+        camera.position.z += (targetCamZ - camera.position.z) * 0.14;
+        camera.position.y += (camHeight - camera.position.y) * 0.12;
+
+        // Look slightly ahead & above character so street horizon, buildings & sky dome fill the view!
+        const lookAheadX = heroPos.x - Math.sin(camYaw) * 4.5;
+        const lookAheadZ = heroPos.z - Math.cos(camYaw) * 4.5;
+        camera.lookAt(lookAheadX, 2.1, lookAheadZ);
+      } else {
+        const camHeight = activeVehicle ? 22 : 18.5;
+        const camBack = activeVehicle ? 22 : 18.5;
+        camera.position.x += (heroPos.x - camera.position.x) * 0.12;
+        camera.position.z += (heroPos.z + camBack - camera.position.z) * 0.12;
+        camera.position.y += (camHeight - camera.position.y) * 0.1;
+        camera.lookAt(heroPos.x, 1.2, heroPos.z - 2.2);
+      }
+
+      // Keep Sky Dome centered around hero
+      skyDome.position.set(heroPos.x, 0, heroPos.z);
+
+      // --- SYNC HUD SNAPSHOT (~14fps) ---
       if (now - lastHudSync > 70) {
         lastHudSync = now;
         const boss = enemies.find((e) => e.isBoss);
@@ -1638,12 +2442,35 @@ export function MobaGtaWorld3D({
             z: WORLD_LANDMARKS.totem.z,
             kind: "totem",
           },
+          {
+            x: raceActive && raceCfg.checkpoints[raceCheckpointIdx]
+              ? raceCfg.checkpoints[raceCheckpointIdx].x
+              : raceCfg.startX,
+            z: raceActive && raceCfg.checkpoints[raceCheckpointIdx]
+              ? raceCfg.checkpoints[raceCheckpointIdx].z
+              : raceCfg.startZ,
+            kind: "race",
+            done: raceDoneRef.current,
+          },
+          ...radioTowerObjs.map((tw) => ({
+            x: tw.data.x,
+            z: tw.data.z,
+            kind: "tower" as const,
+            done: towerIdsRef.current.includes(tw.data.id),
+          })),
           ...streetPeopleObjs.map((sp) => ({
             x: sp.data.x,
             z: sp.data.z,
             kind: "person" as const,
             done: helpedIdsRef.current.includes(sp.data.id),
           })),
+          ...vehicles
+            .filter((v) => v !== activeVehicle)
+            .map((v) => ({
+              x: v.x,
+              z: v.z,
+              kind: "vehicle" as const,
+            })),
           ...collectibles
             .filter((c) => !c.collected && c.kind === "scroll")
             .map((c) => ({
@@ -1666,7 +2493,12 @@ export function MobaGtaWorld3D({
           heroAngle,
           hp,
           maxHp,
-          inVehicle,
+          inVehicle: Boolean(activeVehicle),
+          activeVehicleName: activeVehicle
+            ? activeVehicle.cfg.name
+            : worldCfg.vehicleName,
+          cameraMode,
+          nitroCooldown,
           score,
           combo,
           suppliesHeld,
@@ -1677,6 +2509,13 @@ export function MobaGtaWorld3D({
           bossDefeated: Boolean(boss?.dead),
           bossHpPct: boss ? Math.round((boss.hp / boss.maxHp) * 100) : 0,
           helpedPersonIds: helpedIdsRef.current,
+          activatedTowerIds: towerIdsRef.current,
+          totalTowers: radioTowerObjs.length,
+          raceActive,
+          raceCompleted: raceDoneRef.current,
+          raceTimeLeft: Math.max(0, raceTimeLeft),
+          raceCheckpointIdx,
+          raceTotalCheckpoints: raceCfg.checkpoints.length,
           cooldowns: { ...cooldowns },
           nearby: currentNearby,
           dots,
@@ -1691,6 +2530,8 @@ export function MobaGtaWorld3D({
     return () => {
       cancelAnimationFrame(animId);
       dom.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("resize", onResize);
@@ -1701,7 +2542,7 @@ export function MobaGtaWorld3D({
   return (
     <div
       ref={containerRef}
-      className="h-full w-full cursor-crosshair touch-none select-none"
+      className="h-full w-full cursor-grab overflow-hidden active:cursor-grabbing"
     />
   );
 }

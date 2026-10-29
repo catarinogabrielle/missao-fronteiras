@@ -11,17 +11,22 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
   ArrowRight,
+  Camera,
   Car,
   CheckCircle2,
+  ClipboardList,
   Compass,
   Crown,
+  Flag,
   Flame,
+  Gauge,
   Heart,
   HeartHandshake,
   Languages,
   Lightbulb,
   MapPin,
   Package,
+  Radio,
   RotateCcw,
   School,
   Shield,
@@ -30,14 +35,17 @@ import {
   Swords,
   ThumbsDown,
   ThumbsUp,
-  Users,
   X,
   Zap,
 } from "lucide-react";
 import { DialogueOption, Mission } from "@/types/game";
 import { useGame } from "@/context/GameContext";
 import { getMissionSplash, NPC_PORTRAITS } from "@/lib/assets";
-import { getOpenWorldConfig, StreetPersonQuest } from "@/lib/worldData";
+import {
+  getOpenWorldConfig,
+  RadioTowerMission,
+  StreetPersonQuest,
+} from "@/lib/worldData";
 import {
   CombatActionType,
   CombatTrigger,
@@ -89,10 +97,10 @@ function deterministicShuffle(
   return copy;
 }
 
-// Map 160x160 3D Open-World coordinates (-74..74) to Radar Minimap percentages (4%..96%)
+// Map 220x220 3D Open-World coordinates (-98..98) to Radar Minimap percentages (4%..96%)
 function toWorldRadarPct(x: number, z: number) {
-  const px = ((x + 74) / 148) * 100;
-  const py = ((z + 74) / 148) * 100;
+  const px = ((x + 98) / 196) * 100;
+  const py = ((z + 98) / 196) * 100;
   return {
     left: `${Math.max(4, Math.min(96, px))}%`,
     top: `${Math.max(4, Math.min(96, py))}%`,
@@ -106,16 +114,26 @@ const INITIAL_HUD_SNAPSHOT: WorldHudSnapshot = {
   hp: 120,
   maxHp: 120,
   inVehicle: false,
+  activeVehicleName: "SUV Tático 4x4",
+  cameraMode: "gta",
+  nitroCooldown: 0,
   score: 0,
   combo: 0,
   suppliesHeld: 0,
   scrollsCollected: 0,
-  totalScrolls: 5,
+  totalScrolls: 6,
   enemiesDefeated: 0,
-  totalEnemies: 11,
+  totalEnemies: 15,
   bossDefeated: false,
   bossHpPct: 100,
   helpedPersonIds: [],
+  activatedTowerIds: [],
+  totalTowers: 3,
+  raceActive: false,
+  raceCompleted: false,
+  raceTimeLeft: 0,
+  raceCheckpointIdx: 0,
+  raceTotalCheckpoints: 5,
   cooldowns: { q: 0, w: 0, e: 0, r: 0 },
   nearby: null,
   dots: [],
@@ -147,6 +165,7 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
 
   const [worldResetSeed, setWorldResetSeed] = useState(0);
   const [overlay, setOverlay] = useState<OverlayMode>("none");
+  const [missionPhoneOpen, setMissionPhoneOpen] = useState(false);
   const [hudSnap, setHudSnap] = useState<WorldHudSnapshot>(INITIAL_HUD_SNAPSHOT);
   const [popups, setPopups] = useState<WorldFloatingPopup[]>([]);
   const [combatTrigger, setCombatTrigger] = useState<CombatTrigger | null>(null);
@@ -156,7 +175,7 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
     label: string;
   } | null>(null);
 
-  // Virtual Analog Thumbstick State (Mobile + Mouse Drag)
+  // Virtual Analog Thumbstick State
   const [joystickVec, setJoystickVec] = useState<{ x: number; y: number }>({
     x: 0,
     y: 0,
@@ -164,9 +183,11 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
   const joystickPadRef = useRef<HTMLDivElement | null>(null);
   const joystickDraggingRef = useRef(false);
 
-  // Open-World Progression & Side Quests
+  // Open-World GTA Side-Missions Progression
   const [totemScanned, setTotemScanned] = useState(false);
   const [helpedPersonIds, setHelpedPersonIds] = useState<string[]>([]);
+  const [activatedTowerIds, setActivatedTowerIds] = useState<string[]>([]);
+  const [raceCompleted, setRaceCompleted] = useState(false);
   const [activeEncounter, setActiveEncounter] =
     useState<ActivePersonEncounter | null>(null);
   const [dialogueCompleted, setDialogueCompleted] = useState(false);
@@ -200,7 +221,6 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
     );
   }, [currentTurn, mission.id]);
 
-  // Push auto-expiring floating combat/loot popup
   const pushWorldPopup = useCallback((popup: WorldFloatingPopup) => {
     setPopups((prev) => [...prev.slice(-4), popup]);
     setTimeout(() => {
@@ -208,7 +228,6 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
     }, 1850);
   }, []);
 
-  // Trigger a 3D Action from HUD Buttons
   const fireAction = useCallback((action: CombatActionType) => {
     setCombatTrigger({
       id: Date.now() + Math.random(),
@@ -216,14 +235,14 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
     });
   }, []);
 
-  // Dynamic GPS Target Calculation (Custom Waypoint -> Main Objective / Boss / Nexus)
+  // Dynamic GPS Target Calculation
   const activeGpsTarget = useMemo(() => {
     if (customWaypoint) {
       const distToCustom = Math.hypot(
         hudSnap.heroX - customWaypoint.x,
         hudSnap.heroZ - customWaypoint.z
       );
-      if (distToCustom > 4.8) {
+      if (distToCustom > 5.0) {
         return customWaypoint;
       }
     }
@@ -231,14 +250,14 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
       return {
         x: WORLD_LANDMARKS.mainNpc.x,
         z: WORLD_LANDMARKS.mainNpc.z,
-        label: `Praça Central: ${mission.npc.name}`,
+        label: `Praça da Fonte: ${mission.npc.name}`,
       };
     }
     if (!hudSnap.bossDefeated) {
       return {
         x: WORLD_LANDMARKS.boss.x,
         z: WORLD_LANDMARKS.boss.z,
-        label: `Derrotar Boss: ${worldCfg.bossName} (ou ir ao Nexus)`,
+        label: `Chefe Norte: ${worldCfg.bossName} (ou Nexus)`,
       };
     }
     return {
@@ -256,21 +275,22 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
     worldCfg.bossName,
   ]);
 
-  // Close any open Conversation / Modal with Escape (and Street Encounter with Enter / Space)
+  // Close any open Conversation / Modal / GTA Mission Phone with Escape
   useEffect(() => {
-    if (!activeEncounter && overlay === "none") return;
+    if (!activeEncounter && overlay === "none" && !missionPhoneOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
+        playSfx("click");
         if (activeEncounter) {
-          playSfx("click");
           setActiveEncounter(null);
+        } else if (missionPhoneOpen) {
+          setMissionPhoneOpen(false);
         } else if (
           overlay === "dialogue" ||
           overlay === "briefing" ||
           overlay === "decoder"
         ) {
-          playSfx("click");
           setOverlay("none");
         }
       } else if (activeEncounter && (e.key === "Enter" || e.key === " ")) {
@@ -281,9 +301,40 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [activeEncounter, overlay, playSfx]);
+  }, [activeEncounter, missionPhoneOpen, overlay, playSfx]);
 
-  // Handle 3D Proximity Interactions (Totem, Main NPC, Nexus, and 4 Regional Street People!)
+  // Radio Tower Activated Callback
+  const handleTowerActivated = useCallback(
+    (tower: RadioTowerMission) => {
+      setActivatedTowerIds((prev) => {
+        if (prev.includes(tower.id)) return prev;
+        const next = [...prev, tower.id];
+        if (next.length === worldCfg.radioTowers.length) {
+          setPrayerUsesLeft((p) => p + 1);
+        }
+        return next;
+      });
+      setTrust((prev) => Math.min(100, prev + 5));
+      addBonusXp(tower.xpReward, `📡 ${tower.broadcastMessage}`);
+    },
+    [addBonusXp, worldCfg.radioTowers.length]
+  );
+
+  // GTA Checkpoint Express Race Completed Callback
+  const handleRaceCompleted = useCallback(() => {
+    if (!raceCompleted) {
+      setRaceCompleted(true);
+      setTrust((prev) => Math.min(100, prev + 15));
+      addBonusXp(
+        worldCfg.race.xpReward,
+        `🏁 ${worldCfg.race.title} vencida! (+15% Ponte de Confiança)`
+      );
+    } else {
+      grantFieldLoot(30, 10);
+    }
+  }, [addBonusXp, grantFieldLoot, raceCompleted, worldCfg.race]);
+
+  // Handle 3D Proximity Interactions (Totem, Main NPC, Nexus, and 6 Street People)
   const handleInteractTrigger = useCallback(
     (info: NearbyInteractionInfo, suppliesHeld: number): boolean => {
       if (info.kind === "totem") {
@@ -312,7 +363,7 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
           playSfx("error");
           pushWorldPopup({
             id: Date.now() + Math.random(),
-            text: `🔒 Fale com ${mission.npc.name} na Praça Central (★) primeiro!`,
+            text: `🔒 Fale com ${mission.npc.name} na Praça da Fonte (★) primeiro!`,
             color: "#fbbf24",
           });
         }
@@ -335,11 +386,11 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
         if (person.questType === "encourage") {
           playSfx("success");
           setHelpedPersonIds((prev) => [...prev, person.id]);
-          setTrust((prev) => Math.min(100, prev + 10));
+          setTrust((prev) => Math.min(100, prev + 8));
           setPrayerUsesLeft((prev) => prev + 1);
           addBonusXp(
             person.xpReward,
-            `${person.name} fortalecido(a)! (+10% Ponte & +1 Escudo de Oração)`
+            `${person.name} encorajado(a)! (+8% Ponte & +1 Escudo)`
           );
           setActiveEncounter({
             person,
@@ -381,7 +432,7 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
           const nearbyThreat = hudSnap.dots.some(
             (d) =>
               (d.kind === "enemy" || d.kind === "boss") &&
-              Math.hypot(d.x - person.x, d.z - person.z) < 17.5
+              Math.hypot(d.x - person.x, d.z - person.z) < 18.5
           );
           if (!nearbyThreat) {
             playSfx("success");
@@ -389,7 +440,7 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
             setTrust((prev) => Math.min(100, prev + 10));
             addBonusXp(
               person.xpReward,
-              `${person.name} protegido(a) das Sombras! (+10% Ponte)`
+              `${person.name} resgatado(a) das Sombras! (+10% Ponte)`
             );
             setActiveEncounter({
               person,
@@ -450,34 +501,26 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
     const rect = e.currentTarget.getBoundingClientRect();
     const pctX = (e.clientX - rect.left) / rect.width;
     const pctZ = (e.clientY - rect.top) / rect.height;
-    const wx = Math.round(Math.max(-68, Math.min(68, pctX * 148 - 74)));
-    const wz = Math.round(Math.max(-68, Math.min(68, pctZ * 148 - 74)));
+    const wx = Math.round(Math.max(-92, Math.min(92, pctX * 196 - 98)));
+    const wz = Math.round(Math.max(-92, Math.min(92, pctZ * 196 - 98)));
     playSfx("click");
-    setCustomWaypoint({ x: wx, z: wz, label: "Marcador GPS no Mapa" });
+    setCustomWaypoint({ x: wx, z: wz, label: "Marcador GPS no Radar" });
     pushWorldPopup({
       id: Date.now() + Math.random(),
-      text: "📍 Rota GPS Atualizada!",
+      text: "📍 Rota GPS Marcada na Cidade!",
       color: "#38bdf8",
     });
   };
 
-  const cycleNextPersonGps = () => {
+  const selectGpsMission = (x: number, z: number, label: string) => {
     playSfx("click");
-    const nextUnhelped =
-      worldCfg.people.find((p) => !helpedPersonIds.includes(p.id)) ||
-      worldCfg.people[0];
-    if (nextUnhelped) {
-      setCustomWaypoint({
-        x: nextUnhelped.x,
-        z: nextUnhelped.z,
-        label: `${nextUnhelped.name} (${nextUnhelped.role})`,
-      });
-      pushWorldPopup({
-        id: Date.now() + Math.random(),
-        text: `📍 GPS -> ${nextUnhelped.name}`,
-        color: "#22d3ee",
-      });
-    }
+    setCustomWaypoint({ x, z, label });
+    setMissionPhoneOpen(false);
+    pushWorldPopup({
+      id: Date.now() + Math.random(),
+      text: `📍 GPS -> ${label}`,
+      color: "#38bdf8",
+    });
   };
 
   // Main NPC Dialogue Handlers
@@ -546,9 +589,12 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
   const handleReplayMission = () => {
     playSfx("click");
     setOverlay("none");
+    setMissionPhoneOpen(false);
     setActiveEncounter(null);
     setTotemScanned(false);
     setHelpedPersonIds([]);
+    setActivatedTowerIds([]);
+    setRaceCompleted(false);
     setDialogueCompleted(false);
     setTurnIndex(0);
     setTrust(initialTrust);
@@ -578,16 +624,31 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
     Math.hypot(
       hudSnap.heroX - WORLD_LANDMARKS.boss.x,
       hudSnap.heroZ - WORLD_LANDMARKS.boss.z
-    ) < 34;
+    ) < 36;
 
-  const isWorldPaused = overlay !== "none" || Boolean(activeEncounter);
+  // Count completed in-map missions out of 12!
+  const totalMapMissions =
+    1 + // Main NPC
+    1 + // GTA Express Race
+    worldCfg.radioTowers.length + // 3 Towers
+    worldCfg.people.length + // 6 People
+    1; // District Boss
+  const completedMapMissions =
+    (dialogueCompleted ? 1 : 0) +
+    (raceCompleted ? 1 : 0) +
+    activatedTowerIds.length +
+    helpedPersonIds.length +
+    (hudSnap.bossDefeated ? 1 : 0);
+
+  const isWorldPaused =
+    overlay !== "none" || Boolean(activeEncounter) || missionPhoneOpen;
 
   return (
     <div className="relative h-[calc(100vh-66px)] min-h-[580px] w-full overflow-hidden bg-slate-950 select-none">
       <ConfettiCanvas active={overlay === "victory"} durationMs={5500} />
 
       {/* =========================================================
-          FULL-SCREEN 160x160 3D OPEN-WORLD GTA + MOBA ENGINE
+          FULL-SCREEN 220x220 REALISTIC GTA + MOBA 3D ENGINE
          ========================================================= */}
       <div className="absolute inset-0 z-0">
         <MobaGtaWorld3D
@@ -597,6 +658,8 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
           agentName={state.agent.name}
           dialogueCompleted={dialogueCompleted}
           helpedPersonIds={helpedPersonIds}
+          activatedTowerIds={activatedTowerIds}
+          raceCompleted={raceCompleted}
           paused={isWorldPaused}
           joystickVec={joystickVec}
           combatTrigger={combatTrigger}
@@ -604,14 +667,16 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
           onHudUpdate={setHudSnap}
           onPopup={pushWorldPopup}
           onInteractTrigger={handleInteractTrigger}
+          onTowerActivated={handleTowerActivated}
+          onRaceCompleted={handleRaceCompleted}
           onEarnRewards={grantFieldLoot}
         />
       </div>
 
       {/* =========================================================
-          FLOATING COMBAT / SCORE / LOOT POPUPS (CENTER SCREEN)
+          FLOATING COMBAT / SCORE / LOOT POPUPS
          ========================================================= */}
-      <div className="pointer-events-none absolute top-32 right-0 left-0 z-30 mx-auto flex max-w-md flex-col items-center gap-1.5 px-4">
+      <div className="pointer-events-none absolute top-34 right-0 left-0 z-30 mx-auto flex max-w-md flex-col items-center gap-1.5 px-4">
         <AnimatePresence>
           {popups.map((p) => (
             <motion.div
@@ -629,24 +694,35 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
       </div>
 
       {/* =========================================================
-          TOP-LEFT: GTA + MOBA RADAR MINIMAP & QUICK GPS PILLS
+          TOP-LEFT: GTA URBAN RADAR MINIMAP + MISSIONS PHONE BUTTON
          ========================================================= */}
       <div className="pointer-events-auto absolute top-2.5 left-2.5 z-20 flex flex-col gap-1.5 sm:top-3 sm:left-3">
         <div className="moba-panel-gold relative h-36 w-36 overflow-hidden rounded-2xl p-1.5 shadow-2xl sm:h-44 sm:w-44">
           <div
             onClick={handleRadarClick}
             title="Clique em qualquer rua do Radar para marcar GPS!"
-            className="relative h-full w-full cursor-crosshair overflow-hidden rounded-xl border border-amber-500/40 bg-[#071622]"
+            className="relative h-full w-full cursor-crosshair overflow-hidden rounded-xl border border-amber-500/40 bg-[#081724]"
           >
-            {/* GTA City Road Grid Crosshairs */}
-            <div className="pointer-events-none absolute top-0 bottom-0 left-1/2 w-2 -translate-x-1/2 bg-slate-700/55" />
-            <div className="pointer-events-none absolute right-0 left-0 top-1/2 h-2 -translate-y-1/2 bg-slate-700/55" />
-            <div className="pointer-events-none absolute inset-[21%] rounded border border-slate-600/45" />
+            {/* 3x4 GTA Avenue Grid Lines on Radar */}
+            {[26.5, 50, 73.5].map((leftPct) => (
+              <div
+                key={`v-${leftPct}`}
+                style={{ left: `${leftPct}%` }}
+                className="pointer-events-none absolute top-0 bottom-0 w-1.5 -translate-x-1/2 bg-slate-600/50"
+              />
+            ))}
+            {[22.5, 40.8, 59.2, 77.5].map((topPct) => (
+              <div
+                key={`h-${topPct}`}
+                style={{ top: `${topPct}%` }}
+                className="pointer-events-none absolute right-0 left-0 h-1.5 -translate-y-1/2 bg-slate-600/50"
+              />
+            ))}
             {mission.id === "amazonia" && (
-              <div className="pointer-events-none absolute right-0 left-0 top-[58%] h-2 bg-cyan-500/35" />
+              <div className="pointer-events-none absolute right-0 left-0 top-[63.5%] h-2 bg-cyan-500/45" />
             )}
 
-            {/* Custom GPS Pin */}
+            {/* Custom GPS Ping */}
             {customWaypoint && (
               <div
                 style={toWorldRadarPct(customWaypoint.x, customWaypoint.z)}
@@ -664,7 +740,7 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
                   <span
                     key={`e-${idx}`}
                     style={pos}
-                    className="pointer-events-none absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-rose-500 shadow-[0_0_5px_#f43f5e]"
+                    className="pointer-events-none absolute h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-rose-500"
                   />
                 );
               }
@@ -679,13 +755,54 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
                   </span>
                 );
               }
+              if (dot.kind === "vehicle") {
+                return (
+                  <span
+                    key={`v-${idx}`}
+                    style={pos}
+                    className="pointer-events-none absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-xs border border-slate-950 bg-sky-300"
+                  />
+                );
+              }
               if (dot.kind === "scroll") {
                 return (
                   <span
                     key={`s-${idx}`}
                     style={pos}
-                    className="pointer-events-none absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-xs bg-amber-300 shadow-[0_0_6px_#fde047]"
+                    className="pointer-events-none absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-xs bg-amber-300"
                   />
+                );
+              }
+              if (dot.kind === "tower") {
+                return (
+                  <span
+                    key={`tw-${idx}`}
+                    style={pos}
+                    className={`pointer-events-none absolute flex h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border text-[7px] ${
+                      dot.done
+                        ? "border-emerald-200 bg-emerald-500 text-slate-950"
+                        : "border-rose-200 bg-rose-500 text-white"
+                    }`}
+                  >
+                    📡
+                  </span>
+                );
+              }
+              if (dot.kind === "race") {
+                return (
+                  <span
+                    key={`rc-${idx}`}
+                    style={pos}
+                    className={`pointer-events-none absolute flex h-4 w-4 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border text-[8px] ${
+                      hudSnap.raceActive
+                        ? "animate-ping border-amber-200 bg-amber-400 text-slate-950"
+                        : dot.done
+                          ? "border-emerald-300 bg-emerald-600 text-white"
+                          : "border-amber-200 bg-emerald-400 text-slate-950"
+                    }`}
+                  >
+                    🏁
+                  </span>
                 );
               }
               if (dot.kind === "person") {
@@ -762,38 +879,23 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
           </div>
 
           <div className="pointer-events-none absolute right-2 bottom-1 left-2 flex items-center justify-between font-mono text-[8px] font-black text-amber-300/95 uppercase">
-            <span>RADAR GTA 3D</span>
-            <span>GPS ATIVO</span>
+            <span>MAPA GTA 3D</span>
+            <span>CLIQUE = GPS</span>
           </div>
         </div>
 
-        {/* Quick GPS Waypoint Selector Buttons */}
-        <div className="grid grid-cols-2 gap-1">
-          <button
-            type="button"
-            onClick={() => {
-              playSfx("click");
-              setCustomWaypoint({
-                x: WORLD_LANDMARKS.mainNpc.x,
-                z: WORLD_LANDMARKS.mainNpc.z,
-                label: mission.npc.name,
-              });
-            }}
-            className="flex cursor-pointer items-center justify-center gap-1 rounded-lg border border-emerald-500/45 bg-slate-950/90 px-2 py-1 text-[10px] font-black text-emerald-300 hover:bg-emerald-500/20"
-          >
-            <MapPin className="h-3 w-3" />
-            {mission.npc.name}
-          </button>
-
-          <button
-            type="button"
-            onClick={cycleNextPersonGps}
-            className="flex cursor-pointer items-center justify-center gap-1 rounded-lg border border-cyan-500/45 bg-slate-950/90 px-2 py-1 text-[10px] font-black text-cyan-300 hover:bg-cyan-500/20"
-          >
-            <Users className="h-3 w-3" />
-            Pessoas
-          </button>
-        </div>
+        {/* GTA MISSION PHONE BUTTON (OPENS FULL 12-MISSION SELECTOR!) */}
+        <button
+          type="button"
+          onClick={() => {
+            playSfx("click");
+            setMissionPhoneOpen(true);
+          }}
+          className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-cyan-400/70 bg-gradient-to-r from-cyan-950 to-slate-950 px-2.5 py-2 text-[11px] font-black text-cyan-200 shadow-[0_0_16px_rgba(34,211,238,0.3)] transition hover:border-cyan-300 hover:text-white"
+        >
+          <ClipboardList className="h-3.5 w-3.5 text-cyan-300" />
+          MISSÕES ({completedMapMissions}/{totalMapMissions})
+        </button>
 
         <MobaButton
           variant="obsidian"
@@ -808,7 +910,7 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
       </div>
 
       {/* =========================================================
-          TOP-CENTER: CHAMPION HP, PONTE DE CONFIANÇA & BOSS BAR
+          TOP-CENTER: HP, PONTE, LIVE RACE TIMER & BOSS BAR
          ========================================================= */}
       <div className="pointer-events-none absolute top-2.5 right-36 left-40 z-20 mx-auto max-w-lg sm:top-3 sm:right-60 sm:left-52">
         <div className="moba-panel-gold moba-clip-panel pointer-events-auto px-3 py-2 sm:px-4 sm:py-2.5">
@@ -831,28 +933,44 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
             </div>
           </div>
 
-          {/* Dual Progress Bars: Champion HP & Ponte de Confiança */}
+          {/* Dual Progress Bars */}
           <div className="mt-1.5 grid grid-cols-2 gap-2">
-            <div>
-              <div className="h-2 w-full overflow-hidden rounded-full border border-rose-400/40 bg-slate-950">
-                <div
-                  style={{ width: `${hpPct}%` }}
-                  className="h-full bg-gradient-to-r from-rose-600 via-rose-400 to-emerald-400 transition-all duration-150"
-                />
-              </div>
+            <div className="h-2 w-full overflow-hidden rounded-full border border-rose-400/40 bg-slate-950">
+              <div
+                style={{ width: `${hpPct}%` }}
+                className="h-full bg-gradient-to-r from-rose-600 via-rose-400 to-emerald-400 transition-all duration-150"
+              />
             </div>
-            <div>
-              <div className="h-2 w-full overflow-hidden rounded-full border border-amber-400/45 bg-slate-950">
-                <motion.div
-                  animate={{ width: `${trust}%` }}
-                  className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-300"
-                />
-              </div>
+            <div className="h-2 w-full overflow-hidden rounded-full border border-amber-400/45 bg-slate-950">
+              <motion.div
+                animate={{ width: `${trust}%` }}
+                className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-300"
+              />
             </div>
           </div>
 
-          {/* Live Boss HP Bar when approaching Boss Plaza */}
-          {nearBossArena && (
+          {/* Active GTA Checkpoint Express Race Countdown Banner! */}
+          {hudSnap.raceActive && (
+            <div className="mt-1.5 flex items-center justify-between rounded-lg border border-emerald-400/70 bg-emerald-950/80 px-2.5 py-1 font-mono text-[10px] font-black text-emerald-200 sm:text-xs">
+              <span className="flex items-center gap-1">
+                <Flag className="h-3.5 w-3.5 text-amber-300" />
+                CHECKPOINT {hudSnap.raceCheckpointIdx + 1}/
+                {hudSnap.raceTotalCheckpoints}
+              </span>
+              <span
+                className={
+                  hudSnap.raceTimeLeft < 12
+                    ? "animate-pulse text-rose-300"
+                    : "text-amber-300"
+                }
+              >
+                ⏱️ {hudSnap.raceTimeLeft.toFixed(1)}s
+              </span>
+            </div>
+          )}
+
+          {/* Live Boss HP Bar */}
+          {nearBossArena && !hudSnap.raceActive && (
             <div className="mt-1.5 rounded-lg border border-fuchsia-500/50 bg-fuchsia-950/50 px-2 py-1">
               <div className="flex items-center justify-between text-[9px] font-black text-fuchsia-200 uppercase">
                 <span className="flex items-center gap-1">
@@ -871,18 +989,21 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
           )}
 
           <div className="mt-1 truncate text-[10px] font-bold text-cyan-200 sm:text-[11px]">
-            🎯 GPS: {activeGpsTarget.label}
+            🎯 GPS:{" "}
+            {hudSnap.raceActive
+              ? `Atravesse o Anel Dourado ${hudSnap.raceCheckpointIdx + 1}/${hudSnap.raceTotalCheckpoints}!`
+              : activeGpsTarget.label}
           </div>
         </div>
       </div>
 
       {/* =========================================================
-          TOP-RIGHT: GTA SCOREBOARD, COMBO & MISSION CHECKLIST
+          TOP-RIGHT: GTA SCOREBOARD & OPEN-WORLD TRACKER
          ========================================================= */}
       <div className="pointer-events-auto absolute top-2.5 right-2.5 z-20 flex flex-col items-end gap-1.5 sm:top-3 sm:right-3">
         <div className="moba-panel-cyan rounded-2xl px-3 py-2 text-right shadow-2xl sm:px-3.5 sm:py-2.5">
           <div className="text-[9px] font-black tracking-widest text-cyan-300 uppercase">
-            PONTUAÇÃO DE CAMPO
+            PONTUAÇÃO GTA 3D
           </div>
           <div className="font-mono text-lg font-black text-amber-300 sm:text-2xl">
             {hudSnap.score.toLocaleString("pt-BR")}
@@ -896,7 +1017,6 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
             </div>
           )}
 
-          {/* Open-World Collectibles & Side-Missions Checklist */}
           <div className="mt-2 space-y-1 border-t border-cyan-500/25 pt-1.5 text-left font-mono text-[10px] font-bold">
             <div className="flex items-center justify-between gap-2 text-sky-200">
               <span className="flex items-center gap-1 truncate">
@@ -909,17 +1029,24 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
               </span>
             </div>
 
-            <div className="flex items-center justify-between gap-2 text-amber-200">
-              <span>📜 Pergaminhos</span>
-              <span className="text-amber-300">
-                {hudSnap.scrollsCollected}/{hudSnap.totalScrolls}
-              </span>
-            </div>
-
             <div className="flex items-center justify-between gap-2 text-emerald-200">
               <span>👥 Pessoas</span>
               <span className="text-emerald-300">
                 {helpedPersonIds.length}/{worldCfg.people.length}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between gap-2 text-cyan-200">
+              <span>📡 Torres Rádio</span>
+              <span className="text-cyan-300">
+                {activatedTowerIds.length}/{worldCfg.radioTowers.length}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between gap-2 text-amber-200">
+              <span>🏁 Corrida GTA</span>
+              <span className="text-amber-300">
+                {raceCompleted ? "OK ✓" : "Largada"}
               </span>
             </div>
 
@@ -964,7 +1091,6 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
           BOTTOM-LEFT: VIRTUAL ANALOG JOYSTICK + CHAMPION CREST
          ========================================================= */}
       <div className="pointer-events-auto absolute bottom-3 left-3 z-20 flex items-end gap-3 sm:bottom-4 sm:left-4">
-        {/* 360° Draggable Virtual Thumbstick */}
         <div
           ref={joystickPadRef}
           onPointerDown={(e) => {
@@ -997,7 +1123,6 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
           </div>
         </div>
 
-        {/* Desktop Champion Status Card */}
         <div className="moba-panel-gold hidden items-center gap-2.5 rounded-2xl p-2 pr-3.5 lg:flex">
           <div className="relative">
             <HeroPortrait
@@ -1015,37 +1140,48 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
               {state.agent.name}
               {hudSnap.inVehicle && (
                 <span className="rounded bg-cyan-500/25 px-1.5 py-0.5 text-[9px] text-cyan-300">
-                  🚙 {worldCfg.vehicleName}
+                  🚙 {hudSnap.activeVehicleName}
                 </span>
               )}
             </div>
             <div className="mt-0.5 text-[10px] font-semibold text-amber-200/90">
-              🙏 Escudos Diálogo: {prayerUsesLeft}x • 🧭 Cultura:{" "}
-              {totemScanned ? "OK" : "Mapa"}
+              🎥 Câmera: {hudSnap.cameraMode === "gta" ? "GTA Rua 3D" : "Tática"} •
+              Arraste a tela p/ girar visão
             </div>
             <div className="mt-0.5 font-mono text-[9px] text-slate-400">
-              WASD Mover • Espaço Atacar • Q/2/E/R Skills • V Veículo • F Ação
+              WASD Mover • V Carro/Moto • Shift Turbo • C Câmera • Espaço Atacar
             </div>
           </div>
         </div>
       </div>
 
       {/* =========================================================
-          BOTTOM-RIGHT: WILD RIFT / GTA ACTION & COMBAT CLUSTER
+          BOTTOM-RIGHT: GTA + MOBA ACTION, VEHICLE, TURBO & CAMERA PAD
          ========================================================= */}
       <div className="pointer-events-auto absolute right-3 bottom-3 z-20 flex flex-col items-end gap-2 sm:right-4 sm:bottom-4">
-        {/* Top Utility Row: Cultura Briefing + Vehicle [V] + Nexus Decoder Shortcut */}
-        <div className="flex items-center gap-2">
+        {/* Top Utility Row: Camera [C] + Cultura + Turbo [Shift] + Vehicle [V] + Nexus */}
+        <div className="flex flex-wrap items-center justify-end gap-1.5">
           <motion.button
             type="button"
-            whileHover={{ scale: 1.08 }}
+            whileHover={{ scale: 1.07 }}
+            whileTap={{ scale: 0.92 }}
+            onClick={() => fireAction("camera")}
+            title="Alternar Câmera GTA 3ª Pessoa / Tática [C]"
+            className="flex h-9 cursor-pointer items-center gap-1 rounded-full border border-slate-600 bg-slate-950/90 px-2.5 text-[10px] font-black text-slate-200 shadow-lg hover:border-amber-300"
+          >
+            <Camera className="h-3.5 w-3.5 text-amber-300" />
+            {hudSnap.cameraMode === "gta" ? "CAM GTA [C]" : "CAM MOBA [C]"}
+          </motion.button>
+
+          <motion.button
+            type="button"
+            whileHover={{ scale: 1.07 }}
             whileTap={{ scale: 0.92 }}
             onClick={() => {
+              playSfx("click");
               if (totemScanned) {
-                playSfx("click");
                 setOverlay("briefing");
               } else {
-                playSfx("click");
                 setCustomWaypoint({
                   x: WORLD_LANDMARKS.totem.x,
                   z: WORLD_LANDMARKS.totem.z,
@@ -1053,30 +1189,49 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
                 });
                 pushWorldPopup({
                   id: Date.now() + Math.random(),
-                  text: "🧭 GPS apontado para o Totem Cultural!",
+                  text: "🧭 GPS -> Totem Cultural!",
                   color: "#22d3ee",
                 });
               }
             }}
-            className="flex h-10 cursor-pointer items-center gap-1.5 rounded-full border border-cyan-400/60 bg-slate-950/90 px-3 text-[10px] font-black text-cyan-300 shadow-lg hover:bg-cyan-500/15"
+            className="flex h-9 cursor-pointer items-center gap-1 rounded-full border border-cyan-400/60 bg-slate-950/90 px-2.5 text-[10px] font-black text-cyan-300 shadow-lg hover:bg-cyan-500/15"
           >
-            <Compass className="h-4 w-4" />
+            <Compass className="h-3.5 w-3.5" />
             CULTURA
           </motion.button>
+
+          {hudSnap.inVehicle && (
+            <motion.button
+              type="button"
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => fireAction("nitro")}
+              className={`flex h-9 cursor-pointer items-center gap-1 rounded-full border-2 px-3 text-[10px] font-black shadow-lg ${
+                hudSnap.nitroCooldown > 0
+                  ? "border-slate-700 bg-slate-900 text-slate-400"
+                  : "border-sky-200 bg-gradient-to-r from-sky-400 to-blue-600 text-slate-950 shadow-[0_0_18px_#38bdf8]"
+              }`}
+            >
+              <Gauge className="h-3.5 w-3.5" />
+              {hudSnap.nitroCooldown > 0
+                ? `${hudSnap.nitroCooldown.toFixed(1)}s`
+                : "TURBO [Shift]"}
+            </motion.button>
+          )}
 
           <motion.button
             type="button"
             whileHover={{ scale: 1.08 }}
             whileTap={{ scale: 0.92 }}
             onClick={() => fireAction("vehicle")}
-            className={`flex h-10 cursor-pointer items-center gap-1.5 rounded-full border-2 px-3 text-[10px] font-black shadow-lg transition ${
+            className={`flex h-9 cursor-pointer items-center gap-1.5 rounded-full border-2 px-3 text-[10px] font-black shadow-lg transition ${
               hudSnap.inVehicle
                 ? "border-cyan-200 bg-cyan-500 text-slate-950 shadow-[0_0_18px_#22d3ee]"
                 : "border-amber-400/60 bg-slate-950/90 text-amber-300 hover:bg-amber-500/15"
             }`}
           >
-            <Car className="h-4 w-4" />
-            {hudSnap.inVehicle ? "SAIR [V]" : "VEÍCULO [V]"}
+            <Car className="h-3.5 w-3.5" />
+            {hudSnap.inVehicle ? "SAIR [V]" : "CARRO/MOTO [V]"}
           </motion.button>
 
           {dialogueCompleted && (
@@ -1088,9 +1243,9 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
                 playSfx("levelUp");
                 setOverlay("decoder");
               }}
-              className="moba-ult-ready flex h-10 cursor-pointer items-center gap-1 rounded-full border-2 border-amber-200 bg-gradient-to-r from-amber-300 to-amber-500 px-3 text-[10px] font-black text-slate-950"
+              className="moba-ult-ready flex h-9 cursor-pointer items-center gap-1 rounded-full border-2 border-amber-200 bg-gradient-to-r from-amber-300 to-amber-500 px-3 text-[10px] font-black text-slate-950"
             >
-              <Languages className="h-4 w-4" />
+              <Languages className="h-3.5 w-3.5" />
               TRADUZIR
             </motion.button>
           )}
@@ -1202,7 +1357,7 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
             </div>
           </motion.button>
 
-          {/* GIANT PRIMARY MELEE COMBO ATTACK BUTTON [ESPAÇO] */}
+          {/* GIANT PRIMARY MELEE COMBO ATTACK BUTTON */}
           <motion.button
             type="button"
             whileHover={{ scale: 1.06 }}
@@ -1219,9 +1374,242 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
       </div>
 
       {/* =========================================================
-          MODALS & ENCOUNTER OVERLAYS
+          MODALS & CONVERSATION OVERLAYS (ALL CLOSEABLE ANYTIME!)
          ========================================================= */}
       <AnimatePresence>
+        {/* A. GTA MISSION PHONE / CENTRAL DE MISSÕES DO MAPA (12 MISSIONS!) */}
+        {missionPhoneOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => {
+              playSfx("click");
+              setMissionPhoneOpen(false);
+            }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-xs"
+          >
+            <motion.div
+              initial={{ scale: 0.92, y: 18 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.94, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="moba-panel-cyan moba-clip-panel max-h-[88vh] w-full max-w-2xl overflow-y-auto p-5 sm:p-6"
+            >
+              <div className="flex items-start justify-between gap-3 border-b border-cyan-500/30 pb-3">
+                <div>
+                  <span className="text-[10px] font-black tracking-widest text-cyan-300 uppercase">
+                    📱 GPS TÁTICO • SELECIONE QUALQUER MISSÃO PARA GUIAR NA CIDADE
+                  </span>
+                  <h3 className="text-xl font-black text-white uppercase">
+                    Missões em {mission.title} ({completedMapMissions}/
+                    {totalMapMissions})
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx("click");
+                    setMissionPhoneOpen(false);
+                  }}
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-black text-slate-200 hover:border-rose-400 hover:bg-rose-500/20 hover:text-white"
+                >
+                  <X className="h-4 w-4" />
+                  Fechar
+                </button>
+              </div>
+
+              <div className="mt-4 space-y-2.5">
+                {/* 1. Main Story Contact */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    selectGpsMission(
+                      WORLD_LANDMARKS.mainNpc.x,
+                      WORLD_LANDMARKS.mainNpc.z,
+                      `★ ${mission.npc.name} (Praça da Fonte)`
+                    )
+                  }
+                  className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl border border-emerald-400/50 bg-emerald-500/10 p-3 text-left transition hover:bg-emerald-500/20"
+                >
+                  <div>
+                    <div className="text-xs font-black text-emerald-300 uppercase">
+                      ★ MISSÃO PRINCIPAL • PRAÇA DA FONTE
+                    </div>
+                    <div className="text-sm font-bold text-white">
+                      Conversar com {mission.npc.name} ({mission.npc.age} anos)
+                    </div>
+                  </div>
+                  <span className="rounded-lg bg-slate-950/80 px-2.5 py-1 font-mono text-xs font-black text-emerald-300">
+                    {dialogueCompleted ? "CONCLUÍDA ✓" : "IR c/ GPS →"}
+                  </span>
+                </button>
+
+                {/* 2. GTA Timed Checkpoint Express Race */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    selectGpsMission(
+                      worldCfg.race.startX,
+                      worldCfg.race.startZ,
+                      `🏁 Largada: ${worldCfg.race.title}`
+                    )
+                  }
+                  className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl border border-amber-400/50 bg-amber-500/10 p-3 text-left transition hover:bg-amber-500/20"
+                >
+                  <div>
+                    <div className="flex items-center gap-1 text-xs font-black text-amber-300 uppercase">
+                      <Flag className="h-3.5 w-3.5" />
+                      CORRIDA GTA CONTRA O RELÓGIO (+{worldCfg.race.pointsReward}{" "}
+                      PTS • +15% PONTE)
+                    </div>
+                    <div className="text-sm font-bold text-white">
+                      {worldCfg.race.title} (5 Checkpoints Dourados)
+                    </div>
+                  </div>
+                  <span className="rounded-lg bg-slate-950/80 px-2.5 py-1 font-mono text-xs font-black text-amber-300">
+                    {raceCompleted ? "VENCIDA ✓" : "MARCAR GPS →"}
+                  </span>
+                </button>
+
+                {/* 3. Radio Broadcast Towers (3x) */}
+                <div className="pt-1 text-[11px] font-black tracking-wider text-cyan-300 uppercase">
+                  📡 TORRES DE RÁDIO & TRANSMISSÃO ({activatedTowerIds.length}/3)
+                </div>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {worldCfg.radioTowers.map((tw) => {
+                    const done = activatedTowerIds.includes(tw.id);
+                    return (
+                      <button
+                        key={tw.id}
+                        type="button"
+                        onClick={() =>
+                          selectGpsMission(tw.x, tw.z, `📡 ${tw.name}`)
+                        }
+                        className={`flex cursor-pointer flex-col justify-between rounded-xl border p-2.5 text-left transition ${
+                          done
+                            ? "border-emerald-500/40 bg-emerald-500/10"
+                            : "border-cyan-500/35 bg-slate-900/90 hover:border-cyan-300"
+                        }`}
+                      >
+                        <div className="flex items-center gap-1 text-[10px] font-black text-cyan-300 uppercase">
+                          <Radio className="h-3 w-3" />
+                          {tw.district}
+                        </div>
+                        <div className="mt-1 text-xs font-bold text-white">
+                          {tw.name}
+                        </div>
+                        <div className="mt-1.5 font-mono text-[10px] font-black text-amber-300">
+                          {done ? "TRANSMITINDO ✓" : `+${tw.pointsReward} PTS →`}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* 4. 6 Street People Quests */}
+                <div className="pt-1 text-[11px] font-black tracking-wider text-cyan-300 uppercase">
+                  👥 PESSOAS & MISSÕES DE RUA ({helpedPersonIds.length}/
+                  {worldCfg.people.length})
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {worldCfg.people.map((p) => {
+                    const done = helpedPersonIds.includes(p.id);
+                    const badge =
+                      p.questType === "rescue"
+                        ? "⚔️ RESGATE"
+                        : p.questType === "supply"
+                          ? "🧰 ENTREGA"
+                          : "💬 APOIO";
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() =>
+                          selectGpsMission(
+                            p.x,
+                            p.z,
+                            `${p.name} (${p.role})`
+                          )
+                        }
+                        className={`flex cursor-pointer items-center justify-between gap-2 rounded-xl border p-2.5 text-left transition ${
+                          done
+                            ? "border-emerald-500/40 bg-emerald-500/10"
+                            : "border-slate-700 bg-slate-900/90 hover:border-cyan-300"
+                        }`}
+                      >
+                        <div>
+                          <div className="text-[10px] font-black text-amber-300">
+                            {badge} • {p.role}
+                          </div>
+                          <div className="text-xs font-bold text-white">
+                            {p.name}
+                          </div>
+                        </div>
+                        <span className="shrink-0 rounded bg-slate-950 px-2 py-1 font-mono text-[10px] font-black text-cyan-300">
+                          {done ? "OK ✓" : "GPS →"}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* 5. District Boss + Northern Nexus */}
+                <div className="grid gap-2 pt-1 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      selectGpsMission(
+                        WORLD_LANDMARKS.boss.x,
+                        WORLD_LANDMARKS.boss.z,
+                        `👑 Boss: ${worldCfg.bossName}`
+                      )
+                    }
+                    className="flex cursor-pointer items-center justify-between rounded-xl border border-fuchsia-500/45 bg-fuchsia-950/35 p-3 text-left hover:border-fuchsia-300"
+                  >
+                    <div>
+                      <div className="text-[10px] font-black text-fuchsia-300 uppercase">
+                        👑 CHEFE DO DISTRITO NORTE
+                      </div>
+                      <div className="text-xs font-bold text-white">
+                        {worldCfg.bossName}
+                      </div>
+                    </div>
+                    <span className="font-mono text-[10px] font-black text-amber-300">
+                      {hudSnap.bossDefeated ? "VENCIDO ✓" : "GPS →"}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      selectGpsMission(
+                        WORLD_LANDMARKS.nexus.x,
+                        WORLD_LANDMARKS.nexus.z,
+                        "⚡ Nexus da Palavra (Final)"
+                      )
+                    }
+                    className="flex cursor-pointer items-center justify-between rounded-xl border border-amber-400/50 bg-amber-500/15 p-3 text-left hover:border-amber-200"
+                  >
+                    <div>
+                      <div className="text-[10px] font-black text-amber-300 uppercase">
+                        ⚡ SANTUÁRIO FINAL AO NORTE
+                      </div>
+                      <div className="text-xs font-bold text-white">
+                        Nexus Decodificador da Palavra
+                      </div>
+                    </div>
+                    <span className="flex items-center gap-1 font-mono text-[10px] font-black text-amber-200">
+                      <MapPin className="h-3 w-3" />
+                      GPS
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
         {/* 0. GTA / RPG STREET CITIZEN QUEST ENCOUNTER MODAL */}
         {activeEncounter && (
           <motion.div
@@ -1245,7 +1633,7 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
                 <div>
                   <span className="inline-flex items-center gap-1.5 rounded bg-cyan-500/20 px-2 py-0.5 text-[10px] font-black tracking-widest text-cyan-300 uppercase">
                     <HeartHandshake className="h-3.5 w-3.5" />
-                    ENCONTRO NA CIDADE •{" "}
+                    MISSÃO NA CIDADE •{" "}
                     {activeEncounter.person.questType === "rescue"
                       ? "MISSÃO DE RESGATE"
                       : activeEncounter.person.questType === "supply"
@@ -1279,30 +1667,31 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
 
               {activeEncounter.status === "completed_now" && (
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-400/50 bg-emerald-500/15 px-3.5 py-2.5 text-xs font-black text-emerald-300">
-                  <span>✅ MISSÃO CONCLUÍDA COM AMOR PRÁTICO!</span>
+                  <span>✅ MISSÃO CONCLUÍDA!</span>
                   <span className="font-mono">
                     +{activeEncounter.person.pointsReward} PTS • +
-                    {activeEncounter.person.xpReward} XP • +10% PONTE
+                    {activeEncounter.person.xpReward} XP • +PONTE
                   </span>
                 </div>
               )}
 
               {activeEncounter.status === "needs_supplies" && (
                 <div className="mb-4 rounded-xl border border-amber-400/50 bg-amber-500/15 px-3.5 py-2.5 text-xs font-bold text-amber-200">
-                  🧰 Procure mais{" "}
+                  🧰 Recolha mais{" "}
                   <strong>
                     {activeEncounter.missingCount}x {worldCfg.supplyLabel}
                   </strong>{" "}
-                  brilhando pelas ruas (caixas azuis/douradas) e volte aqui!
+                  brilhando pelas avenidas (caixas azuis) e volte aqui!
                 </div>
               )}
 
               {activeEncounter.status === "needs_rescue" && (
                 <div className="mb-4 rounded-xl border border-rose-400/50 bg-rose-500/15 px-3.5 py-2.5 text-xs font-bold text-rose-200">
-                  ⚔️ Use seu <strong>Ataque [Espaço]</strong>,{" "}
-                  <strong>Skills [Q/E/R]</strong> ou o{" "}
-                  <strong>Veículo [V]</strong> para derrotar as Sombras ao redor
-                  e fale novamente com {activeEncounter.person.name}!
+                  ⚔️ Derrote as Sombras próximas usando{" "}
+                  <strong>Ataque [Espaço]</strong>,{" "}
+                  <strong>Skills [Q/E/R]</strong> ou atropelando com o{" "}
+                  <strong>Carro/Moto [V]</strong> e fale novamente com{" "}
+                  {activeEncounter.person.name}!
                 </div>
               )}
 
@@ -1312,10 +1701,13 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
                 }
                 size="md"
                 shape="hex"
-                onClick={() => setActiveEncounter(null)}
+                onClick={() => {
+                  playSfx("click");
+                  setActiveEncounter(null);
+                }}
                 className="w-full"
               >
-                CONTINUAR EXPLORANDO A CIDADE 3D
+                CONTINUAR NA CIDADE 3D
                 <ArrowRight className="h-4 w-4" />
               </MobaButton>
             </motion.div>
@@ -1403,7 +1795,10 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
                   variant="obsidian"
                   size="md"
                   shape="slant"
-                  onClick={() => setOverlay("none")}
+                  onClick={() => {
+                    playSfx("click");
+                    setOverlay("none");
+                  }}
                 >
                   Voltar à Cidade 3D
                 </MobaButton>
@@ -1412,10 +1807,11 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
                   size="md"
                   shape="hex"
                   onClick={() => {
+                    playSfx("click");
                     setCustomWaypoint({
                       x: WORLD_LANDMARKS.mainNpc.x,
                       z: WORLD_LANDMARKS.mainNpc.z,
-                      label: `Praça Central: ${mission.npc.name}`,
+                      label: `Praça da Fonte: ${mission.npc.name}`,
                     });
                     setOverlay("none");
                   }}
@@ -1428,7 +1824,7 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
           </motion.div>
         )}
 
-        {/* 2. CINEMATIC MOBA 3D SPLIT-PORTRAIT DIALOGUE CLASH */}
+        {/* 2. CINEMATIC MOBA 3D SPLIT-PORTRAIT DIALOGUE CLASH (CLOSEABLE ANYTIME!) */}
         {overlay === "dialogue" && currentTurn && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -1473,7 +1869,6 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
                   </div>
                 </div>
 
-                {/* Center Trust Bridge Meter */}
                 <div className="min-w-[190px] flex-1 px-2 text-center">
                   <div className="flex items-center justify-center gap-1.5 text-xs font-black tracking-widest text-emerald-300 uppercase">
                     <Swords className="h-3.5 w-3.5 text-amber-300" />
@@ -1564,7 +1959,6 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
                 </div>
               </div>
 
-              {/* Prayer Assist Active Banner */}
               {prayerActiveThisTurn && (
                 <motion.div
                   initial={{ opacity: 0, y: -6 }}
@@ -1584,7 +1978,7 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
                 </motion.div>
               )}
 
-              {/* 3 Animated MOBA Skill-Card Dialogue Choices */}
+              {/* 3 Dialogue Choices */}
               <div className="space-y-2.5">
                 {shuffledOptions.map((opt, idx) => {
                   const letter = ["A", "B", "C"][idx] || "•";
@@ -1639,7 +2033,6 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
                 })}
               </div>
 
-              {/* Feedback & Advance */}
               {selectedOption && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
@@ -1704,7 +2097,8 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
               {/* Footer Escape / Return to 3D Map Action */}
               <div className="mt-4 flex items-center justify-between border-t border-amber-500/20 pt-3">
                 <span className="text-[11px] font-semibold text-slate-400">
-                  Seu progresso na conversa fica salvo enquanto você explora.
+                  Seu progresso na conversa fica salvo enquanto você explora a
+                  cidade.
                 </span>
                 <MobaButton
                   variant="obsidian"
@@ -1801,7 +2195,6 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
                 </p>
               </div>
 
-              {/* Match & Open-World GTA Stats */}
               <div className="my-5 grid grid-cols-2 gap-3 text-center sm:grid-cols-4">
                 <div className="rounded-xl border border-amber-500/35 bg-slate-950/85 p-3">
                   <div className="text-[10px] font-black text-slate-400 uppercase">
@@ -1840,25 +2233,21 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
                 </div>
               </div>
 
-              {/* Open-World Summary Pill */}
               <div className="mb-4 flex flex-wrap items-center justify-center gap-3 rounded-xl border border-cyan-500/30 bg-cyan-950/30 px-4 py-2 font-mono text-xs font-bold text-cyan-200">
                 <span>
-                  👥 Pessoas Ajudadas: {helpedPersonIds.length}/
-                  {worldCfg.people.length}
+                  📱 Missões do Mapa: {completedMapMissions}/{totalMapMissions}
                 </span>
                 <span>•</span>
                 <span>
-                  📜 Pergaminhos: {hudSnap.scrollsCollected}/
-                  {hudSnap.totalScrolls}
+                  📡 Torres: {activatedTowerIds.length}/
+                  {worldCfg.radioTowers.length}
                 </span>
                 <span>•</span>
                 <span>
-                  ⚔️ Sombras Vencidas: {hudSnap.enemiesDefeated}/
-                  {hudSnap.totalEnemies}
+                  ⚔️ Sombras: {hudSnap.enemiesDefeated}/{hudSnap.totalEnemies}
                 </span>
               </div>
 
-              {/* 100% Holographic 3D Collectible Card */}
               {trust >= 100 ? (
                 <div className="my-5">
                   <div className="mb-2 text-center text-xs font-black tracking-widest text-amber-300 uppercase">
@@ -1874,9 +2263,9 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
                   <div className="flex items-center gap-2.5">
                     <ShieldAlert className="h-5 w-5 shrink-0 text-amber-300" />
                     <p className="text-xs text-amber-100">
-                      Dica: Ajudar as <strong>Pessoas da Cidade (+10%)</strong> e
-                      escolher respostas empáticas leva sua Ponte a{" "}
-                      <strong>100%</strong> para ganhar o Card Lendário 3D!
+                      Dica: Completar as <strong>Missões do Mapa</strong> (Corrida
+                      GTA, Torres e Pessoas) soma bônus para alcançar{" "}
+                      <strong>100% na Ponte</strong> e ganhar o Card Lendário 3D!
                     </p>
                   </div>
                   <MobaButton
@@ -1891,7 +2280,6 @@ export function MissionEngine({ mission, onExitToHub }: MissionEngineProps) {
                 </div>
               )}
 
-              {/* Weekly School Challenge */}
               <div className="my-4 rounded-2xl border border-violet-500/40 bg-violet-500/10 p-4">
                 <div className="flex items-center gap-2 text-xs font-black text-violet-300 uppercase">
                   <School className="h-4 w-4" />

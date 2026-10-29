@@ -1,6 +1,5 @@
 import * as THREE from "three";
 import { AvatarId } from "@/types/game";
-import { createStylizedFaceTexture } from "./textures3d";
 
 export interface ArticulatedRig {
   root: THREE.Group;
@@ -8,8 +7,12 @@ export interface ArticulatedRig {
   headGroup: THREE.Group;
   leftArmPivot: THREE.Group;
   rightArmPivot: THREE.Group;
+  leftElbowPivot?: THREE.Group;
+  rightElbowPivot?: THREE.Group;
   leftLegPivot: THREE.Group;
   rightLegPivot: THREE.Group;
+  leftKneePivot?: THREE.Group;
+  rightKneePivot?: THREE.Group;
   weaponMesh?: THREE.Group;
   slashArc?: THREE.Mesh;
   shieldDome?: THREE.Mesh;
@@ -19,10 +22,10 @@ export interface ArticulatedRig {
 export function createNameplateSprite(
   label: string,
   borderColor = "#fbbf24",
-  bgColor = "rgba(3, 7, 18, 0.85)"
+  bgColor = "rgba(3, 7, 18, 0.86)"
 ): THREE.Sprite {
   const canvas = document.createElement("canvas");
-  canvas.width = 384;
+  canvas.width = 420;
   canvas.height = 88;
   const ctx = canvas.getContext("2d")!;
 
@@ -30,17 +33,16 @@ export function createNameplateSprite(
   ctx.strokeStyle = borderColor;
   ctx.lineWidth = 5;
 
-  const r = 24;
   ctx.beginPath();
-  ctx.roundRect(14, 14, 356, 60, r);
+  ctx.roundRect(12, 14, 396, 60, 24);
   ctx.fill();
   ctx.stroke();
 
   ctx.fillStyle = "#ffffff";
-  ctx.font = "900 26px system-ui, sans-serif";
+  ctx.font = "900 24px system-ui, sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(label.slice(0, 22), 192, 45);
+  ctx.fillText(label.slice(0, 26), 210, 45);
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -50,7 +52,7 @@ export function createNameplateSprite(
     depthTest: false,
   });
   const sprite = new THREE.Sprite(mat);
-  sprite.scale.set(2.5, 0.58, 1);
+  sprite.scale.set(2.55, 0.54, 1);
   sprite.renderOrder = 10;
   return sprite;
 }
@@ -68,8 +70,15 @@ export interface CharacterVisualConfig {
   weaponColor?: number;
   label?: string;
   labelColor?: string;
+  showGroundRing?: boolean;
 }
 
+/**
+ * Builds a realistic GTA-proportioned (~2.22u tall, 7-head human anatomy)
+ * articulated 3D character with sculpted oval head, 3D facial anatomy
+ * (eyes, irises, brows, nose, ears, smile), neck, streetwear jacket & collar,
+ * multi-jointed arms (elbows) and legs (bending knees + sculpted sneakers).
+ */
 export function buildStylizedHumanRig(
   cfg: CharacterVisualConfig
 ): ArticulatedRig {
@@ -77,308 +86,547 @@ export function buildStylizedHumanRig(
   const bodyGroup = new THREE.Group();
   root.add(bodyGroup);
 
-  // Subtle Ground Aura Ring
-  const ring = new THREE.Mesh(
-    new THREE.RingGeometry(0.65, 0.82, 28),
-    new THREE.MeshBasicMaterial({
-      color: cfg.secondary,
-      side: THREE.DoubleSide,
-      transparent: true,
-      opacity: 0.75,
-    })
-  );
-  ring.rotation.x = -Math.PI / 2;
-  ring.position.y = 0.04;
-  root.add(ring);
+  if (cfg.showGroundRing !== false) {
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(0.55, 0.72, 32),
+      new THREE.MeshBasicMaterial({
+        color: cfg.secondary,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.65,
+      })
+    );
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.y = 0.03;
+    root.add(ring);
+  }
 
-  const pantsMat = new THREE.MeshStandardMaterial({
-    color: cfg.pants,
-    roughness: 0.6,
-  });
-  const bootMat = new THREE.MeshStandardMaterial({
-    color: 0x0f172a,
-    roughness: 0.4,
-  });
-  const shirtMat = new THREE.MeshStandardMaterial({
-    color: cfg.shirt,
-    roughness: 0.45,
-    metalness: 0.15,
-  });
-  const secMat = new THREE.MeshStandardMaterial({
-    color: cfg.secondary,
-    roughness: 0.35,
-    metalness: 0.35,
-  });
   const skinMat = new THREE.MeshStandardMaterial({
     color: cfg.skin,
-    roughness: 0.55,
+    roughness: 0.52,
+    metalness: 0.04,
+  });
+  const jacketMat = new THREE.MeshStandardMaterial({
+    color: cfg.shirt,
+    roughness: 0.42,
+    metalness: 0.15,
+  });
+  const innerShirtMat = new THREE.MeshStandardMaterial({
+    color: 0xf8fafc,
+    roughness: 0.65,
+  });
+  const accentMat = new THREE.MeshStandardMaterial({
+    color: cfg.secondary,
+    roughness: 0.32,
+    metalness: 0.35,
+  });
+  const pantsMat = new THREE.MeshStandardMaterial({
+    color: cfg.pants,
+    roughness: 0.65,
   });
   const hairMat = new THREE.MeshStandardMaterial({
     color: cfg.hair,
-    roughness: 0.65,
+    roughness: 0.58,
+  });
+  const soleMat = new THREE.MeshStandardMaterial({
+    color: 0xf1f5f9,
+    roughness: 0.5,
+  });
+  const shoeUpperMat = new THREE.MeshStandardMaterial({
+    color: 0x0f172a,
+    roughness: 0.4,
   });
 
-  // --- LEGS ---
+  // --- MULTI-JOINTED LEGS (HIP -> THIGH -> KNEE -> CALF -> GTA SNEAKER) ---
   const buildLeg = (offsetX: number) => {
-    const pivot = new THREE.Group();
-    pivot.position.set(offsetX, 0.72, 0);
-    const leg = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.13, 0.36, 6, 10),
+    const hipPivot = new THREE.Group();
+    hipPivot.position.set(offsetX, 1.02, 0);
+
+    // Sculpted Thigh
+    const thigh = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.096, 0.3, 8, 14),
       pantsMat
     );
-    leg.position.y = -0.24;
-    leg.castShadow = true;
-    pivot.add(leg);
+    thigh.position.y = -0.22;
+    thigh.castShadow = true;
+    hipPivot.add(thigh);
 
-    const boot = new THREE.Mesh(
-      new THREE.BoxGeometry(0.28, 0.2, 0.38),
-      bootMat
+    // Knee Joint Pivot
+    const kneePivot = new THREE.Group();
+    kneePivot.position.set(0, -0.46, 0);
+    hipPivot.add(kneePivot);
+
+    const kneeCap = new THREE.Mesh(
+      new THREE.SphereGeometry(0.088, 12, 10),
+      pantsMat
     );
-    boot.position.set(0, -0.56, 0.05);
-    boot.castShadow = true;
-    pivot.add(boot);
-    bodyGroup.add(pivot);
-    return pivot;
+    kneePivot.add(kneeCap);
+
+    // Tapered Calf / Shin
+    const calf = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.084, 0.066, 0.38, 14),
+      pantsMat
+    );
+    calf.position.y = -0.21;
+    calf.castShadow = true;
+    kneePivot.add(calf);
+
+    // Realistic Sculpted GTA Sneaker
+    const shoeGroup = new THREE.Group();
+    shoeGroup.position.set(0, -0.46, 0.04);
+
+    const sole = new THREE.Mesh(
+      new THREE.BoxGeometry(0.18, 0.055, 0.34),
+      soleMat
+    );
+    sole.position.y = -0.05;
+    shoeGroup.add(sole);
+
+    const shoeBody = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.078, 0.14, 8, 12),
+      shoeUpperMat
+    );
+    shoeBody.rotation.x = Math.PI / 2;
+    shoeBody.position.set(0, 0.01, 0.01);
+    shoeBody.castShadow = true;
+    shoeGroup.add(shoeBody);
+
+    const shoeStripe = new THREE.Mesh(
+      new THREE.BoxGeometry(0.17, 0.04, 0.12),
+      accentMat
+    );
+    shoeStripe.position.set(0, 0.01, 0.02);
+    shoeGroup.add(shoeStripe);
+
+    kneePivot.add(shoeGroup);
+    bodyGroup.add(hipPivot);
+    return { hipPivot, kneePivot };
   };
 
-  const leftLegPivot = buildLeg(-0.2);
-  const rightLegPivot = buildLeg(0.2);
+  const leftLeg = buildLeg(-0.145);
+  const rightLeg = buildLeg(0.145);
 
-  // --- TORSO & JACKET ---
-  const torso = new THREE.Mesh(
-    new THREE.BoxGeometry(0.74, 0.78, 0.44),
-    shirtMat
+  // --- PELVIS, BELT & ATHLETIC TORSO WITH GTA STREETWEAR JACKET ---
+  const pelvis = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.22, 0.2, 0.2, 18),
+    pantsMat
   );
-  torso.position.y = 1.12;
-  torso.castShadow = true;
-  bodyGroup.add(torso);
+  pelvis.scale.set(1.1, 1, 0.76);
+  pelvis.position.y = 1.05;
+  pelvis.castShadow = true;
+  bodyGroup.add(pelvis);
 
-  // Chest Stripe / Collar Accent
-  const vestTrim = new THREE.Mesh(
-    new THREE.BoxGeometry(0.78, 0.24, 0.47),
-    secMat
-  );
-  vestTrim.position.y = 1.34;
-  bodyGroup.add(vestTrim);
-
-  // Gold Belt Buckle
   const belt = new THREE.Mesh(
-    new THREE.BoxGeometry(0.76, 0.1, 0.46),
-    new THREE.MeshStandardMaterial({ color: 0x1e293b })
+    new THREE.CylinderGeometry(0.228, 0.225, 0.06, 18),
+    new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.4 })
   );
-  belt.position.y = 0.77;
+  belt.scale.set(1.11, 1, 0.78);
+  belt.position.y = 1.14;
   bodyGroup.add(belt);
 
   const buckle = new THREE.Mesh(
-    new THREE.BoxGeometry(0.18, 0.12, 0.5),
-    new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.8 })
+    new THREE.BoxGeometry(0.09, 0.065, 0.04),
+    new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.85, roughness: 0.2 })
   );
-  buckle.position.y = 0.77;
+  buckle.position.set(0, 1.14, 0.175);
   bodyGroup.add(buckle);
 
-  if (cfg.hasBackpack) {
-    const pack = new THREE.Mesh(
-      new THREE.BoxGeometry(0.56, 0.62, 0.28),
-      new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.7 })
+  // Inner Tee / Graphic Shirt
+  const innerTorso = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.235, 0.205, 0.56, 18),
+    innerShirtMat
+  );
+  innerTorso.scale.set(1.12, 1, 0.74);
+  innerTorso.position.y = 1.42;
+  innerTorso.castShadow = true;
+  bodyGroup.add(innerTorso);
+
+  // Outer Open GTA Jacket Shell (Back + Left/Right Front Panels + Collar)
+  const jacketShell = new THREE.Mesh(
+    new THREE.CylinderGeometry(
+      0.255,
+      0.225,
+      0.55,
+      18,
+      1,
+      false,
+      Math.PI * 0.22,
+      Math.PI * 1.56
+    ),
+    jacketMat
+  );
+  jacketShell.scale.set(1.15, 1, 0.8);
+  jacketShell.position.y = 1.43;
+  jacketShell.castShadow = true;
+  bodyGroup.add(jacketShell);
+
+  // Jacket Lapels / Trim Stripes
+  [-0.095, 0.095].forEach((lx) => {
+    const lapel = new THREE.Mesh(
+      new THREE.BoxGeometry(0.045, 0.52, 0.04),
+      accentMat
     );
-    pack.position.set(0, 1.14, -0.32);
-    bodyGroup.add(pack);
+    lapel.position.set(lx, 1.43, 0.18);
+    bodyGroup.add(lapel);
+  });
+
+  // Popped Streetwear Collar
+  const collar = new THREE.Mesh(
+    new THREE.CylinderGeometry(
+      0.16,
+      0.18,
+      0.11,
+      16,
+      1,
+      true,
+      Math.PI * 0.25,
+      Math.PI * 1.5
+    ),
+    jacketMat
+  );
+  collar.position.y = 1.72;
+  bodyGroup.add(collar);
+
+  if (cfg.hasBackpack) {
+    const packGroup = new THREE.Group();
+    const packMain = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.16, 0.24, 8, 14),
+      new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.55 })
+    );
+    packMain.scale.set(1.15, 1, 0.68);
+    packMain.castShadow = true;
+    packGroup.add(packMain);
+
+    const packPocket = new THREE.Mesh(
+      new THREE.BoxGeometry(0.24, 0.18, 0.08),
+      accentMat
+    );
+    packPocket.position.set(0, -0.06, -0.11);
+    packGroup.add(packPocket);
+
+    packGroup.position.set(0, 1.44, -0.22);
+    bodyGroup.add(packGroup);
   }
 
-  // --- HEAD WITH PAINTED STYLIZED FACE ---
+  // --- NECK & REALISTIC SCULPTED 3D HUMAN HEAD ---
+  const neck = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.075, 0.09, 0.16, 14),
+    skinMat
+  );
+  neck.position.y = 1.75;
+  bodyGroup.add(neck);
+
   const headGroup = new THREE.Group();
-  headGroup.position.set(0, 1.88, 0);
+  headGroup.position.set(0, 1.97, 0);
 
-  const faceTex = createStylizedFaceTexture(cfg.skin, cfg.eye, false);
-  // Box head with smoothed look: front face (+Z) gets expressive eyes & smile!
-  const headMaterials = [
-    skinMat, // +X right
-    skinMat, // -X left
-    skinMat, // +Y top
-    skinMat, // -Y bottom
-    new THREE.MeshStandardMaterial({ map: faceTex, roughness: 0.5 }), // +Z front!
-    skinMat, // -Z back
-  ];
-  const headMesh = new THREE.Mesh(
-    new THREE.BoxGeometry(0.68, 0.66, 0.64),
-    headMaterials
+  // Smooth Oval Cranium + Sculpted Jawline (NO blocky cubes!)
+  const cranium = new THREE.Mesh(
+    new THREE.SphereGeometry(0.21, 24, 20),
+    skinMat
   );
-  headMesh.castShadow = true;
-  headGroup.add(headMesh);
+  cranium.scale.set(0.92, 1.08, 0.96);
+  cranium.castShadow = true;
+  headGroup.add(cranium);
 
-  // Sculpted Hair Back & Sides
-  const hairBack = new THREE.Mesh(
-    new THREE.BoxGeometry(0.74, 0.7, 0.42),
-    hairMat
-  );
-  hairBack.position.set(0, 0.04, -0.16);
-  headGroup.add(hairBack);
-
-  const hairTop = new THREE.Mesh(
-    new THREE.BoxGeometry(0.74, 0.22, 0.72),
-    hairMat
-  );
-  hairTop.position.set(0, 0.34, 0);
-  headGroup.add(hairTop);
-
-  // Unique Accessories!
-  if (cfg.hatType === "cap") {
-    const capCrown = new THREE.Mesh(
-      new THREE.BoxGeometry(0.76, 0.26, 0.74),
-      shirtMat
+  // 3D Ears
+  [-0.195, 0.195].forEach((ex) => {
+    const ear = new THREE.Mesh(
+      new THREE.SphereGeometry(0.044, 10, 10),
+      skinMat
     );
-    capCrown.position.set(0, 0.36, 0);
-    headGroup.add(capCrown);
+    ear.scale.set(0.45, 1.05, 0.68);
+    ear.position.set(ex, -0.01, -0.01);
+    headGroup.add(ear);
+  });
+
+  // 3D Sculpted Nose
+  const nose = new THREE.Mesh(
+    new THREE.ConeGeometry(0.026, 0.075, 10),
+    skinMat
+  );
+  nose.rotation.x = Math.PI * 0.42;
+  nose.position.set(0, -0.015, 0.205);
+  headGroup.add(nose);
+
+  // 3D Layered Eyes (Sclera + Colored Iris + Pupil + Specular Catchlight + Eyebrows)
+  const scleraMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const irisMat = new THREE.MeshBasicMaterial({ color: cfg.eye });
+  const pupilMat = new THREE.MeshBasicMaterial({ color: 0x090d16 });
+
+  [-0.074, 0.074].forEach((ex) => {
+    const eyeSocket = new THREE.Group();
+    eyeSocket.position.set(ex, 0.028, 0.184);
+    eyeSocket.rotation.y = ex < 0 ? -0.16 : 0.16;
+
+    const sclera = new THREE.Mesh(
+      new THREE.SphereGeometry(0.033, 12, 10),
+      scleraMat
+    );
+    sclera.scale.set(1.18, 0.84, 0.35);
+    eyeSocket.add(sclera);
+
+    const iris = new THREE.Mesh(new THREE.CircleGeometry(0.021, 14), irisMat);
+    iris.position.z = 0.013;
+    eyeSocket.add(iris);
+
+    const pupil = new THREE.Mesh(new THREE.CircleGeometry(0.011, 12), pupilMat);
+    pupil.position.z = 0.015;
+    eyeSocket.add(pupil);
+
+    const glint = new THREE.Mesh(
+      new THREE.CircleGeometry(0.005, 8),
+      scleraMat
+    );
+    glint.position.set(-0.006, 0.006, 0.017);
+    eyeSocket.add(glint);
+
+    // Sculpted Eyebrow
+    const brow = new THREE.Mesh(
+      new THREE.BoxGeometry(0.068, 0.016, 0.02),
+      hairMat
+    );
+    brow.position.set(0, 0.044, 0.008);
+    brow.rotation.z = ex < 0 ? 0.08 : -0.08;
+    eyeSocket.add(brow);
+
+    headGroup.add(eyeSocket);
+  });
+
+  // Subtle Natural Smile / Mouth Contour
+  const smile = new THREE.Mesh(
+    new THREE.TorusGeometry(0.036, 0.007, 8, 14, Math.PI * 0.72),
+    new THREE.MeshStandardMaterial({ color: 0x7c2d12, roughness: 0.5 })
+  );
+  smile.rotation.z = Math.PI * 1.14;
+  smile.position.set(0, -0.072, 0.184);
+  headGroup.add(smile);
+
+  // --- SCULPTED 3D VOLUMETRIC HAIR & ACCESSORIES ---
+  const hairCap = new THREE.Mesh(
+    new THREE.SphereGeometry(
+      0.222,
+      22,
+      18,
+      0,
+      Math.PI * 2,
+      0,
+      Math.PI * 0.62
+    ),
+    hairMat
+  );
+  hairCap.scale.set(0.95, 1.06, 1.02);
+  hairCap.rotation.x = -0.22;
+  hairCap.position.set(0, 0.02, -0.015);
+  headGroup.add(hairCap);
+
+  // Swept Front Fringe / Bangs
+  const fringe = new THREE.Mesh(
+    new THREE.CapsuleGeometry(0.055, 0.18, 6, 12),
+    hairMat
+  );
+  fringe.rotation.z = Math.PI / 2 - 0.14;
+  fringe.position.set(0.01, 0.135, 0.145);
+  headGroup.add(fringe);
+
+  if (cfg.hatType === "cap") {
+    const capDome = new THREE.Mesh(
+      new THREE.SphereGeometry(
+        0.228,
+        20,
+        14,
+        0,
+        Math.PI * 2,
+        0,
+        Math.PI * 0.52
+      ),
+      jacketMat
+    );
+    capDome.position.y = 0.03;
+    headGroup.add(capDome);
 
     const visor = new THREE.Mesh(
-      new THREE.BoxGeometry(0.68, 0.08, 0.36),
-      secMat
+      new THREE.CylinderGeometry(
+        0.22,
+        0.22,
+        0.025,
+        16,
+        1,
+        false,
+        -Math.PI * 0.35,
+        Math.PI * 0.7
+      ),
+      accentMat
     );
-    visor.position.set(0, 0.25, 0.46);
+    visor.position.set(0, 0.09, 0.12);
+    visor.rotation.x = 0.14;
     headGroup.add(visor);
-
-    const badge = new THREE.Mesh(
-      new THREE.SphereGeometry(0.09, 10, 10),
-      new THREE.MeshBasicMaterial({ color: 0xfde047 })
-    );
-    badge.position.set(0, 0.38, 0.38);
-    headGroup.add(badge);
   } else if (cfg.hatType === "straw") {
-    const strawMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b });
+    const strawMat = new THREE.MeshStandardMaterial({
+      color: 0xeab308,
+      roughness: 0.75,
+    });
     const brim = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.72, 0.76, 0.07, 18),
+      new THREE.CylinderGeometry(0.42, 0.45, 0.025, 24),
       strawMat
     );
-    brim.position.y = 0.32;
+    brim.position.y = 0.14;
     headGroup.add(brim);
-    const dome = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.38, 0.44, 0.26, 16),
+
+    const crown = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.2, 0.23, 0.16, 20),
       strawMat
     );
-    dome.position.y = 0.46;
-    headGroup.add(dome);
+    crown.position.y = 0.22;
+    headGroup.add(crown);
   } else if (cfg.hatType === "headphones") {
-    const earMat = new THREE.MeshStandardMaterial({
+    const phoneMat = new THREE.MeshStandardMaterial({
       color: 0xf43f5e,
       emissive: 0xe11d48,
-      emissiveIntensity: 0.4,
+      emissiveIntensity: 0.35,
+      metalness: 0.5,
     });
-    [-0.4, 0.4].forEach((ex) => {
+    const band = new THREE.Mesh(
+      new THREE.TorusGeometry(0.225, 0.02, 10, 24, Math.PI),
+      phoneMat
+    );
+    band.position.y = 0.02;
+    headGroup.add(band);
+
+    [-0.215, 0.215].forEach((cx) => {
       const cup = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.16, 0.16, 0.12, 14),
-        earMat
+        new THREE.CylinderGeometry(0.075, 0.075, 0.055, 16),
+        phoneMat
       );
       cup.rotation.z = Math.PI / 2;
-      cup.position.set(ex, 0.02, 0.04);
+      cup.position.set(cx, 0, 0.01);
       headGroup.add(cup);
     });
-    // Long side hair locks
-    [-0.36, 0.36].forEach((hx) => {
+
+    // Long flowing hair locks
+    [-0.17, 0.17].forEach((lx) => {
       const lock = new THREE.Mesh(
-        new THREE.BoxGeometry(0.14, 0.62, 0.24),
+        new THREE.CapsuleGeometry(0.05, 0.28, 6, 10),
         hairMat
       );
-      lock.position.set(hx, -0.16, 0.1);
+      lock.position.set(lx, -0.14, -0.04);
       headGroup.add(lock);
     });
   } else if (cfg.hatType === "glasses") {
-    const visorAr = new THREE.Mesh(
-      new THREE.BoxGeometry(0.72, 0.18, 0.1),
-      new THREE.MeshStandardMaterial({
-        color: 0x38bdf8,
-        emissive: 0x06b6d4,
-        emissiveIntensity: 0.85,
-        transparent: true,
-        opacity: 0.85,
-      })
+    const glassMat = new THREE.MeshStandardMaterial({
+      color: 0x0f172a,
+      emissive: 0x06b6d4,
+      emissiveIntensity: 0.55,
+      metalness: 0.85,
+      roughness: 0.15,
+    });
+    const shades = new THREE.Mesh(
+      new THREE.BoxGeometry(0.32, 0.075, 0.05),
+      glassMat
     );
-    visorAr.position.set(0, 0.04, 0.34);
-    headGroup.add(visorAr);
+    shades.position.set(0, 0.032, 0.195);
+    headGroup.add(shades);
   } else if (cfg.hatType === "curls") {
-    [-0.4, 0.4].forEach((cx) => {
+    [
+      [-0.18, 0.08, -0.04],
+      [0.18, 0.08, -0.04],
+      [0, 0.16, -0.12],
+    ].forEach(([cx, cy, cz]) => {
       const puff = new THREE.Mesh(
-        new THREE.SphereGeometry(0.28, 12, 12),
+        new THREE.SphereGeometry(0.145, 14, 14),
         hairMat
       );
-      puff.position.set(cx, 0.12, -0.05);
+      puff.position.set(cx, cy, cz);
       headGroup.add(puff);
     });
-    const band = new THREE.Mesh(
-      new THREE.BoxGeometry(0.76, 0.1, 0.72),
-      new THREE.MeshStandardMaterial({ color: 0xf472b6 })
-    );
-    band.position.set(0, 0.32, 0.02);
-    headGroup.add(band);
   }
 
   bodyGroup.add(headGroup);
 
-  // --- ARMS & WEAPON OF LIGHT ---
+  // --- MULTI-JOINTED ARMS (SHOULDER -> UPPER ARM -> ELBOW -> FOREARM -> HAND) ---
   const buildArm = (offsetX: number) => {
-    const pivot = new THREE.Group();
-    pivot.position.set(offsetX, 1.42, 0);
-    const sleeve = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.11, 0.34, 6, 10),
-      shirtMat
-    );
-    sleeve.position.y = -0.22;
-    sleeve.castShadow = true;
-    pivot.add(sleeve);
+    const shoulderPivot = new THREE.Group();
+    shoulderPivot.position.set(offsetX, 1.64, 0);
 
-    const hand = new THREE.Mesh(
-      new THREE.SphereGeometry(0.11, 10, 10),
+    const deltoid = new THREE.Mesh(
+      new THREE.SphereGeometry(0.095, 12, 10),
+      jacketMat
+    );
+    shoulderPivot.add(deltoid);
+
+    const upperArm = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.076, 0.22, 8, 12),
+      jacketMat
+    );
+    upperArm.position.y = -0.16;
+    upperArm.castShadow = true;
+    shoulderPivot.add(upperArm);
+
+    const elbowPivot = new THREE.Group();
+    elbowPivot.position.set(0, -0.31, 0);
+    elbowPivot.rotation.x = -0.22; // Slight natural athletic bend
+    shoulderPivot.add(elbowPivot);
+
+    const forearm = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.068, 0.055, 0.25, 12),
       skinMat
     );
-    hand.position.y = -0.46;
-    pivot.add(hand);
+    forearm.position.y = -0.13;
+    forearm.castShadow = true;
+    elbowPivot.add(forearm);
 
-    bodyGroup.add(pivot);
-    return pivot;
+    const hand = new THREE.Mesh(
+      new THREE.SphereGeometry(0.062, 12, 10),
+      skinMat
+    );
+    hand.scale.set(0.85, 1.15, 1.05);
+    hand.position.y = -0.28;
+    elbowPivot.add(hand);
+
+    bodyGroup.add(shoulderPivot);
+    return { shoulderPivot, elbowPivot };
   };
 
-  const leftArmPivot = buildArm(-0.5);
-  const rightArmPivot = buildArm(0.5);
+  const leftArm = buildArm(-0.33);
+  const rightArm = buildArm(0.33);
 
   let weaponMesh: THREE.Group | undefined;
   let slashArc: THREE.Mesh | undefined;
   let shieldDome: THREE.Mesh | undefined;
 
   if (cfg.hasWeapon) {
-    // Glowing Sword / Staff of Light (Espada do Espírito - Efésios 6:17)
     weaponMesh = new THREE.Group();
-    weaponMesh.position.set(0, -0.46, 0.18);
-    weaponMesh.rotation.x = Math.PI * 0.38;
+    weaponMesh.position.set(0, -0.28, 0.08);
+    weaponMesh.rotation.x = Math.PI * 0.42;
 
     const hilt = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.045, 0.05, 0.36, 8),
-      new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.8 })
+      new THREE.CylinderGeometry(0.032, 0.036, 0.3, 10),
+      new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.85, roughness: 0.2 })
     );
     weaponMesh.add(hilt);
 
     const guard = new THREE.Mesh(
-      new THREE.BoxGeometry(0.34, 0.08, 0.12),
-      new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.8 })
+      new THREE.BoxGeometry(0.28, 0.06, 0.09),
+      new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.85 })
     );
-    guard.position.y = 0.18;
+    guard.position.y = 0.15;
     weaponMesh.add(guard);
 
     const wCol = cfg.weaponColor || 0x38bdf8;
     const blade = new THREE.Mesh(
-      new THREE.BoxGeometry(0.11, 1.15, 0.05),
+      new THREE.BoxGeometry(0.085, 1.1, 0.035),
       new THREE.MeshStandardMaterial({
         color: 0xffffff,
         emissive: wCol,
-        emissiveIntensity: 1.4,
+        emissiveIntensity: 1.5,
       })
     );
-    blade.position.y = 0.78;
+    blade.position.y = 0.72;
     weaponMesh.add(blade);
 
-    rightArmPivot.add(weaponMesh);
+    rightArm.elbowPivot.add(weaponMesh);
 
-    // 3D Sword Slash Wave Effect around Hero
     slashArc = new THREE.Mesh(
-      new THREE.RingGeometry(1.1, 2.35, 24, 1, -Math.PI * 0.4, Math.PI * 0.85),
+      new THREE.RingGeometry(1.1, 2.4, 28, 1, -Math.PI * 0.45, Math.PI * 0.9),
       new THREE.MeshBasicMaterial({
         color: wCol,
         side: THREE.DoubleSide,
@@ -387,12 +635,11 @@ export function buildStylizedHumanRig(
       })
     );
     slashArc.rotation.x = -Math.PI / 2;
-    slashArc.position.y = 1.05;
+    slashArc.position.y = 1.15;
     root.add(slashArc);
 
-    // E-Skill Prayer Shield Golden Dome
     shieldDome = new THREE.Mesh(
-      new THREE.SphereGeometry(1.65, 20, 16),
+      new THREE.SphereGeometry(1.65, 22, 16),
       new THREE.MeshBasicMaterial({
         color: 0xfde047,
         wireframe: true,
@@ -400,7 +647,7 @@ export function buildStylizedHumanRig(
         opacity: 0,
       })
     );
-    shieldDome.position.y = 1.1;
+    shieldDome.position.y = 1.15;
     root.add(shieldDome);
   }
 
@@ -409,7 +656,7 @@ export function buildStylizedHumanRig(
       cfg.label,
       cfg.labelColor || "#fbbf24"
     );
-    plate.position.y = 2.75;
+    plate.position.y = 2.55;
     root.add(plate);
   }
 
@@ -417,14 +664,90 @@ export function buildStylizedHumanRig(
     root,
     bodyGroup,
     headGroup,
-    leftArmPivot,
-    rightArmPivot,
-    leftLegPivot,
-    rightLegPivot,
+    leftArmPivot: leftArm.shoulderPivot,
+    rightArmPivot: rightArm.shoulderPivot,
+    leftElbowPivot: leftArm.elbowPivot,
+    rightElbowPivot: rightArm.elbowPivot,
+    leftLegPivot: leftLeg.hipPivot,
+    rightLegPivot: rightLeg.hipPivot,
+    leftKneePivot: leftLeg.kneePivot,
+    rightKneePivot: rightLeg.kneePivot,
     weaponMesh,
     slashArc,
     shieldDome,
   };
+}
+
+/**
+ * Animates a human rig with natural knee-bending GTA stride, elbow swing,
+ * torso counter-rotation, or seated vehicle driving pose.
+ */
+export function animateHumanRig(
+  rig: ArticulatedRig,
+  walkCycle: number,
+  isMoving: boolean,
+  inVehicle: boolean,
+  attackAnimTimer = 0
+) {
+  if (inVehicle) {
+    rig.bodyGroup.position.y = 0.12;
+    rig.bodyGroup.rotation.y = 0;
+    rig.leftLegPivot.rotation.x = -1.05;
+    rig.rightLegPivot.rotation.x = -1.05;
+    if (rig.leftKneePivot) rig.leftKneePivot.rotation.x = 1.1;
+    if (rig.rightKneePivot) rig.rightKneePivot.rotation.x = 1.1;
+    rig.leftArmPivot.rotation.x = -0.75;
+    rig.rightArmPivot.rotation.x = -0.75;
+    return;
+  }
+
+  if (isMoving) {
+    const s = Math.sin(walkCycle);
+    const c = Math.cos(walkCycle);
+
+    rig.bodyGroup.position.y = Math.abs(c) * 0.08;
+    rig.bodyGroup.rotation.y = s * 0.07;
+
+    // Hip swing + Realistic Knee Bend during stride!
+    rig.leftLegPivot.rotation.x = s * 0.68;
+    rig.rightLegPivot.rotation.x = -s * 0.68;
+    if (rig.leftKneePivot) {
+      rig.leftKneePivot.rotation.x = Math.max(0.05, -c * 0.78);
+    }
+    if (rig.rightKneePivot) {
+      rig.rightKneePivot.rotation.x = Math.max(0.05, c * 0.78);
+    }
+
+    // Athletic Arm & Forearm Swing
+    rig.leftArmPivot.rotation.x = -s * 0.58;
+    if (rig.leftElbowPivot) {
+      rig.leftElbowPivot.rotation.x = -0.3 - Math.max(0, s) * 0.45;
+    }
+
+    if (attackAnimTimer <= 0) {
+      rig.rightArmPivot.rotation.x = s * 0.58;
+      if (rig.rightElbowPivot) {
+        rig.rightElbowPivot.rotation.x = -0.3 - Math.max(0, -s) * 0.45;
+      }
+    }
+  } else {
+    rig.bodyGroup.position.y *= 0.85;
+    rig.bodyGroup.rotation.y *= 0.85;
+    rig.leftLegPivot.rotation.x *= 0.85;
+    rig.rightLegPivot.rotation.x *= 0.85;
+    if (rig.leftKneePivot) rig.leftKneePivot.rotation.x *= 0.85;
+    if (rig.rightKneePivot) rig.rightKneePivot.rotation.x *= 0.85;
+    rig.leftArmPivot.rotation.x *= 0.85;
+    if (rig.leftElbowPivot) {
+      rig.leftElbowPivot.rotation.x += (-0.22 - rig.leftElbowPivot.rotation.x) * 0.15;
+    }
+    if (attackAnimTimer <= 0) {
+      rig.rightArmPivot.rotation.x *= 0.85;
+      if (rig.rightElbowPivot) {
+        rig.rightElbowPivot.rotation.x += (-0.22 - rig.rightElbowPivot.rotation.x) * 0.15;
+      }
+    }
+  }
 }
 
 export function createPlayableChampion3D(
@@ -438,7 +761,7 @@ export function createPlayableChampion3D(
       shirt: 0x059669,
       secondary: 0x34d399,
       pants: 0x1e293b,
-      hair: 0x3b2314,
+      hair: 0x2e1a0f,
       hatType: "cap",
       hasBackpack: true,
       hasWeapon: true,
@@ -449,11 +772,12 @@ export function createPlayableChampion3D(
     sofia: {
       skin: "#fad0b1",
       eye: "#06b6d4",
-      shirt: 0x0891b2,
+      shirt: 0x0284c7,
       secondary: 0x22d3ee,
       pants: 0x1e1b4b,
       hair: 0x3b1d14,
       hatType: "headphones",
+      hasBackpack: true,
       hasWeapon: true,
       weaponColor: 0x22d3ee,
       label: `⚔️ ${agentName}`,
@@ -467,6 +791,7 @@ export function createPlayableChampion3D(
       pants: 0x0f172a,
       hair: 0x111827,
       hatType: "glasses",
+      hasBackpack: true,
       hasWeapon: true,
       weaponColor: 0xfbbf24,
       label: `⚔️ ${agentName}`,
@@ -480,6 +805,7 @@ export function createPlayableChampion3D(
       pants: 0x1e1b4b,
       hair: 0x17153b,
       hatType: "curls",
+      hasBackpack: true,
       hasWeapon: true,
       weaponColor: 0xe879f9,
       label: `⚔️ ${agentName}`,
@@ -490,19 +816,21 @@ export function createPlayableChampion3D(
   return buildStylizedHumanRig(configs[avatarId] || configs.lucas);
 }
 
-// Create menacing 3D Shadow Enemy ("Sombra da Dúvida" / Boss "Fortaleza do Medo")
+/**
+ * Humanoid Armored Shadow Warrior & Towering District Shadow Boss
+ */
 export function createShadowEnemyRig(
   name: string,
   isBoss = false
 ): ArticulatedRig {
-  const scale = isBoss ? 1.85 : 1.05;
+  const scale = isBoss ? 1.95 : 1.08;
   const root = new THREE.Group();
   const bodyGroup = new THREE.Group();
   bodyGroup.scale.setScalar(scale);
   root.add(bodyGroup);
 
   const aura = new THREE.Mesh(
-    new THREE.RingGeometry(0.75 * scale, 0.98 * scale, 24),
+    new THREE.RingGeometry(0.7 * scale, 0.95 * scale, 28),
     new THREE.MeshBasicMaterial({
       color: isBoss ? 0xf43f5e : 0xa855f7,
       side: THREE.DoubleSide,
@@ -511,105 +839,144 @@ export function createShadowEnemyRig(
     })
   );
   aura.rotation.x = -Math.PI / 2;
-  aura.position.y = 0.05;
+  aura.position.y = 0.04;
   root.add(aura);
 
-  const darkMat = new THREE.MeshStandardMaterial({
-    color: 0x1e1035,
-    emissive: isBoss ? 0x881337 : 0x3b0764,
-    emissiveIntensity: 0.65,
-    roughness: 0.3,
+  const armorMat = new THREE.MeshStandardMaterial({
+    color: 0x120a24,
+    emissive: isBoss ? 0x4c0519 : 0x2e1065,
+    emissiveIntensity: 0.55,
+    roughness: 0.25,
+    metalness: 0.7,
   });
 
-  const crystalMat = new THREE.MeshStandardMaterial({
+  const energyMat = new THREE.MeshStandardMaterial({
     color: isBoss ? 0xf43f5e : 0xc084fc,
     emissive: isBoss ? 0xe11d48 : 0x9333ea,
-    emissiveIntensity: 1.1,
+    emissiveIntensity: 1.35,
   });
 
-  // Floating Jagged Armored Core
-  const torso = new THREE.Mesh(
-    new THREE.OctahedronGeometry(0.58, 0),
-    darkMat
+  // Articulated Armored Legs
+  const buildShadowLeg = (ox: number) => {
+    const legPivot = new THREE.Group();
+    legPivot.position.set(ox, 0.95, 0);
+    const greave = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.11, 0.55, 8, 12),
+      armorMat
+    );
+    greave.position.y = -0.38;
+    greave.castShadow = true;
+    legPivot.add(greave);
+    bodyGroup.add(legPivot);
+    return legPivot;
+  };
+  const leftLegPivot = buildShadowLeg(-0.18);
+  const rightLegPivot = buildShadowLeg(0.18);
+
+  // Armored Chestplate + Glowing Core
+  const chest = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.34, 0.22, 0.72, 12),
+    armorMat
   );
-  torso.position.y = 1.1;
-  torso.scale.set(1, 1.35, 0.8);
-  bodyGroup.add(torso);
+  chest.scale.set(1.18, 1, 0.78);
+  chest.position.y = 1.35;
+  chest.castShadow = true;
+  bodyGroup.add(chest);
 
-  // Shoulder Spikes
-  [-0.62, 0.62].forEach((sx) => {
-    const spike = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.58, 6), crystalMat);
-    spike.position.set(sx, 1.48, 0);
-    spike.rotation.z = sx < 0 ? 0.5 : -0.5;
-    bodyGroup.add(spike);
+  const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.14, 0), energyMat);
+  core.position.set(0, 1.4, 0.24);
+  bodyGroup.add(core);
+
+  // Swept Pauldrons / Shoulder Armor
+  [-0.44, 0.44].forEach((sx) => {
+    const pauldron = new THREE.Mesh(
+      new THREE.ConeGeometry(0.22, 0.48, 8),
+      energyMat
+    );
+    pauldron.position.set(sx, 1.66, 0);
+    pauldron.rotation.z = sx < 0 ? 0.55 : -0.55;
+    bodyGroup.add(pauldron);
   });
 
-  // Fierce Glowing Eyes Head
+  // Hooded Helmet + Glowing Visor Eyes + Horns
   const headGroup = new THREE.Group();
-  headGroup.position.set(0, 1.88, 0);
-  const faceTex = createStylizedFaceTexture("#170d2b", "#f43f5e", true);
-  const headMats = [
-    darkMat,
-    darkMat,
-    darkMat,
-    darkMat,
-    new THREE.MeshStandardMaterial({
-      map: faceTex,
-      emissive: 0xf43f5e,
-      emissiveIntensity: 0.45,
-    }),
-    darkMat,
-  ];
-  const head = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.54, 0.54), headMats);
-  headGroup.add(head);
+  headGroup.position.set(0, 1.95, 0);
 
-  // Horns
-  [-0.24, 0.24].forEach((hx) => {
-    const horn = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.42, 6), crystalMat);
-    horn.position.set(hx, 0.42, 0);
-    horn.rotation.z = hx < 0 ? 0.3 : -0.3;
+  const helm = new THREE.Mesh(
+    new THREE.SphereGeometry(0.24, 16, 14),
+    armorMat
+  );
+  helm.scale.set(0.95, 1.12, 1.02);
+  headGroup.add(helm);
+
+  [-0.08, 0.08].forEach((ex) => {
+    const eye = new THREE.Mesh(
+      new THREE.BoxGeometry(0.08, 0.028, 0.04),
+      new THREE.MeshBasicMaterial({ color: 0xfda4af })
+    );
+    eye.position.set(ex, 0.02, 0.22);
+    eye.rotation.z = ex < 0 ? -0.22 : 0.22;
+    headGroup.add(eye);
+  });
+
+  [-0.19, 0.19].forEach((hx) => {
+    const horn = new THREE.Mesh(
+      new THREE.ConeGeometry(0.065, 0.38, 8),
+      energyMat
+    );
+    horn.position.set(hx, 0.28, -0.02);
+    horn.rotation.z = hx < 0 ? 0.35 : -0.35;
     headGroup.add(horn);
   });
   bodyGroup.add(headGroup);
 
-  const leftArmPivot = new THREE.Group();
-  leftArmPivot.position.set(-0.68, 1.25, 0);
-  const clawL = new THREE.Mesh(new THREE.OctahedronGeometry(0.22, 0), crystalMat);
-  clawL.position.y = -0.32;
-  leftArmPivot.add(clawL);
-  bodyGroup.add(leftArmPivot);
+  // Articulated Arms + Dark Energy Blade
+  const buildShadowArm = (ox: number, withSword: boolean) => {
+    const pivot = new THREE.Group();
+    pivot.position.set(ox, 1.58, 0);
+    const arm = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.085, 0.42, 6, 10),
+      armorMat
+    );
+    arm.position.y = -0.26;
+    pivot.add(arm);
 
-  const rightArmPivot = new THREE.Group();
-  rightArmPivot.position.set(0.68, 1.25, 0);
-  const clawR = new THREE.Mesh(new THREE.OctahedronGeometry(0.22, 0), crystalMat);
-  clawR.position.y = -0.32;
-  rightArmPivot.add(clawR);
-  bodyGroup.add(rightArmPivot);
+    if (withSword) {
+      const darkBlade = new THREE.Mesh(
+        new THREE.BoxGeometry(0.09, 0.95, 0.04),
+        energyMat
+      );
+      darkBlade.position.set(0, -0.58, 0.35);
+      darkBlade.rotation.x = Math.PI * 0.4;
+      pivot.add(darkBlade);
+    }
+    bodyGroup.add(pivot);
+    return pivot;
+  };
+  const leftArmPivot = buildShadowArm(-0.44, false);
+  const rightArmPivot = buildShadowArm(0.44, true);
 
-  const leftLegPivot = new THREE.Group();
-  const rightLegPivot = new THREE.Group();
-
-  // 3D Overhead Health Bar
+  // Overhead 3D HP Bar
   const hpBg = new THREE.Mesh(
-    new THREE.PlaneGeometry(1.5 * scale, 0.18 * scale),
+    new THREE.PlaneGeometry(1.5 * scale, 0.17 * scale),
     new THREE.MeshBasicMaterial({ color: 0x090d16, side: THREE.DoubleSide })
   );
-  hpBg.position.y = 2.55 * scale;
+  hpBg.position.y = 2.52 * scale;
   root.add(hpBg);
 
   const hpBarFill = new THREE.Mesh(
-    new THREE.PlaneGeometry(1.42 * scale, 0.13 * scale),
+    new THREE.PlaneGeometry(1.42 * scale, 0.12 * scale),
     new THREE.MeshBasicMaterial({
       color: isBoss ? 0xf43f5e : 0xc084fc,
       side: THREE.DoubleSide,
     })
   );
-  hpBarFill.position.set(0, 2.55 * scale, 0.02);
+  hpBarFill.position.set(0, 2.52 * scale, 0.02);
   root.add(hpBarFill);
 
   if (isBoss) {
     const bossTag = createNameplateSprite(`👑 ${name}`, "#f43f5e");
-    bossTag.position.y = 3.05 * scale;
+    bossTag.position.y = 2.98 * scale;
     root.add(bossTag);
   }
 
@@ -625,151 +992,271 @@ export function createShadowEnemyRig(
   };
 }
 
-// Create Rideable 3D GTA-style Tactical Mission Vehicle!
-export function createTacticalVehicle3D(missionId: string): THREE.Group {
+export type GtaVehicleKind = "sports" | "suv" | "moto";
+
+/**
+ * Builds realistic sculpted 3D GTA vehicles (Sports Coupe GT, 4x4 Tactical SUV,
+ * or Street Turbo Motorcycle) with sloped hoods, tinted cabin glass, spoilers,
+ * alloy wheels, headlights, brake light strips, and Nitro Boost flame cones!
+ */
+export function createGtaVehicle3D(
+  kind: GtaVehicleKind,
+  colorHex: number,
+  label: string
+): THREE.Group {
   const vehicle = new THREE.Group();
 
-  const isCyberMoto = missionId === "toquio";
-  const bodyColor =
-    missionId === "amazonia"
-      ? 0x10b981
-      : missionId === "toquio"
-        ? 0x06b6d4
-        : missionId === "janela1040"
-          ? 0xf59e0b
-          : 0x8b5cf6;
-
   const paintMat = new THREE.MeshStandardMaterial({
-    color: bodyColor,
-    roughness: 0.25,
-    metalness: 0.65,
+    color: colorHex,
+    roughness: 0.18,
+    metalness: 0.72,
   });
-  const darkMat = new THREE.MeshStandardMaterial({
+  const trimMat = new THREE.MeshStandardMaterial({
     color: 0x0f172a,
-    roughness: 0.5,
+    roughness: 0.45,
+    metalness: 0.4,
   });
-  const wheelMat = new THREE.MeshStandardMaterial({
-    color: 0x1e293b,
-    roughness: 0.7,
+  const glassMat = new THREE.MeshStandardMaterial({
+    color: 0x082f49,
+    roughness: 0.1,
+    metalness: 0.85,
+    transparent: true,
+    opacity: 0.82,
   });
-  const glowMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+  const tireMat = new THREE.MeshStandardMaterial({
+    color: 0x111827,
+    roughness: 0.75,
+  });
+  const alloyMat = new THREE.MeshStandardMaterial({
+    color: 0xe2e8f0,
+    metalness: 0.9,
+    roughness: 0.2,
+  });
+  const headlightMat = new THREE.MeshBasicMaterial({ color: 0xfef9c3 });
+  const taillightMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
 
-  if (isCyberMoto) {
-    // Futuristic Tokyo Cyber-Bike
-    const chassis = new THREE.Mesh(
-      new THREE.BoxGeometry(0.95, 0.75, 2.8),
+  const addWheel = (wx: number, wy: number, wz: number, r = 0.42, w = 0.32) => {
+    const wGroup = new THREE.Group();
+    wGroup.position.set(wx, wy, wz);
+    const tire = new THREE.Mesh(
+      new THREE.CylinderGeometry(r, r, w, 20),
+      tireMat
+    );
+    tire.rotation.z = Math.PI / 2;
+    tire.castShadow = true;
+    wGroup.add(tire);
+
+    const rim = new THREE.Mesh(
+      new THREE.CylinderGeometry(r * 0.62, r * 0.62, w + 0.02, 14),
+      alloyMat
+    );
+    rim.rotation.z = Math.PI / 2;
+    wGroup.add(rim);
+    vehicle.add(wGroup);
+  };
+
+  if (kind === "sports") {
+    // Sleek Low-Slung GTA Sports Supercar
+    const lowerChassis = new THREE.Mesh(
+      new THREE.BoxGeometry(2.15, 0.56, 4.55),
       paintMat
     );
-    chassis.position.y = 0.72;
-    chassis.castShadow = true;
-    vehicle.add(chassis);
+    lowerChassis.position.y = 0.58;
+    lowerChassis.castShadow = true;
+    vehicle.add(lowerChassis);
 
-    const windshield = new THREE.Mesh(
-      new THREE.BoxGeometry(0.85, 0.45, 0.7),
-      new THREE.MeshStandardMaterial({
-        color: 0x38bdf8,
-        emissive: 0x06b6d4,
-        emissiveIntensity: 0.6,
-      })
-    );
-    windshield.position.set(0, 1.18, 0.75);
-    windshield.rotation.x = -0.45;
-    vehicle.add(windshield);
-
-    [-1.05, 1.05].forEach((wz) => {
-      const wheel = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.48, 0.48, 0.36, 18),
-        wheelMat
-      );
-      wheel.rotation.z = Math.PI / 2;
-      wheel.position.set(0, 0.48, wz);
-      vehicle.add(wheel);
-
-      const neonRim = new THREE.Mesh(
-        new THREE.TorusGeometry(0.36, 0.05, 8, 20),
-        new THREE.MeshBasicMaterial({ color: 0x22d3ee })
-      );
-      neonRim.rotation.y = Math.PI / 2;
-      neonRim.position.set(0.19, 0.48, wz);
-      vehicle.add(neonRim);
-    });
-  } else {
-    // Rugged 4x4 GTA Tactical Mission Jeep / Amphibious Explorer!
-    const lowerBody = new THREE.Mesh(
-      new THREE.BoxGeometry(2.15, 0.78, 3.8),
+    // Aerodynamic Sloped Front Hood
+    const frontNose = new THREE.Mesh(
+      new THREE.BoxGeometry(2.08, 0.36, 1.35),
       paintMat
     );
-    lowerBody.position.y = 0.78;
-    lowerBody.castShadow = true;
-    vehicle.add(lowerBody);
+    frontNose.position.set(0, 0.62, 1.72);
+    frontNose.rotation.x = 0.18;
+    vehicle.add(frontNose);
 
-    const hoodAccent = new THREE.Mesh(
-      new THREE.BoxGeometry(1.7, 0.14, 1.25),
-      darkMat
+    // Sculpted Cabin & Angled Windshield
+    const cabin = new THREE.Mesh(
+      new THREE.BoxGeometry(1.78, 0.58, 2.05),
+      glassMat
     );
-    hoodAccent.position.set(0, 1.2, 1.1);
-    vehicle.add(hoodAccent);
+    cabin.position.set(0, 1.08, -0.15);
+    vehicle.add(cabin);
 
-    // Roll-cage & Windshield Frame
-    const windshield = new THREE.Mesh(
-      new THREE.BoxGeometry(1.95, 0.72, 0.14),
-      new THREE.MeshStandardMaterial({
-        color: 0x7dd3fc,
-        transparent: true,
-        opacity: 0.65,
-      })
+    const roof = new THREE.Mesh(
+      new THREE.BoxGeometry(1.72, 0.09, 1.45),
+      paintMat
     );
-    windshield.position.set(0, 1.52, 0.42);
-    windshield.rotation.x = -0.22;
-    vehicle.add(windshield);
+    roof.position.set(0, 1.38, -0.2);
+    vehicle.add(roof);
 
-    const rollBar = new THREE.Mesh(
-      new THREE.BoxGeometry(1.95, 0.82, 0.16),
-      darkMat
-    );
-    rollBar.position.set(0, 1.56, -0.95);
-    vehicle.add(rollBar);
-
-    // 4 Chunky Offroad Tires
-    [
-      [-1.12, 1.2],
-      [1.12, 1.2],
-      [-1.12, -1.2],
-      [1.12, -1.2],
-    ].forEach(([wx, wz]) => {
-      const tire = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.48, 0.48, 0.38, 16),
-        wheelMat
+    // Rear GT Wing Spoiler
+    [-0.72, 0.72].forEach((sx) => {
+      const strut = new THREE.Mesh(
+        new THREE.BoxGeometry(0.08, 0.32, 0.18),
+        trimMat
       );
-      tire.rotation.z = Math.PI / 2;
-      tire.position.set(wx, 0.48, wz);
-      tire.castShadow = true;
-      vehicle.add(tire);
-
-      const hub = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.24, 0.24, 0.41, 12),
-        new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.8 })
-      );
-      hub.rotation.z = Math.PI / 2;
-      hub.position.set(wx, 0.48, wz);
-      vehicle.add(hub);
+      strut.position.set(sx, 0.98, -2.02);
+      vehicle.add(strut);
     });
+    const wing = new THREE.Mesh(
+      new THREE.BoxGeometry(2.12, 0.08, 0.36),
+      trimMat
+    );
+    wing.position.set(0, 1.15, -2.06);
+    vehicle.add(wing);
 
-    // Headlights
+    // Front LED Headlights & Rear Taillight Strip
     [-0.72, 0.72].forEach((hx) => {
-      const lamp = new THREE.Mesh(
-        new THREE.SphereGeometry(0.18, 10, 10),
-        glowMat
+      const hl = new THREE.Mesh(
+        new THREE.BoxGeometry(0.42, 0.14, 0.1),
+        headlightMat
       );
-      lamp.position.set(hx, 0.86, 1.92);
-      vehicle.add(lamp);
+      hl.position.set(hx, 0.64, 2.31);
+      vehicle.add(hl);
     });
+    const tailStrip = new THREE.Mesh(
+      new THREE.BoxGeometry(1.96, 0.14, 0.08),
+      taillightMat
+    );
+    tailStrip.position.set(0, 0.72, -2.28);
+    vehicle.add(tailStrip);
+
+    addWheel(-1.08, 0.42, 1.38, 0.42, 0.32);
+    addWheel(1.08, 0.42, 1.38, 0.42, 0.32);
+    addWheel(-1.08, 0.42, -1.38, 0.44, 0.34);
+    addWheel(1.08, 0.42, -1.38, 0.44, 0.34);
+  } else if (kind === "moto") {
+    // Realistic Street Sport Motorcycle
+    const frame = new THREE.Mesh(
+      new THREE.BoxGeometry(0.58, 0.56, 2.35),
+      paintMat
+    );
+    frame.position.y = 0.72;
+    frame.castShadow = true;
+    vehicle.add(frame);
+
+    const fairing = new THREE.Mesh(
+      new THREE.ConeGeometry(0.42, 0.95, 12),
+      paintMat
+    );
+    fairing.rotation.x = Math.PI / 2;
+    fairing.position.set(0, 0.88, 0.95);
+    vehicle.add(fairing);
+
+    const visor = new THREE.Mesh(
+      new THREE.BoxGeometry(0.48, 0.34, 0.45),
+      glassMat
+    );
+    visor.rotation.x = -0.5;
+    visor.position.set(0, 1.18, 0.72);
+    vehicle.add(visor);
+
+    const handlebars = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.035, 0.035, 0.95, 10),
+      trimMat
+    );
+    handlebars.rotation.z = Math.PI / 2;
+    handlebars.position.set(0, 1.15, 0.48);
+    vehicle.add(handlebars);
+
+    const hl = new THREE.Mesh(
+      new THREE.SphereGeometry(0.14, 12, 10),
+      headlightMat
+    );
+    hl.position.set(0, 0.88, 1.38);
+    vehicle.add(hl);
+
+    addWheel(0, 0.44, 0.98, 0.44, 0.24);
+    addWheel(0, 0.44, -0.98, 0.45, 0.28);
+  } else {
+    // Rugged 4x4 Tactical GTA SUV
+    const body = new THREE.Mesh(
+      new THREE.BoxGeometry(2.26, 0.82, 4.35),
+      paintMat
+    );
+    body.position.y = 0.88;
+    body.castShadow = true;
+    vehicle.add(body);
+
+    const cabin = new THREE.Mesh(
+      new THREE.BoxGeometry(2.04, 0.74, 2.45),
+      glassMat
+    );
+    cabin.position.set(0, 1.56, -0.35);
+    vehicle.add(cabin);
+
+    const roof = new THREE.Mesh(
+      new THREE.BoxGeometry(2.08, 0.12, 2.5),
+      paintMat
+    );
+    roof.position.set(0, 1.95, -0.35);
+    vehicle.add(roof);
+
+    // Roof LED Lightbar + Front Bullbar
+    const lightBar = new THREE.Mesh(
+      new THREE.BoxGeometry(1.45, 0.12, 0.14),
+      headlightMat
+    );
+    lightBar.position.set(0, 2.05, 0.82);
+    vehicle.add(lightBar);
+
+    const bullBar = new THREE.Mesh(
+      new THREE.BoxGeometry(2.1, 0.45, 0.22),
+      trimMat
+    );
+    bullBar.position.set(0, 0.72, 2.24);
+    vehicle.add(bullBar);
+
+    // Spare Rear Tire
+    const spare = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.46, 0.46, 0.28, 18),
+      tireMat
+    );
+    spare.rotation.x = Math.PI / 2;
+    spare.position.set(0, 1.15, -2.28);
+    vehicle.add(spare);
+
+    [-0.78, 0.78].forEach((hx) => {
+      const hl = new THREE.Mesh(
+        new THREE.SphereGeometry(0.17, 12, 10),
+        headlightMat
+      );
+      hl.position.set(hx, 0.94, 2.2);
+      vehicle.add(hl);
+    });
+
+    addWheel(-1.14, 0.5, 1.38, 0.5, 0.38);
+    addWheel(1.14, 0.5, 1.38, 0.5, 0.38);
+    addWheel(-1.14, 0.5, -1.38, 0.5, 0.38);
+    addWheel(1.14, 0.5, -1.38, 0.5, 0.38);
   }
 
-  const tag = createNameplateSprite("🚙 VEÍCULO IDE [V]", "#38bdf8");
+  // Nitro Boost Exhaust Flame Mesh (visible when boosting!)
+  const nitroFlame = new THREE.Mesh(
+    new THREE.ConeGeometry(0.28, 1.4, 12),
+    new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.9,
+    })
+  );
+  nitroFlame.rotation.x = -Math.PI / 2;
+  nitroFlame.position.set(0, 0.55, kind === "moto" ? -1.65 : -2.8);
+  nitroFlame.visible = false;
+  nitroFlame.name = "nitroFlame";
+  vehicle.add(nitroFlame);
+
+  const tag = createNameplateSprite(`🚙 ${label} [V]`, "#38bdf8");
   tag.position.y = 2.65;
   tag.name = "vehicleTag";
   vehicle.add(tag);
 
   return vehicle;
+}
+
+export function createTacticalVehicle3D(missionId: string): THREE.Group {
+  if (missionId === "toquio") {
+    return createGtaVehicle3D("sports", 0x06b6d4, "CYBER GT TURBO");
+  }
+  return createGtaVehicle3D("suv", 0x10b981, "SUV TÁTICO 4X4");
 }
