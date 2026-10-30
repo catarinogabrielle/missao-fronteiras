@@ -264,47 +264,47 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
         </AnimatePresence>
         <div className="pointer-events-none fixed inset-0 bg-radial from-transparent via-slate-950/60 to-slate-950/90" />
 
-        {/* 1. TOP ECHOES OF ARENA NAVBAR (32px fixed) */}
-        <header className="relative z-20 flex h-8 shrink-0 items-center justify-between border-b border-amber-500/25 px-2 bg-slate-950/85 backdrop-blur-md rounded-lg">
+        {/* 1. TOP ECHOES OF ARENA NAVBAR (44px, matching HeaderBar) */}
+        <header className="relative z-20 flex h-11 sm:h-12 shrink-0 items-center justify-between border-b border-amber-500/30 px-3 bg-slate-950/90 backdrop-blur-md rounded-xl">
           {/* Logo & Game Title */}
           <div className="flex items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/icons/icon-192.png"
               alt="Logo"
-              className="h-6 w-6 rounded-lg border border-amber-400/70 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
+              className="h-7 w-7 rounded-lg border border-amber-400/70 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
             />
-            <span className="font-black text-xs tracking-wider text-white uppercase bg-gradient-to-r from-amber-200 via-white to-cyan-300 bg-clip-text text-transparent">
+            <span className="font-black text-xs sm:text-sm tracking-wider text-white uppercase bg-gradient-to-r from-amber-200 via-white to-cyan-300 bg-clip-text text-transparent">
               Missão Fronteiras
             </span>
           </div>
 
           {/* Center Tabs (Echoes of Arena: Jogar | Heróis | Painel) */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => handleConfirm()}
-              className="px-2.5 py-0.5 text-xs font-black text-slate-400 transition hover:text-white uppercase cursor-pointer"
+              className="px-2.5 py-1 text-xs font-black text-slate-400 transition hover:text-white uppercase cursor-pointer"
             >
               Jogar
             </button>
-            <div className="relative px-2.5 py-0.5 text-xs font-black text-amber-300 uppercase">
+            <div className="relative px-2.5 py-1 text-xs font-black text-amber-300 uppercase">
               <span>Heróis</span>
               <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-gradient-to-r from-amber-400 to-cyan-400 shadow-[0_0_8px_#fbbf24]" />
             </div>
             <button
               type="button"
               onClick={onOpenLeaderPanel}
-              className="px-2.5 py-0.5 text-xs font-black text-slate-400 transition hover:text-white uppercase cursor-pointer"
+              className="px-2.5 py-1 text-xs font-black text-slate-400 transition hover:text-white uppercase cursor-pointer"
             >
               Painel
             </button>
           </div>
 
           {/* Right Resources & Controls */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            <div className="inline-flex items-center gap-1 rounded-md border border-cyan-400/40 bg-slate-900/90 px-2 py-0.5 text-[10px] font-black text-cyan-200">
-              <Gem className="h-3 w-3 text-cyan-300" />
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-400/40 bg-slate-900/90 px-2.5 py-0.5 text-xs font-black text-cyan-200">
+              <Gem className="h-3.5 w-3.5 text-cyan-300" />
               <span>{state.wisdom} 💎</span>
             </div>
 
@@ -313,9 +313,9 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
               size="sm"
               shape="slant"
               onClick={onOpenLeaderPanel}
-              className="!py-0.5 !px-2 !text-[9px]"
+              className="!py-0.5 !px-2 !text-xs font-black"
             >
-              <ShieldCheck className="h-3 w-3" />
+              <ShieldCheck className="h-3.5 w-3.5" />
               <span>Líder</span>
             </MobaButton>
 
@@ -323,12 +323,12 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
               type="button"
               onClick={toggleMute}
               title={state.muted ? "Ativar Som" : "Silenciar"}
-              className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-slate-300 hover:text-white"
+              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-slate-300 hover:text-white"
             >
               {state.muted ? (
-                <VolumeX className="h-3 w-3 text-rose-400" />
+                <VolumeX className="h-3.5 w-3.5 text-rose-400" />
               ) : (
-                <Volume2 className="h-3 w-3 text-emerald-400" />
+                <Volume2 className="h-3.5 w-3.5 text-emerald-400" />
               )}
             </button>
           </div>
@@ -336,82 +336,50 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
 
         {/* 2. MAIN 3-COLUMN HEROES WORKBENCH (100% NO SCROLL) */}
         <div className="relative z-10 grid flex-1 min-h-0 grid-cols-12 gap-2 mt-1.5 overflow-hidden">
-          {/* LEFT COLUMN (3 cols): Role Filters + Non-stretching Hero Cards */}
+          {/* LEFT COLUMN (3 cols): 4 Champions Vertical Stack */}
           <section className="col-span-3 rounded-2xl border border-cyan-500/25 bg-slate-950/80 backdrop-blur-md flex flex-col justify-between h-full min-h-0 p-2 overflow-hidden shadow-xl">
-            {/* Top: Role Filter Pills */}
-            <div className="shrink-0">
-              <div className="text-[9px] font-black tracking-widest text-cyan-400 uppercase mb-1">
-                Função do Agente
-              </div>
-              <div className="grid grid-cols-5 gap-0.5">
-                {(["TODOS", "CAMPO", "ARTE", "TECH", "FÉ"] as const).map(
-                  (role) => (
-                    <button
-                      key={role}
-                      type="button"
-                      onClick={() => setMobileRoleFilter(role)}
-                      className={`cursor-pointer rounded py-0.5 text-[8px] font-black uppercase transition ${
-                        mobileRoleFilter === role
-                          ? "bg-cyan-500 text-slate-950 shadow-[0_0_8px_#22d3ee]"
-                          : "border border-slate-800 bg-slate-900 text-slate-400 hover:text-white"
-                      }`}
-                    >
-                      {role}
-                    </button>
-                  )
-                )}
+            <div className="shrink-0 mb-1">
+              <div className="text-[10px] font-black tracking-widest text-cyan-400 uppercase">
+                Escolha o Campeão
               </div>
             </div>
 
-            {/* Hero Cards List: Fixed Height Cards (Never Stretch!) */}
-            <div className="my-1 flex-1 min-h-0 flex flex-col gap-1.5 overflow-y-auto">
-              <div className="grid grid-cols-2 gap-1.5 auto-rows-max">
-                {filteredAvatars.map((av) => {
-                  const isSelected = av.id === selectedAvatar;
-                  const stats = CHAMPION_STATS[av.id];
-                  return (
-                    <button
-                      key={av.id}
-                      type="button"
-                      onClick={() => {
-                        playSfx("click");
-                        setSelectedAvatar(av.id);
-                      }}
-                      className={`relative flex items-center gap-1.5 rounded-xl border p-1 text-left transition cursor-pointer h-13 ${
-                        isSelected
-                          ? "border-amber-300 bg-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.5)] ring-1 ring-amber-300"
-                          : "border-slate-800 bg-slate-900/80 hover:border-slate-600"
-                      }`}
-                    >
-                      <HeroPortrait
-                        avatarId={av.id}
-                        size={32}
-                        shape="hex"
-                        active={isSelected}
-                      />
-                      <div className="min-w-0 flex-1 truncate">
-                        <div className="truncate text-[10px] font-black text-white uppercase">
-                          {av.name}
-                        </div>
-                        <div className="text-[7px] font-bold text-amber-300 truncate">
-                          {stats.category}
-                        </div>
+            {/* 4 Champion Cards (Vertical Stack, Large Finger-Friendly) */}
+            <div className="flex-1 min-h-0 flex flex-col justify-between gap-1.5 overflow-y-auto">
+              {AVATAR_OPTIONS.map((av) => {
+                const isSelected = av.id === selectedAvatar;
+                const stats = CHAMPION_STATS[av.id];
+                return (
+                  <button
+                    key={av.id}
+                    type="button"
+                    onClick={() => {
+                      playSfx("click");
+                      setSelectedAvatar(av.id);
+                    }}
+                    className={`relative flex items-center gap-2.5 rounded-xl border p-1.5 text-left transition cursor-pointer flex-1 min-h-[44px] ${
+                      isSelected
+                        ? "border-amber-300 bg-amber-500/25 shadow-[0_0_15px_rgba(245,158,11,0.45)] ring-1 ring-amber-300"
+                        : "border-slate-800 bg-slate-900/80 hover:border-slate-600"
+                    }`}
+                  >
+                    <HeroPortrait
+                      avatarId={av.id}
+                      size={36}
+                      shape="hex"
+                      active={isSelected}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-xs font-black text-white uppercase">
+                        {av.name}
                       </div>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Tactical Speciality Insight when filtered to 1 hero (Prevents empty look) */}
-              {filteredAvatars.length === 1 && (
-                <div className="mt-auto rounded-xl border border-cyan-500/20 bg-slate-900/70 p-1.5 text-[8px] text-slate-300">
-                  <div className="font-bold text-cyan-300 uppercase mb-0.5 flex items-center gap-1">
-                    <Sparkles className="h-2.5 w-2.5 text-amber-300" />
-                    <span>Especialidade de {activeChampion.name}</span>
-                  </div>
-                  <p className="leading-tight text-slate-300">{activeStats.roleTitle}</p>
-                </div>
-              )}
+                      <div className="text-[9px] font-bold text-amber-300 truncate">
+                        {stats.category} • {av.styleTag}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
 
             {/* Bottom: Quick View Mode Toggle */}
@@ -421,9 +389,9 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
                 playSfx("click");
                 setViewMode(viewMode === "3d" ? "art" : "3d");
               }}
-              className="shrink-0 flex items-center justify-center gap-1 rounded-lg border border-slate-700 bg-slate-900/90 py-1 text-[9px] font-black text-slate-300 hover:border-cyan-400 hover:text-white cursor-pointer"
+              className="mt-1 shrink-0 flex items-center justify-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900/90 py-1.5 text-[9.5px] font-black text-slate-300 hover:border-cyan-400 hover:text-white cursor-pointer"
             >
-              <Box className="h-3 w-3 text-cyan-300" />
+              <Box className="h-3.5 w-3.5 text-cyan-300" />
               <span>{viewMode === "3d" ? "Ver Arte Oficial" : "Ver Boneco 3D"}</span>
             </button>
           </section>
@@ -570,7 +538,7 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
               <button
                 type="button"
                 onClick={() => setMobileRightTab("historia")}
-                className={`text-[9px] font-black uppercase pb-0.5 cursor-pointer transition ${
+                className={`text-xs font-black uppercase pb-0.5 cursor-pointer transition ${
                   mobileRightTab === "historia"
                     ? "text-amber-300 border-b-2 border-amber-300"
                     : "text-slate-400 hover:text-white"
@@ -581,7 +549,7 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
               <button
                 type="button"
                 onClick={() => setMobileRightTab("skins")}
-                className={`text-[9px] font-black uppercase pb-0.5 cursor-pointer transition ${
+                className={`text-xs font-black uppercase pb-0.5 cursor-pointer transition ${
                   mobileRightTab === "skins"
                     ? "text-amber-300 border-b-2 border-amber-300"
                     : "text-slate-400 hover:text-white"
@@ -592,73 +560,50 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
               <button
                 type="button"
                 onClick={() => setMobileRightTab("dons")}
-                className={`text-[9px] font-black uppercase pb-0.5 cursor-pointer transition ${
+                className={`text-xs font-black uppercase pb-0.5 cursor-pointer transition ${
                   mobileRightTab === "dons"
                     ? "text-amber-300 border-b-2 border-amber-300"
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                Runas/Dons
+                Dons & Runas
               </button>
             </div>
 
-            {/* Tab Body: Rich AAA Content (NO EMPTY VOIDS!) */}
+            {/* Tab Body: Rich AAA Content */}
             <div className="my-1 flex-1 min-h-0 overflow-y-auto space-y-1.5 pr-0.5">
               {mobileRightTab === "historia" && (
-                <div className="space-y-1.5 text-[8.5px] leading-tight">
+                <div className="space-y-1.5 text-xs leading-snug">
                   {/* Hero Lore */}
                   <p className="text-slate-200 line-clamp-2">
                     {tacticalIntel.bio}
                   </p>
 
-                  {/* Sinergia & Composição */}
-                  <div className="rounded-lg border border-slate-800 bg-slate-900/80 p-1.5">
-                    <div className="text-[7.5px] font-bold text-amber-300 uppercase mb-1">
-                      Composição Sugerida & Sinergia
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {tacticalIntel.squadSynergy.map((tag) => (
-                        <span
-                          key={tag}
-                          className="rounded border border-cyan-400/30 bg-cyan-950/60 px-1 py-0.2 text-[7.5px] font-black text-cyan-200"
-                        >
-                          ⚡ {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Dicas Táticas */}
-                  <div className="space-y-1 rounded-lg border border-slate-800 bg-slate-900/80 p-1.5">
-                    <div className="text-[7.5px] font-bold text-cyan-300 uppercase">
-                      Dicas Táticas de Combate
-                    </div>
-                    {tacticalIntel.tips.map((tip, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-start gap-1 text-slate-300 text-[8px] leading-tight"
-                      >
-                        <span className="text-amber-400 font-bold shrink-0">
-                          {idx + 1}.
-                        </span>
-                        <span>{tip}</span>
-                      </div>
-                    ))}
-                  </div>
-
                   {/* Scripture Verse */}
-                  <div className="rounded border border-amber-400/30 bg-amber-500/10 p-1 text-[8px] text-amber-200 italic leading-tight">
+                  <div className="rounded-lg border border-amber-400/30 bg-amber-500/10 p-1.5 text-[10px] text-amber-200 italic leading-snug">
                     &ldquo;{tacticalIntel.verse}&rdquo;{" "}
                     <span className="not-italic font-bold text-amber-300">
                       ({tacticalIntel.verseRef})
                     </span>
+                  </div>
+
+                  {/* Sinergia & Tags */}
+                  <div className="flex flex-wrap gap-1">
+                    {tacticalIntel.squadSynergy.map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded border border-cyan-400/30 bg-cyan-950/60 px-1.5 py-0.5 text-[8.5px] font-black text-cyan-200"
+                      >
+                        ⚡ {tag}
+                      </span>
+                    ))}
                   </div>
                 </div>
               )}
 
               {mobileRightTab === "skins" && (
                 <div>
-                  <div className="mb-1 flex items-center justify-between text-[8px] font-black uppercase text-amber-300">
+                  <div className="mb-1 flex items-center justify-between text-[10px] font-black uppercase text-amber-300">
                     <span>{activeSkinMeta.name}</span>
                     {!previewUnlocked && (
                       <span className="text-cyan-300">
@@ -683,11 +628,11 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
                             }
                           }}
                           title={`${sk.name} (${sk.rarity})`}
-                          className={`relative flex h-8 cursor-pointer items-center justify-center rounded-lg border text-xs transition ${
+                          className={`relative flex h-9 cursor-pointer items-center justify-center rounded-xl border text-sm transition ${
                             sk.gradientClass
                           } ${
                             active
-                              ? "border-amber-300 shadow-[0_0_10px_#fbbf24] ring-1 ring-amber-300"
+                              ? "border-amber-300 shadow-[0_0_12px_#fbbf24] ring-1 ring-amber-300"
                               : unlocked
                                 ? "border-slate-700 hover:border-cyan-400"
                                 : "border-slate-800 opacity-60"
@@ -695,7 +640,7 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
                         >
                           <span>{sk.badgeEmoji}</span>
                           {!unlocked && (
-                            <Lock className="absolute right-0.5 bottom-0.5 h-2 w-2 text-amber-300" />
+                            <Lock className="absolute right-0.5 bottom-0.5 h-2.5 w-2.5 text-amber-300" />
                           )}
                         </button>
                       );
@@ -705,7 +650,7 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
               )}
 
               {mobileRightTab === "dons" && (
-                <div className="grid grid-cols-2 gap-1">
+                <div className="grid grid-cols-2 gap-1.5">
                   {GIFT_OPTIONS.map((g) => {
                     const active = g.id === selectedGift;
                     return (
@@ -716,16 +661,16 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
                           playSfx("click");
                           setSelectedGift(g.id);
                         }}
-                        className={`flex flex-col items-center justify-center rounded-lg border p-1 text-center cursor-pointer transition ${
+                        className={`flex flex-col items-center justify-center rounded-xl border p-1.5 text-center cursor-pointer transition ${
                           active
-                            ? "border-amber-300 bg-amber-500/20 text-amber-200 ring-1 ring-amber-300"
+                            ? "border-amber-300 bg-amber-500/20 text-amber-200 ring-1 ring-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.3)]"
                             : "border-slate-800 bg-slate-900/80 text-slate-400 hover:border-slate-600"
                         }`}
                       >
-                        <span className="text-[8.5px] font-black truncate w-full">
+                        <span className="text-[10px] font-black truncate w-full">
                           {g.name}
                         </span>
-                        <span className="text-[7px] text-cyan-300 truncate w-full">
+                        <span className="text-[8.5px] text-cyan-300 truncate w-full">
                           {g.verseRef}
                         </span>
                       </button>
@@ -738,7 +683,7 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
             {/* Bottom: Summoner Nickname Input + Presets + Confirm CTA */}
             <div className="shrink-0 border-t border-cyan-500/25 pt-1 space-y-1">
               <div className="flex items-center justify-between">
-                <span className="text-[8.5px] font-black uppercase text-amber-300">
+                <span className="text-[9.5px] font-black uppercase text-amber-300">
                   Nome do Agente
                 </span>
                 <div className="flex gap-1">
@@ -747,7 +692,7 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
                       key={preset}
                       type="button"
                       onClick={() => setName(preset)}
-                      className="cursor-pointer rounded border border-slate-700 bg-slate-900/90 px-1 py-0.2 text-[7.5px] font-bold text-slate-300 hover:border-amber-400"
+                      className="cursor-pointer rounded border border-slate-700 bg-slate-900/90 px-1.5 py-0.2 text-[8px] font-bold text-slate-300 hover:border-amber-400"
                     >
                       {preset}
                     </button>
@@ -761,7 +706,7 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Seu Nick de Invocador..."
-                className="w-full rounded border border-amber-500/40 bg-slate-950 px-2 py-0.5 text-xs font-black text-white focus:border-cyan-400 focus:outline-none"
+                className="w-full rounded-lg border border-amber-500/40 bg-slate-950 px-2 py-1 text-xs font-black text-white focus:border-cyan-400 focus:outline-none"
               />
 
               {/* Giant Glowing Confirm Button (Echoes of Arena Style) */}
@@ -770,10 +715,10 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
                 size="md"
                 shape="hex"
                 onClick={() => handleConfirm()}
-                className="w-full !py-1.5 !text-xs font-black shadow-[0_0_24px_rgba(245,158,11,0.65)]"
+                className="w-full !py-2 !text-xs font-black shadow-[0_0_24px_rgba(245,158,11,0.65)]"
               >
                 <Sparkles className="h-3.5 w-3.5" />
-                CONFIRMAR • ESCOLHER ESTE HERÓI
+                <span>CONFIRMAR CAMPEÃO & ENTRAR</span>
               </MobaButton>
             </div>
           </section>

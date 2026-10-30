@@ -6,8 +6,10 @@ import {
   CheckCircle2,
   Gem,
   Lock,
+  ShieldCheck,
   Sparkles,
   UserCheck,
+  Users,
   X,
 } from "lucide-react";
 import { SkinId, SkinRarity } from "@/types/game";
@@ -65,6 +67,9 @@ export function SkinWardrobeModal({ open, onClose }: SkinWardrobeModalProps) {
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
+  const [mobileTab, setMobileTab] = useState<"skins" | "herois" | "dons">(
+    "skins"
+  );
   const activePreviewSkin: SkinId = open ? previewSkin : currentSkin;
   const selectedSkinMeta =
     SKIN_OPTIONS.find((s) => s.id === activePreviewSkin) || SKIN_OPTIONS[0];
@@ -149,231 +154,321 @@ export function SkinWardrobeModal({ open, onClose }: SkinWardrobeModalProps) {
 
             {/* Body: Left 3D Live Turntable + Right Customization & Skin Grid */}
             {isMobileLandscape ? (
-              /* MOBILE LANDSCAPE COMPACT WIDESCREEN (100% NO SCROLL) */
-              <div className="grid grid-cols-12 gap-2 p-2 flex-1 min-h-0 overflow-hidden">
-                {/* LEFT (5 cols): 3D Turntable + Selected Skin Lore & Action */}
+              /* MOBILE LANDSCAPE CONSOLE WIDESCREEN (AAA LARGE TOUCH TARGETS) */
+              <div className="grid grid-cols-12 gap-3 p-2.5 flex-1 min-h-0 overflow-hidden">
+                {/* LEFT (5 cols): 3D Turntable + Large Selected Skin Card */}
                 <div className="col-span-5 flex flex-col justify-between h-full min-h-0">
-                  <HeroPreview3D
-                    avatarId={currentAvatar}
-                    skinId={activePreviewSkin}
-                    agentName={state.agent.name}
-                    heightClass="h-40 flex-1 min-h-0"
-                    showEmoteBar
-                    compact
-                    borderless
-                  />
+                  <div className="flex-1 min-h-0 flex items-center justify-center overflow-hidden">
+                    <HeroPreview3D
+                      avatarId={currentAvatar}
+                      skinId={activePreviewSkin}
+                      agentName={state.agent.name}
+                      heightClass="h-full min-h-[170px] w-full"
+                      showEmoteBar
+                      compact
+                      borderless
+                    />
+                  </div>
 
-                  {/* Selected Skin Card */}
-                  <div className="rounded-xl border border-amber-400/35 bg-slate-900/90 p-2 shrink-0">
+                  {/* Selected Skin Card with Big CTA Button */}
+                  <div className="rounded-2xl border-2 border-amber-400/40 bg-slate-900/95 p-2.5 shrink-0 shadow-lg space-y-1.5">
                     <div className="flex items-center justify-between gap-1">
                       <span
-                        className={`rounded-full border px-2 py-0.2 text-[8px] font-black tracking-widest uppercase ${
+                        className={`rounded-full border px-2 py-0.5 text-[9px] font-black tracking-widest uppercase ${
                           RARITY_BADGE_STYLE[selectedSkinMeta.rarity]
                         }`}
                       >
                         {selectedSkinMeta.badgeEmoji} {selectedSkinMeta.rarity}
                       </span>
                       {isEquipped ? (
-                        <span className="text-[9px] font-black text-emerald-400">
-                          EQUIPADA
+                        <span className="text-[10px] font-black text-emerald-400">
+                          ✓ EQUIPADA NO JOGO
                         </span>
                       ) : selectedUnlocked ? (
-                        <span className="text-[9px] font-bold text-cyan-300">
+                        <span className="text-[10px] font-bold text-cyan-300">
                           DESBLOQUEADA
                         </span>
                       ) : (
-                        <span className="font-mono text-[9px] font-black text-amber-300">
-                          {selectedSkinMeta.costWisdom}💎
+                        <span className="font-mono text-[11px] font-black text-amber-300">
+                          {selectedSkinMeta.costWisdom} Cristais 💎
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center justify-between gap-2 mt-1">
-                      <div className="min-w-0 flex-1 truncate">
-                        <div className="text-xs font-black text-white uppercase truncate">
-                          {selectedSkinMeta.name}
-                        </div>
-                        <div className="text-[8px] text-slate-300 truncate">
-                          {selectedSkinMeta.tagline}
-                        </div>
+
+                    <div>
+                      <div className="text-sm font-black text-white uppercase truncate">
+                        {selectedSkinMeta.name}
                       </div>
-                      <div className="shrink-0">
-                        {isEquipped ? (
-                          <MobaButton
-                            variant="emerald"
-                            size="sm"
-                            shape="hex"
-                            onClick={onClose}
-                            className="!py-1 !px-2.5 !text-[9px]"
-                          >
-                            <CheckCircle2 className="h-3 w-3" />
-                            <span>PRONTO</span>
-                          </MobaButton>
-                        ) : selectedUnlocked ? (
-                          <MobaButton
-                            variant="gold"
-                            size="sm"
-                            shape="hex"
-                            onClick={() =>
-                              unlockAndEquipSkin(selectedSkinMeta.id, true)
-                            }
-                            className="!py-1 !px-2.5 !text-[9px]"
-                          >
-                            <Sparkles className="h-3 w-3" />
-                            <span>EQUIPAR</span>
-                          </MobaButton>
-                        ) : (
-                          <MobaButton
-                            variant="cyan"
-                            size="sm"
-                            shape="hex"
-                            onClick={() =>
-                              unlockAndEquipSkin(selectedSkinMeta.id)
-                            }
-                            className="!py-1 !px-2.5 !text-[9px]"
-                          >
-                            <Gem className="h-3 w-3" />
-                            <span>DESBLOQUEAR ({selectedSkinMeta.costWisdom}💎)</span>
-                          </MobaButton>
-                        )}
+                      <div className="text-[10px] text-slate-300 truncate">
+                        {selectedSkinMeta.tagline}
                       </div>
+                    </div>
+
+                    <div>
+                      {isEquipped ? (
+                        <MobaButton
+                          variant="emerald"
+                          size="md"
+                          shape="hex"
+                          onClick={onClose}
+                          className="w-full !py-2 !text-xs font-black shadow-[0_0_15px_rgba(16,185,129,0.35)]"
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                          <span>PRONTO • VOLTAR AO JOGO</span>
+                        </MobaButton>
+                      ) : selectedUnlocked ? (
+                        <MobaButton
+                          variant="gold"
+                          size="md"
+                          shape="hex"
+                          onClick={() =>
+                            unlockAndEquipSkin(selectedSkinMeta.id, true)
+                          }
+                          className="w-full !py-2 !text-xs font-black shadow-[0_0_15px_rgba(245,158,11,0.35)]"
+                        >
+                          <Sparkles className="h-4 w-4" />
+                          <span>EQUIPAR SKIN 3D AGORA</span>
+                        </MobaButton>
+                      ) : (
+                        <MobaButton
+                          variant="cyan"
+                          size="md"
+                          shape="hex"
+                          onClick={() => unlockAndEquipSkin(selectedSkinMeta.id)}
+                          className="w-full !py-2 !text-xs font-black shadow-[0_0_15px_rgba(34,211,238,0.35)]"
+                        >
+                          <Gem className="h-4 w-4" />
+                          <span>DESBLOQUEAR & EQUIPAR ({selectedSkinMeta.costWisdom}💎)</span>
+                        </MobaButton>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                {/* RIGHT (7 cols): Champion Row + 8 Skins 2x4 Grid + Gifts */}
-                <div className="col-span-7 flex flex-col justify-between h-full min-h-0 space-y-1.5">
-                  {/* 1. Champion Switcher */}
-                  <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-1.5 shrink-0 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5">
-                      {AVATAR_OPTIONS.map((av) => {
-                        const active = av.id === currentAvatar;
-                        return (
-                          <button
-                            key={av.id}
-                            type="button"
-                            onClick={() => updateAgentAppearance({ avatarId: av.id })}
-                            className={`flex items-center gap-1 rounded-lg border px-1.5 py-0.5 cursor-pointer transition ${
-                              active
-                                ? "border-amber-400 bg-amber-500/20 text-amber-200 ring-1 ring-amber-300"
-                                : "border-slate-800 bg-slate-950/70 text-slate-400 hover:border-slate-600"
-                            }`}
-                          >
-                            <HeroPortrait avatarId={av.id} size={22} shape="hex" active={active} />
-                            <span className="text-[9px] font-black uppercase">{av.name}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        updateAgentAppearance({ name: nameDraft });
+                {/* RIGHT (7 cols): Clean Tab Bar + Finger-Friendly Cards */}
+                <div className="col-span-7 flex flex-col justify-between h-full min-h-0 gap-2">
+                  {/* Top Mobile Tabs Bar */}
+                  <div className="flex items-center rounded-2xl border border-slate-800 bg-slate-900/90 p-1 shrink-0 gap-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        playSfx("click");
+                        setMobileTab("skins");
                       }}
-                      className="flex items-center gap-1 shrink-0"
+                      className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl py-1.5 text-xs font-black uppercase transition cursor-pointer ${
+                        mobileTab === "skins"
+                          ? "bg-amber-400/25 text-amber-300 border border-amber-400/60 shadow-[0_0_12px_rgba(245,158,11,0.3)]"
+                          : "text-slate-400 hover:text-white"
+                      }`}
                     >
-                      <input
-                        type="text"
-                        maxLength={24}
-                        value={nameDraft}
-                        onChange={(e) => setNameDraft(e.target.value)}
-                        placeholder="Nick..."
-                        className="w-24 rounded border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-[9px] font-black text-white focus:border-cyan-400 focus:outline-none"
-                      />
-                      <button
-                        type="submit"
-                        className="rounded border border-cyan-500/40 bg-cyan-500/15 px-1.5 py-0.5 text-[8.5px] font-black text-cyan-200 hover:bg-cyan-500/25 cursor-pointer"
-                      >
-                        Salvar
-                      </button>
-                    </form>
+                      <Sparkles className="h-3.5 w-3.5" />
+                      <span>Skins ({SKIN_OPTIONS.filter((s) => isSkinUnlocked(s.id)).length}/8)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        playSfx("click");
+                        setMobileTab("herois");
+                      }}
+                      className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl py-1.5 text-xs font-black uppercase transition cursor-pointer ${
+                        mobileTab === "herois"
+                          ? "bg-cyan-400/25 text-cyan-300 border border-cyan-400/60 shadow-[0_0_12px_rgba(34,211,238,0.3)]"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      <Users className="h-3.5 w-3.5" />
+                      <span>Campeões (4)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        playSfx("click");
+                        setMobileTab("dons");
+                      }}
+                      className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl py-1.5 text-xs font-black uppercase transition cursor-pointer ${
+                        mobileTab === "dons"
+                          ? "bg-emerald-400/25 text-emerald-300 border border-emerald-400/60 shadow-[0_0_12px_rgba(16,185,129,0.3)]"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      <ShieldCheck className="h-3.5 w-3.5" />
+                      <span>Dons (4)</span>
+                    </button>
                   </div>
 
-                  {/* 2. All 8 Skins Collection (2 rows x 4 cols = exactly 8!) */}
-                  <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-1.5 flex-1 min-h-0 flex flex-col justify-between">
-                    <div className="flex items-center justify-between text-[8px] font-black tracking-widest text-amber-300 uppercase mb-1">
-                      <span>Coleção de Skins 3D ({SKIN_OPTIONS.filter((s) => isSkinUnlocked(s.id)).length}/8 Liberadas)</span>
-                      <span className="text-slate-400 font-normal">Toque para ver em 3D</span>
-                    </div>
+                  {/* Tab Body */}
+                  <div className="flex-1 min-h-0 overflow-y-auto">
+                    {/* TAB 1: ALL 8 SKINS IN COMFORTABLE 2x4 GRID */}
+                    {mobileTab === "skins" && (
+                      <div className="grid grid-cols-4 gap-2 h-full auto-rows-fr">
+                        {SKIN_OPTIONS.map((sk) => {
+                          const unlocked = isSkinUnlocked(sk.id);
+                          const equipped = currentSkin === sk.id;
+                          const previewing = activePreviewSkin === sk.id;
 
-                    <div className="grid grid-cols-4 gap-1.5 flex-1 min-h-0 auto-rows-fr">
-                      {SKIN_OPTIONS.map((sk) => {
-                        const unlocked = isSkinUnlocked(sk.id);
-                        const equipped = currentSkin === sk.id;
-                        const previewing = activePreviewSkin === sk.id;
-
-                        return (
-                          <button
-                            key={sk.id}
-                            type="button"
-                            onClick={() => {
-                              playSfx("click");
-                              setPreviewSkin(sk.id);
-                              if (unlocked && currentSkin !== sk.id) {
-                                unlockAndEquipSkin(sk.id, true);
-                              }
-                            }}
-                            className={`relative flex flex-col justify-between rounded-lg border p-1 text-left transition cursor-pointer ${
-                              sk.gradientClass
-                            } ${
-                              previewing
-                                ? "border-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.45)] ring-1 ring-amber-300"
-                                : equipped
-                                  ? "border-emerald-400/80 ring-1 ring-emerald-400/40"
-                                  : unlocked
-                                    ? "border-slate-700 hover:border-cyan-400"
-                                    : "border-slate-800 opacity-70"
-                            }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm">{sk.badgeEmoji}</span>
-                              {equipped ? (
-                                <span className="rounded bg-emerald-500/25 px-1 py-0.2 text-[7px] font-black text-emerald-300">
-                                  EQUIPADA
-                                </span>
-                              ) : unlocked ? (
-                                <CheckCircle2 className="h-3 w-3 text-cyan-300" />
-                              ) : (
-                                <span className="font-mono text-[7.5px] font-black text-amber-300">
-                                  {sk.costWisdom}💎
-                                </span>
-                              )}
-                            </div>
-                            <div className="mt-0.5 min-w-0">
-                              <div className="text-[6.5px] font-black uppercase truncate" style={{ color: sk.accentHex }}>
-                                {sk.rarity}
+                          return (
+                            <motion.button
+                              key={sk.id}
+                              type="button"
+                              whileHover={{ scale: 1.03 }}
+                              whileTap={{ scale: 0.96 }}
+                              onClick={() => {
+                                playSfx("click");
+                                setPreviewSkin(sk.id);
+                                if (unlocked && currentSkin !== sk.id) {
+                                  unlockAndEquipSkin(sk.id, true);
+                                }
+                              }}
+                              className={`relative flex flex-col justify-between rounded-xl border-2 p-2 text-left transition cursor-pointer ${
+                                sk.gradientClass
+                              } ${
+                                previewing
+                                  ? "border-amber-300 shadow-[0_0_16px_rgba(251,191,36,0.45)] ring-2 ring-amber-300"
+                                  : equipped
+                                    ? "border-emerald-400/80 ring-1 ring-emerald-400/40"
+                                    : unlocked
+                                      ? "border-slate-700 hover:border-cyan-400"
+                                      : "border-slate-800 opacity-70"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="text-xl">{sk.badgeEmoji}</span>
+                                {equipped ? (
+                                  <span className="rounded bg-emerald-500/25 px-1.5 py-0.5 text-[8px] font-black text-emerald-300">
+                                    EQUIPADA
+                                  </span>
+                                ) : unlocked ? (
+                                  <CheckCircle2 className="h-4 w-4 text-cyan-300" />
+                                ) : (
+                                  <span className="font-mono text-[9px] font-black text-amber-300 bg-slate-950/80 px-1.5 py-0.2 rounded">
+                                    {sk.costWisdom}💎
+                                  </span>
+                                )}
                               </div>
-                              <div className="text-[8px] font-black text-white truncate leading-tight">
-                                {sk.name}
+                              <div className="mt-1">
+                                <div
+                                  className="text-[7.5px] font-black uppercase tracking-wider truncate"
+                                  style={{ color: sk.accentHex }}
+                                >
+                                  {sk.rarity}
+                                </div>
+                                <div className="text-[10px] font-black text-white truncate leading-tight">
+                                  {sk.name}
+                                </div>
                               </div>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                            </motion.button>
+                          );
+                        })}
+                      </div>
+                    )}
 
-                  {/* 3. Quick Runes / Gifts Selector */}
-                  <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-1 shrink-0">
-                    <div className="grid grid-cols-4 gap-1">
-                      {GIFT_OPTIONS.map((g) => {
-                        const active = g.id === currentGift;
-                        return (
+                    {/* TAB 2: 4 HEROES + CODENAME EDITOR */}
+                    {mobileTab === "herois" && (
+                      <div className="flex flex-col justify-between h-full gap-2">
+                        {/* Nickname Editor */}
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            updateAgentAppearance({ name: nameDraft });
+                          }}
+                          className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/90 p-2 shrink-0"
+                        >
+                          <span className="text-xs font-black text-amber-300 uppercase shrink-0">
+                            Nome do Agente:
+                          </span>
+                          <input
+                            type="text"
+                            maxLength={24}
+                            value={nameDraft}
+                            onChange={(e) => setNameDraft(e.target.value)}
+                            placeholder="Seu Nick de Invocador..."
+                            className="flex-1 min-w-0 rounded-lg border border-slate-700 bg-slate-950 px-2.5 py-1 text-xs font-black text-white focus:border-cyan-400 focus:outline-none"
+                          />
                           <button
-                            key={g.id}
-                            type="button"
-                            onClick={() => updateAgentAppearance({ giftId: g.id })}
-                            className={`rounded border px-1.5 py-0.5 text-center cursor-pointer transition truncate ${
-                              active
-                                ? "border-amber-400 bg-amber-500/20 text-amber-200"
-                                : "border-slate-800 bg-slate-950/75 text-slate-400 hover:border-slate-600"
-                            }`}
+                            type="submit"
+                            className="rounded-lg border border-cyan-500/40 bg-cyan-500/20 px-3 py-1 text-xs font-black text-cyan-200 hover:bg-cyan-500/30 cursor-pointer"
                           >
-                            <div className="text-[8px] font-black truncate">{g.name}</div>
+                            Salvar
                           </button>
-                        );
-                      })}
-                    </div>
+                        </form>
+
+                        {/* 4 Large Hero Cards */}
+                        <div className="grid grid-cols-2 gap-2 flex-1 min-h-0">
+                          {AVATAR_OPTIONS.map((av) => {
+                            const active = av.id === currentAvatar;
+                            return (
+                              <motion.button
+                                key={av.id}
+                                type="button"
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.97 }}
+                                onClick={() => updateAgentAppearance({ avatarId: av.id })}
+                                className={`flex items-center gap-3 rounded-2xl border-2 p-2.5 text-left cursor-pointer transition ${
+                                  active
+                                    ? "border-amber-400 bg-amber-500/20 shadow-[0_0_20px_rgba(245,158,11,0.35)] ring-1 ring-amber-300"
+                                    : "border-slate-800 bg-slate-900/80 hover:border-slate-600"
+                                }`}
+                              >
+                                <HeroPortrait
+                                  avatarId={av.id}
+                                  size={44}
+                                  shape="hex"
+                                  active={active}
+                                />
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-xs font-black text-white uppercase truncate">
+                                    {av.name}
+                                  </div>
+                                  <div className="text-[10px] font-bold text-amber-300 truncate">
+                                    {av.codename}
+                                  </div>
+                                  <div className="text-[9px] text-slate-400 truncate mt-0.5">
+                                    {av.styleTag}
+                                  </div>
+                                </div>
+                              </motion.button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* TAB 3: 4 SPIRITUAL GIFTS */}
+                    {mobileTab === "dons" && (
+                      <div className="grid grid-cols-2 gap-2 h-full">
+                        {GIFT_OPTIONS.map((g) => {
+                          const active = g.id === currentGift;
+                          return (
+                            <motion.button
+                              key={g.id}
+                              type="button"
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.97 }}
+                              onClick={() => updateAgentAppearance({ giftId: g.id })}
+                              className={`flex flex-col justify-between rounded-2xl border-2 p-2.5 text-left cursor-pointer transition ${
+                                active
+                                  ? "border-amber-400 bg-amber-500/20 shadow-[0_0_20px_rgba(245,158,11,0.35)] ring-1 ring-amber-300"
+                                  : "border-slate-800 bg-slate-900/80 hover:border-slate-600"
+                              }`}
+                            >
+                              <div>
+                                <div className="text-xs font-black text-white uppercase">
+                                  {g.name}
+                                </div>
+                                <div className="text-[10px] font-bold text-cyan-300 mt-0.5">
+                                  {g.verseRef}
+                                </div>
+                              </div>
+                              <div className="text-[9px] text-slate-300 mt-1 line-clamp-2">
+                                {g.bonusDescription}
+                              </div>
+                            </motion.button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

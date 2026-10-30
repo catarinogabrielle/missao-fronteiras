@@ -70,6 +70,10 @@ export function GameApp() {
               onOpenPassport={() => setPassportOpen(true)}
               onOpenLeaderPanel={() => setLeaderOpen(true)}
               onOpenWardrobe={() => setWardrobeOpen(true)}
+              onOpenBible={() => {
+                setBibleTab("gospel");
+                setBibleOpen(true);
+              }}
               onSwitchUser={() => {
                 setActiveMission(null);
                 switchUser();
