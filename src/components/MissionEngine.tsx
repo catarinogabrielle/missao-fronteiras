@@ -172,7 +172,6 @@ export function MissionEngine({
   const {
     isMobileDevice,
     isMobileLandscape,
-    isMobilePortrait,
     isCompactMobile,
     toggleLandscapeFullscreen,
   } = useMobileViewport();
@@ -773,13 +772,7 @@ export function MissionEngine({
          ========================================================= */}
       <div className="pointer-events-auto absolute top-2 left-2 z-20 flex flex-col gap-1.5 sm:top-3 sm:left-3">
         <div
-          className={`moba-panel-gold relative overflow-hidden p-1.5 shadow-2xl ${
-            isMobileLandscape
-              ? "h-22 w-22 rounded-xl"
-              : isMobilePortrait
-              ? "h-28 w-28 rounded-xl"
-              : "h-36 w-36 sm:h-44 sm:w-44 rounded-2xl"
-          }`}
+          className="moba-panel-gold relative overflow-hidden p-1.5 shadow-2xl h-22 w-22 sm:h-26 sm:w-26 rounded-xl"
         >
           <div
             onClick={handleRadarClick}
@@ -960,13 +953,6 @@ export function MissionEngine({
               </div>
             </div>
           </div>
-
-          {!isMobileLandscape && (
-            <div className="pointer-events-none absolute right-2 bottom-1 left-2 hidden sm:flex items-center justify-between font-mono text-[8px] font-black text-amber-300/95 uppercase">
-              <span>MAPA GTA 3D</span>
-              <span>CLIQUE = GPS</span>
-            </div>
-          )}
         </div>
 
         {/* GTA MISSION PHONE BUTTON (OPENS FULL 12-MISSION SELECTOR!) */}

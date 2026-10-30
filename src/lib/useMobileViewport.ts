@@ -51,8 +51,8 @@ function readViewportSnapshot() {
     (Boolean(coarsePointer || touchPoints) && smallestSide <= 920) ||
     smallestSide <= 540;
 
-  const isLandscape = w > h;
-  const isPortrait = !isLandscape;
+  const isLandscape = w >= h;
+  const isPortrait = w < h;
 
   // Smartphone laid horizontally ("celular deitado"): typically 640-960px wide x 320-540px tall
   const isMobileLandscape =

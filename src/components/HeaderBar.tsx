@@ -3,28 +3,21 @@
 import React from "react";
 import { motion } from "framer-motion";
 import {
-  BookMarked,
-  Download,
   Flame,
   Gem,
-  Maximize2,
-  Monitor,
   ShieldCheck,
   Sparkles,
   Users,
   Volume2,
   VolumeX,
-  WifiOff,
 } from "lucide-react";
 import { useGame } from "@/context/GameContext";
-import { usePwa } from "@/context/PwaContext";
-import { useMobileViewport } from "@/lib/useMobileViewport";
 import { SKIN_OPTIONS } from "@/data/avatarsAndGifts";
 import { HeroPortrait } from "./GamePortrait";
 import { MobaButton } from "./MobaButton";
 
 interface HeaderBarProps {
-  onOpenPassport: () => void;
+  onOpenPassport?: () => void;
   onOpenLeaderPanel: () => void;
   onOpenWardrobe: () => void;
   onSwitchUser?: () => void;
@@ -32,53 +25,23 @@ interface HeaderBarProps {
 }
 
 export function HeaderBar({
-  onOpenPassport,
   onOpenLeaderPanel,
   onOpenWardrobe,
   onSwitchUser,
   onGoHome,
 }: HeaderBarProps) {
-  const {
-    state,
-    level,
-    levelTitle,
-    xpInCurrentLevel,
-    xpForNextLevel,
-    toggleMute,
-    toggleProjectorMode,
-    playSfx,
-  } = useGame();
-  const { isOnline, offlineReady, isStandalone, triggerInstall } = usePwa();
-  const { isMobileDevice, isMobileLandscape, toggleLandscapeFullscreen } =
-    useMobileViewport();
+  const { state, level, playSfx, toggleMute } = useGame();
 
   if (!state.agent) return null;
-
-  const stampCount = Object.values(state.missionProgress).filter(
-    (m) => m.completed
-  ).length;
-
-  const xpPercent = Math.min(
-    100,
-    Math.round((xpInCurrentLevel / xpForNextLevel) * 100)
-  );
 
   const skinMeta =
     SKIN_OPTIONS.find((s) => s.id === (state.agent?.skinId ?? "padrao")) ||
     SKIN_OPTIONS[0];
 
   return (
-    <header
-      className={`sticky top-0 z-40 border-b border-amber-500/35 bg-gradient-to-r from-slate-950/95 via-[#071326]/95 to-slate-950/95 shadow-[0_8px_30px_rgba(0,0,0,0.7)] backdrop-blur-md ${
-        isMobileLandscape ? "h-11 py-1" : ""
-      }`}
-    >
-      <div
-        className={`mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 ${
-          isMobileLandscape ? "h-full py-0" : "flex-wrap py-2 sm:px-6"
-        }`}
-      >
-        {/* TOP-LEFT: AAA Summoner Crest (Hexagonal Portrait + Skin Badge + Rank + XP) */}
+    <header className="sticky top-0 z-40 h-10 w-full shrink-0 border-b border-amber-500/35 bg-gradient-to-r from-slate-950/95 via-[#071326]/95 to-slate-950/95 shadow-[0_4px_20px_rgba(0,0,0,0.6)] backdrop-blur-md">
+      <div className="mx-auto flex h-full max-w-7xl items-center justify-between gap-2 px-2.5">
+        {/* TOP-LEFT: Summoner Profile (Hexagonal Portrait + Skin Badge + Rank) */}
         <motion.button
           type="button"
           whileHover={{ scale: 1.02 }}
@@ -91,101 +54,37 @@ export function HeaderBar({
           }}
           className="flex cursor-pointer items-center gap-2 text-left"
         >
-          <div className="relative flex items-center gap-1.5">
-            {!isMobileLandscape && (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img
-                src="/icons/favicon-32.png"
-                alt="Logo"
-                className="hidden h-8 w-8 rounded-lg border border-amber-400/60 shadow-[0_0_12px_rgba(245,158,11,0.35)] sm:block"
-              />
-            )}
-            <div className="relative">
-              <HeroPortrait
-                avatarId={state.agent.avatarId}
-                size={isMobileLandscape ? 32 : 50}
-                shape="hex"
-                active
-              />
-              <span className="absolute -right-1 -bottom-0.5 flex h-4 min-w-4 items-center justify-center rounded border border-amber-200 bg-gradient-to-b from-amber-300 to-amber-600 px-1 text-[9px] font-black text-slate-950 shadow">
-                {level}
-              </span>
-            </div>
+          <div className="relative">
+            <HeroPortrait
+              avatarId={state.agent.avatarId}
+              size={28}
+              shape="hex"
+              active
+            />
+            <span className="absolute -right-1 -bottom-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded border border-amber-200 bg-gradient-to-b from-amber-300 to-amber-600 px-0.5 text-[8px] font-black text-slate-950 shadow">
+              {level}
+            </span>
           </div>
 
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span
-                className={`font-black tracking-wide text-white uppercase ${
-                  isMobileLandscape ? "text-xs" : "text-sm sm:text-base"
-                }`}
-              >
-                {state.agent.name}
-              </span>
-              <span
-                className="hidden rounded border border-white/15 bg-slate-900/90 px-1 py-0.5 text-[9px] font-black tracking-wider uppercase md:inline-block"
-                style={{ color: skinMeta.accentHex }}
-              >
-                {skinMeta.badgeEmoji} {skinMeta.name}
-              </span>
-            </div>
-
-            {!isMobileLandscape && (
-              <>
-                <div className="text-[11px] font-bold text-cyan-300">
-                  {levelTitle} •{" "}
-                  <span className="font-mono text-amber-300">{state.xp} XP</span>
-                </div>
-                <div className="mt-1 h-1.5 w-32 overflow-hidden rounded-full border border-slate-700 bg-slate-900 sm:w-48">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${xpPercent}%` }}
-                    transition={{ duration: 0.5 }}
-                    className="h-full bg-gradient-to-r from-cyan-400 via-emerald-400 to-amber-300"
-                  />
-                </div>
-              </>
-            )}
+          <div className="flex items-center gap-1.5 truncate">
+            <span className="truncate text-xs font-black tracking-wide text-white uppercase">
+              {state.agent.name}
+            </span>
+            <span
+              className="hidden rounded border border-white/15 bg-slate-900/90 px-1 py-0.2 text-[8px] font-black uppercase sm:inline-block"
+              style={{ color: skinMeta.accentHex }}
+            >
+              {skinMeta.badgeEmoji} {skinMeta.name}
+            </span>
           </div>
         </motion.button>
 
-        {/* TOP-RIGHT: AAA Currency Gems, 3D Skins Wardrobe & Leader Command */}
-        <div className="flex items-center gap-1 sm:gap-2">
-          {offlineReady && !isMobileLandscape && (
-            <div
-              title={
-                isOnline
-                  ? "Jogo pronto para funcionar 100% offline!"
-                  : "Jogando sem internet (Modo Offline)"
-              }
-              className={`hidden items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-black tracking-wider uppercase xl:inline-flex ${
-                isOnline
-                  ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-300"
-                  : "border-amber-400/60 bg-amber-500/20 text-amber-300"
-              }`}
-            >
-              {!isOnline && <WifiOff className="h-3 w-3" />}
-              <span>{isOnline ? "Offline OK" : "Offline"}</span>
-            </div>
-          )}
-
-          {!isStandalone && !isMobileLandscape && (
-            <MobaButton
-              variant="emerald"
-              size="sm"
-              shape="slant"
-              onClick={triggerInstall}
-              title="Instalar Aplicativo (PWA) para jogar Offline"
-            >
-              <Download className="h-3.5 w-3.5" />
-              <span className="hidden md:inline">Instalar</span>
-            </MobaButton>
-          )}
-
+        {/* TOP-RIGHT: Currency + Skins + Leader + User Switch + Audio */}
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           {/* Streak Flames */}
           <div
             title="Chamas de Fervor"
-            className="moba-clip-slant inline-flex items-center gap-1 border border-orange-500/45 bg-slate-900/90 px-2 py-1 text-xs font-black text-orange-300"
+            className="moba-clip-slant inline-flex items-center gap-1 border border-orange-500/45 bg-slate-900/90 px-1.5 py-0.5 text-[10px] font-black text-orange-300"
           >
             <Flame className="h-3 w-3 fill-orange-400 text-orange-400" />
             <span>{state.streak}</span>
@@ -199,7 +98,7 @@ export function HeaderBar({
               onOpenWardrobe();
             }}
             title="Cristais de Sabedoria • Clique para abrir Skins 3D"
-            className="moba-clip-slant inline-flex cursor-pointer items-center gap-1 border border-cyan-400/45 bg-slate-900/90 px-2 py-1 text-xs font-black text-cyan-200 transition hover:border-amber-300"
+            className="moba-clip-slant inline-flex cursor-pointer items-center gap-1 border border-cyan-400/45 bg-slate-900/90 px-1.5 py-0.5 text-[10px] font-black text-cyan-200 hover:border-amber-300"
           >
             <Gem className="h-3 w-3 text-cyan-300" />
             <span>{state.wisdom}</span>
@@ -212,40 +111,11 @@ export function HeaderBar({
             shape="slant"
             onClick={onOpenWardrobe}
             title="Escolher Skin 3D, Campeão & Animações"
+            className="!py-0.5 !px-2 !text-[9px]"
           >
-            <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+            <Sparkles className="h-3 w-3 text-amber-300" />
             <span>Skins</span>
           </MobaButton>
-
-          {/* Passaporte / Coleção Button */}
-          {!isMobileLandscape && (
-            <MobaButton
-              variant="cyan"
-              size="sm"
-              shape="slant"
-              onClick={onOpenPassport}
-            >
-              <BookMarked className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Coleção</span>
-              <span className="rounded bg-slate-950/80 px-1.5 text-[10px] text-amber-300">
-                {stampCount}
-              </span>
-            </MobaButton>
-          )}
-
-          {/* Modo Telão */}
-          {!isMobileLandscape && (
-            <MobaButton
-              variant={state.projectorMode ? "gold" : "obsidian"}
-              size="sm"
-              shape="rounded"
-              sheen={false}
-              onClick={toggleProjectorMode}
-              title="Modo Telão (Projetor / TV)"
-            >
-              <Monitor className="h-4 w-4" />
-            </MobaButton>
-          )}
 
           {/* Central do Líder */}
           <MobaButton
@@ -254,54 +124,41 @@ export function HeaderBar({
             shape="slant"
             onClick={onOpenLeaderPanel}
             title="Central do Líder / Professor (PIN 1234)"
+            className="!py-0.5 !px-2 !text-[9px]"
           >
-            <ShieldCheck className="h-3.5 w-3.5" />
+            <ShieldCheck className="h-3 w-3" />
             <span>Líder</span>
           </MobaButton>
 
-          {/* Trocar Usuário / Voltar à Home */}
+          {/* Trocar Usuário */}
           {onSwitchUser && (
             <MobaButton
-              variant="gold"
+              variant="obsidian"
               size="sm"
               shape="slant"
+              sheen={false}
               onClick={onSwitchUser}
               title="Trocar de Usuário / Selecionar outro Campeão"
+              className="!py-0.5 !px-2 !text-[9px]"
             >
-              <Users className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Trocar Usuário</span>
+              <Users className="h-3 w-3 text-amber-300" />
+              <span>Trocar</span>
             </MobaButton>
           )}
 
-          {/* Fullscreen / Modo Deitado (se celular) */}
-          {isMobileDevice && !isMobileLandscape && (
-            <MobaButton
-              variant="cyan"
-              size="sm"
-              shape="rounded"
-              sheen={false}
-              onClick={() => toggleLandscapeFullscreen()}
-              title="Tela Cheia / Modo Deitado"
-            >
-              <Maximize2 className="h-4 w-4" />
-            </MobaButton>
-          )}
-
-          {/* Mute */}
-          <MobaButton
-            variant="obsidian"
-            size="sm"
-            shape="rounded"
-            sheen={false}
+          {/* Mute Button */}
+          <button
+            type="button"
             onClick={toggleMute}
             title={state.muted ? "Ativar Som" : "Silenciar"}
+            className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-slate-300 hover:text-white"
           >
             {state.muted ? (
               <VolumeX className="h-3.5 w-3.5 text-rose-400" />
             ) : (
               <Volume2 className="h-3.5 w-3.5 text-emerald-400" />
             )}
-          </MobaButton>
+          </button>
         </div>
       </div>
     </header>
