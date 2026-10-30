@@ -264,66 +264,70 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
         </AnimatePresence>
         <div className="pointer-events-none fixed inset-0 bg-radial from-transparent via-slate-950/60 to-slate-950/90" />
 
-        {/* 1. TOP ECHOES OF ARENA NAVBAR (44px, matching HeaderBar) */}
-        <header className="relative z-20 flex h-11 sm:h-12 shrink-0 items-center justify-between border-b border-amber-500/30 px-3 bg-slate-950/90 backdrop-blur-md rounded-xl">
+        {/* 1. TOP ECHOES OF ARENA NAVBAR (Matching HeaderBar, No Broken Clip-Paths) */}
+        <header className="relative z-20 flex h-10 sm:h-11 shrink-0 items-center justify-between border-b border-amber-500/30 px-2.5 sm:px-3 bg-slate-950/90 backdrop-blur-md rounded-xl overflow-hidden max-w-full">
           {/* Logo & Game Title */}
           <div className="flex items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/icons/icon-192.png"
               alt="Logo"
-              className="h-7 w-7 rounded-lg border border-amber-400/70 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
+              className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg border border-amber-400/70 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
             />
-            <span className="font-black text-xs sm:text-sm tracking-wider text-white uppercase bg-gradient-to-r from-amber-200 via-white to-cyan-300 bg-clip-text text-transparent">
+            <span className="font-black text-xs sm:text-sm tracking-wider text-white uppercase bg-gradient-to-r from-amber-200 via-white to-cyan-300 bg-clip-text text-transparent truncate max-w-[130px] sm:max-w-none">
               Missão Fronteiras
             </span>
           </div>
 
           {/* Center Tabs (Echoes of Arena: Jogar | Heróis | Painel) */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <button
               type="button"
               onClick={() => handleConfirm()}
-              className="px-2.5 py-1 text-xs font-black text-slate-400 transition hover:text-white uppercase cursor-pointer"
+              className="px-2 py-0.5 text-xs font-black text-slate-400 transition hover:text-white uppercase cursor-pointer"
             >
               Jogar
             </button>
-            <div className="relative px-2.5 py-1 text-xs font-black text-amber-300 uppercase">
+            <div className="relative px-2 py-0.5 text-xs font-black text-amber-300 uppercase">
               <span>Heróis</span>
-              <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-gradient-to-r from-amber-400 to-cyan-400 shadow-[0_0_8px_#fbbf24]" />
+              <span className="absolute bottom-0 left-1 right-1 h-0.5 bg-gradient-to-r from-amber-400 to-cyan-400 shadow-[0_0_8px_#fbbf24]" />
             </div>
             <button
               type="button"
               onClick={onOpenLeaderPanel}
-              className="px-2.5 py-1 text-xs font-black text-slate-400 transition hover:text-white uppercase cursor-pointer"
+              className="px-2 py-0.5 text-xs font-black text-slate-400 transition hover:text-white uppercase cursor-pointer"
             >
               Painel
             </button>
           </div>
 
           {/* Right Resources & Controls */}
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-400/40 bg-slate-900/90 px-2.5 py-0.5 text-xs font-black text-cyan-200">
-              <Gem className="h-3.5 w-3.5 text-cyan-300" />
+          <div className="flex items-center gap-1.5 shrink-0">
+            <div className="inline-flex items-center gap-1 rounded-xl border border-cyan-400/40 bg-slate-900/90 px-2 py-0.5 text-xs font-black text-cyan-200">
+              <Gem className="h-3 w-3 text-cyan-300" />
               <span>{state.wisdom} 💎</span>
             </div>
 
-            <MobaButton
-              variant="gold"
-              size="sm"
-              shape="slant"
-              onClick={onOpenLeaderPanel}
-              className="!py-0.5 !px-2 !text-xs font-black"
+            <motion.button
+              type="button"
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
+              onClick={() => {
+                playSfx("click");
+                onOpenLeaderPanel();
+              }}
+              title="Painel do Líder"
+              className="flex items-center gap-1 rounded-xl border border-amber-300 bg-gradient-to-b from-amber-300 via-amber-400 to-amber-600 px-2.5 py-1 text-xs font-black text-slate-950 shadow-[0_0_12px_rgba(245,158,11,0.45),inset_0_1px_1px_rgba(255,255,255,0.7)] hover:brightness-110 cursor-pointer transition uppercase"
             >
               <ShieldCheck className="h-3.5 w-3.5" />
               <span>Líder</span>
-            </MobaButton>
+            </motion.button>
 
             <button
               type="button"
               onClick={toggleMute}
               title={state.muted ? "Ativar Som" : "Silenciar"}
-              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-slate-300 hover:text-white"
+              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-slate-300 hover:text-white"
             >
               {state.muted ? (
                 <VolumeX className="h-3.5 w-3.5 text-rose-400" />

@@ -75,30 +75,30 @@ export function HeaderBar({
      ----------------------------------------------------------- */
   if (isMobileLandscape) {
     return (
-      <header className="sticky top-0 z-40 h-11 sm:h-12 w-full shrink-0 border-b border-amber-500/30 bg-gradient-to-r from-slate-950/95 via-[#071326]/95 to-slate-950/95 shadow-[0_4px_24px_rgba(0,0,0,0.7)] backdrop-blur-md px-2.5 sm:px-4">
-        <div className="flex h-full w-full items-center justify-between gap-2">
+      <header className="sticky top-0 z-40 h-10 sm:h-11 w-full max-w-full shrink-0 border-b border-amber-500/30 bg-gradient-to-r from-slate-950/95 via-[#071326]/95 to-slate-950/95 shadow-[0_4px_20px_rgba(0,0,0,0.7)] backdrop-blur-md px-2 sm:px-3 overflow-hidden">
+        <div className="flex h-full w-full items-center justify-between gap-1.5 sm:gap-2">
           {/* Top-Left: Game Emblem & Title */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/icons/icon-192.png"
               alt="Logo"
-              className="h-7 w-7 rounded-lg border border-amber-400/70 shadow-[0_0_12px_rgba(245,158,11,0.45)]"
+              className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg border border-amber-400/70 shadow-[0_0_10px_rgba(245,158,11,0.45)]"
             />
-            <span className="font-black text-xs sm:text-sm tracking-wider uppercase bg-gradient-to-r from-amber-200 via-white to-cyan-300 bg-clip-text text-transparent">
+            <span className="font-black text-[11px] sm:text-xs tracking-wider uppercase bg-gradient-to-r from-amber-200 via-white to-cyan-300 bg-clip-text text-transparent truncate max-w-[130px] sm:max-w-none">
               Missão Fronteiras
             </span>
           </div>
 
           {/* Center: MOBA Navigation Tabs (Echoes of Arena: JOGAR | HERÓIS | APRENDER) */}
-          <nav className="flex items-center gap-2 sm:gap-4">
+          <nav className="flex items-center gap-1 sm:gap-3 shrink-0">
             <button
               type="button"
               onClick={() => {
                 playSfx("click");
                 if (onGoHome) onGoHome();
               }}
-              className="relative px-2.5 py-1 text-xs font-black uppercase text-amber-300 tracking-wider transition cursor-pointer"
+              className="relative px-2 py-0.5 text-xs font-black uppercase text-amber-300 tracking-wider transition cursor-pointer"
             >
               <span>Jogar</span>
               <span className="absolute bottom-0 left-1 right-1 h-0.5 bg-gradient-to-r from-amber-400 via-cyan-400 to-amber-400 shadow-[0_0_8px_#fbbf24]" />
@@ -110,7 +110,7 @@ export function HeaderBar({
                 playSfx("click");
                 onOpenWardrobe();
               }}
-              className="px-2.5 py-1 text-xs font-black uppercase text-slate-300 hover:text-white tracking-wider transition cursor-pointer"
+              className="px-2 py-0.5 text-xs font-black uppercase text-slate-300 hover:text-white tracking-wider transition cursor-pointer"
             >
               <span>Heróis</span>
             </button>
@@ -122,87 +122,92 @@ export function HeaderBar({
                 if (onOpenBible) onOpenBible();
                 else onOpenPassport();
               }}
-              className="px-2.5 py-1 text-xs font-black uppercase text-slate-300 hover:text-white tracking-wider transition cursor-pointer"
+              className="px-2 py-0.5 text-xs font-black uppercase text-slate-300 hover:text-white tracking-wider transition cursor-pointer"
             >
               <span>Aprender</span>
             </button>
           </nav>
 
-          {/* Top-Right: Currencies & Console Control Hub */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* Fervor Streak */}
-            <div
-              title="Chamas de Fervor Diário"
-              className="inline-flex items-center gap-1 rounded-xl border border-orange-500/40 bg-slate-900/90 px-2 py-0.5 text-xs font-black text-orange-300 shadow-[0_0_10px_rgba(249,115,22,0.2)]"
-            >
-              <Flame className="h-3.5 w-3.5 fill-orange-400 text-orange-400" />
-              <span>{state.streak}</span>
-            </div>
-
-            {/* Wisdom Crystals */}
-            <button
-              type="button"
-              onClick={() => {
-                playSfx("click");
-                onOpenWardrobe();
-              }}
-              title="Cristais de Sabedoria • Clique para abrir Arsenal de Skins"
-              className="inline-flex cursor-pointer items-center gap-1 rounded-xl border border-cyan-400/50 bg-slate-900/90 px-2 py-0.5 text-xs font-black text-cyan-200 shadow-[0_0_10px_rgba(34,211,238,0.2)] hover:border-amber-300 transition"
-            >
-              <Gem className="h-3.5 w-3.5 text-cyan-300" />
-              <span>{state.wisdom}</span>
-            </button>
-
-            {/* Líder Panel */}
-            <MobaButton
-              variant="gold"
-              size="sm"
-              shape="slant"
-              onClick={onOpenLeaderPanel}
-              className="!py-0.5 !px-2 !text-xs font-black"
-            >
-              <ShieldCheck className="h-3.5 w-3.5" />
-              <span>Líder</span>
-            </MobaButton>
-
-            {/* Switch User Button */}
-            {onSwitchUser && (
+          {/* Top-Right: Currencies & Console Control Hub (Ultra-Compact, No Overflow) */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* Currencies Capsule (Streak + Wisdom) */}
+            <div className="flex items-center gap-1.5 rounded-xl border border-slate-700/80 bg-slate-900/90 px-2 py-0.5 text-[11px] font-black">
+              <div
+                title="Chamas de Fervor Diário"
+                className="flex items-center gap-1 text-orange-400"
+              >
+                <Flame className="h-3 w-3 fill-orange-400" />
+                <span>{state.streak}</span>
+              </div>
+              <span className="text-slate-600 font-normal">|</span>
               <button
                 type="button"
                 onClick={() => {
                   playSfx("click");
-                  onSwitchUser();
+                  onOpenWardrobe();
                 }}
-                title="Trocar de Jogador / Agente"
-                className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-xl border border-amber-500/40 bg-slate-900 text-amber-300 hover:border-amber-300 hover:text-white transition"
+                title="Cristais de Sabedoria • Clique para abrir Vestiário"
+                className="flex items-center gap-1 text-cyan-300 hover:text-white transition cursor-pointer"
               >
-                <Users className="h-3.5 w-3.5" />
+                <Gem className="h-3 w-3" />
+                <span>{state.wisdom}</span>
               </button>
-            )}
+            </div>
 
-            {/* Audio Toggle */}
-            <button
+            {/* Líder Button (Sleek Beveled Gold Pill, No Broken Clip-Path) */}
+            <motion.button
               type="button"
-              onClick={toggleMute}
-              title={state.muted ? "Ativar Som" : "Silenciar"}
-              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-slate-300 hover:text-white transition"
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
+              onClick={() => {
+                playSfx("click");
+                onOpenLeaderPanel();
+              }}
+              title="Painel do Líder"
+              className="flex items-center gap-1 rounded-xl border border-amber-300 bg-gradient-to-b from-amber-300 via-amber-400 to-amber-600 px-2.5 py-1 text-xs font-black text-slate-950 shadow-[0_0_12px_rgba(245,158,11,0.45),inset_0_1px_1px_rgba(255,255,255,0.7)] hover:brightness-110 cursor-pointer transition uppercase"
             >
-              {state.muted ? (
-                <VolumeX className="h-3.5 w-3.5 text-rose-400" />
-              ) : (
-                <Volume2 className="h-3.5 w-3.5 text-emerald-400" />
+              <ShieldCheck className="h-3.5 w-3.5" />
+              <span>Líder</span>
+            </motion.button>
+
+            {/* Utility Cluster: Trocar Jogador, Som, Tela Cheia */}
+            <div className="flex items-center gap-1">
+              {onSwitchUser && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx("click");
+                    onSwitchUser();
+                  }}
+                  title="Trocar de Jogador / Agente"
+                  className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-amber-300 hover:border-amber-400 hover:text-white transition"
+                >
+                  <Users className="h-3.5 w-3.5" />
+                </button>
               )}
-            </button>
 
-            {/* Fullscreen Toggle */}
-            <button
-              type="button"
-              onClick={toggleLandscapeFullscreen}
-              title="Tela Cheia"
-              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-slate-300 hover:text-white transition"
-            >
-              <Maximize2 className="h-3.5 w-3.5 text-cyan-300" />
-            </button>
+              <button
+                type="button"
+                onClick={toggleMute}
+                title={state.muted ? "Ativar Som" : "Silenciar"}
+                className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-slate-300 hover:border-slate-600 hover:text-white transition"
+              >
+                {state.muted ? (
+                  <VolumeX className="h-3.5 w-3.5 text-rose-400" />
+                ) : (
+                  <Volume2 className="h-3.5 w-3.5 text-emerald-400" />
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={toggleLandscapeFullscreen}
+                title="Tela Cheia"
+                className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-slate-300 hover:border-cyan-400 hover:text-white transition"
+              >
+                <Maximize2 className="h-3.5 w-3.5 text-cyan-300" />
+              </button>
+            </div>
           </div>
         </div>
       </header>

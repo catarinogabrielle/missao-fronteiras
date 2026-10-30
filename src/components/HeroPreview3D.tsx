@@ -99,8 +99,13 @@ export function HeroPreview3D({
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
+    const canvasDom = renderer.domElement;
+    canvasDom.style.maxWidth = "100%";
+    canvasDom.style.maxHeight = "100%";
+    canvasDom.style.display = "block";
+    canvasDom.style.touchAction = "none";
     container.innerHTML = "";
-    container.appendChild(renderer.domElement);
+    container.appendChild(canvasDom);
 
     // AAA 3-Point Studio Lighting
     const hemi = new THREE.HemisphereLight(0xdbeafe, 0x0f172a, 1.35);
