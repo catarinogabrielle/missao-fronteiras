@@ -37,12 +37,24 @@ html {
 }
 
 /* Mobile Landscape ("Celular Deitado") Root Scaling for Crisp Console Fit */
-@media (max-height: 520px) and (orientation: landscape) {
+@media (max-height: 540px) and (orientation: landscape) {
   html {
-    font-size: 14.5px;
+    font-size: 14px;
   }
   html.projector-mode {
-    font-size: 15.5px;
+    font-size: 15px;
+  }
+}
+
+@media (max-height: 420px) and (orientation: landscape) {
+  html {
+    font-size: 12.5px;
+  }
+}
+
+@media (max-height: 370px) and (orientation: landscape) {
+  html {
+    font-size: 11.5px;
   }
 }
 

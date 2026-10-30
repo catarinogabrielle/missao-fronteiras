@@ -17,6 +17,7 @@ import {
   SKIN_OPTIONS,
 } from "@/data/avatarsAndGifts";
 import { useGame } from "@/context/GameContext";
+import { useMobileViewport } from "@/lib/useMobileViewport";
 import { HeroPreview3D } from "./HeroPreview3D";
 import { HeroPortrait } from "./GamePortrait";
 import { MobaButton } from "./MobaButton";
@@ -41,6 +42,7 @@ export function SkinWardrobeModal({ open, onClose }: SkinWardrobeModalProps) {
     updateAgentAppearance,
     playSfx,
   } = useGame();
+  const { isMobileLandscape } = useMobileViewport();
 
   const currentAvatar = state.agent?.avatarId ?? "lucas";
   const currentSkin = state.agent?.skinId ?? "padrao";
@@ -85,27 +87,47 @@ export function SkinWardrobeModal({ open, onClose }: SkinWardrobeModalProps) {
             exit={{ opacity: 0, scale: 0.95, y: 12 }}
             transition={{ type: "spring", stiffness: 280, damping: 24 }}
             onClick={(e) => e.stopPropagation()}
-            className="flex max-h-[93vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl border-2 border-amber-400/55 bg-gradient-to-br from-slate-950 via-[#071225] to-slate-950 shadow-[0_0_80px_rgba(245,158,11,0.24)]"
+            className={`flex max-h-[95dvh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl border-2 border-amber-400/55 bg-gradient-to-br from-slate-950 via-[#071225] to-slate-950 shadow-[0_0_80px_rgba(245,158,11,0.24)] ${
+              isMobileLandscape ? "h-[95dvh]" : ""
+            }`}
           >
             {/* AAA Top Armory Header */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-500/25 bg-slate-950/90 px-5 py-3.5 sm:px-7">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-amber-400/60 bg-amber-500/15 text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.35)]">
-                  <Sparkles className="h-5 w-5" />
+            <div
+              className={`flex flex-wrap items-center justify-between gap-2 border-b border-amber-500/25 bg-slate-950/90 ${
+                isMobileLandscape ? "px-3 py-1.5" : "px-5 py-3.5 sm:px-7"
+              }`}
+            >
+              <div className="flex items-center gap-2.5 sm:gap-3">
+                <div
+                  className={`flex items-center justify-center rounded-2xl border border-amber-400/60 bg-amber-500/15 text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.35)] ${
+                    isMobileLandscape ? "h-7 w-7" : "h-10 w-10"
+                  }`}
+                >
+                  <Sparkles className={isMobileLandscape ? "h-3.5 w-3.5" : "h-5 w-5"} />
                 </div>
                 <div>
-                  <div className="text-[10px] font-black tracking-[0.25em] text-amber-300 uppercase">
-                    ARSENAL 3D CLASSE AAA • PERSONALIZAÇÃO EM TEMPO REAL
-                  </div>
-                  <h2 className="text-lg font-black tracking-wide text-white uppercase sm:text-xl">
-                    Vestiário de Campeões, Skins & Animações
+                  {!isMobileLandscape && (
+                    <div className="text-[10px] font-black tracking-[0.25em] text-amber-300 uppercase">
+                      ARSENAL 3D CLASSE AAA • PERSONALIZAÇÃO EM TEMPO REAL
+                    </div>
+                  )}
+                  <h2
+                    className={`font-black tracking-wide text-white uppercase ${
+                      isMobileLandscape ? "text-sm" : "text-lg sm:text-xl"
+                    }`}
+                  >
+                    Vestiário de Campeões & Skins 3D
                   </h2>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <div className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-400/45 bg-cyan-950/50 px-3.5 py-1.5 text-xs font-black text-cyan-200">
-                  <Gem className="h-4 w-4 text-cyan-300" />
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div
+                  className={`inline-flex items-center gap-1.5 rounded-xl border border-cyan-400/45 bg-cyan-950/50 font-black text-cyan-200 ${
+                    isMobileLandscape ? "px-2 py-0.5 text-[10px]" : "px-3.5 py-1.5 text-xs"
+                  }`}
+                >
+                  <Gem className="h-3.5 w-3.5 text-cyan-300" />
                   <span>{state.wisdom} Cristais</span>
                 </div>
 
@@ -115,28 +137,47 @@ export function SkinWardrobeModal({ open, onClose }: SkinWardrobeModalProps) {
                     playSfx("click");
                     onClose();
                   }}
-                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-black text-slate-300 transition hover:border-rose-400 hover:text-white"
+                  className={`inline-flex cursor-pointer items-center gap-1 rounded-xl border border-slate-700 bg-slate-900 font-black text-slate-300 transition hover:border-rose-400 hover:text-white ${
+                    isMobileLandscape ? "px-2 py-0.5 text-[10px]" : "px-3 py-2 text-xs"
+                  }`}
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-3.5 w-3.5" />
                   <span>Fechar</span>
                 </button>
               </div>
             </div>
 
             {/* Body: Left 3D Live Turntable + Right Customization & Skin Grid */}
-            <div className="grid flex-1 gap-5 overflow-y-auto p-4 sm:p-6 lg:grid-cols-12">
+            <div
+              className={`grid flex-1 overflow-y-auto ${
+                isMobileLandscape
+                  ? "grid-cols-12 gap-2.5 p-2"
+                  : "gap-5 p-4 sm:p-6 lg:grid-cols-12"
+              }`}
+            >
               {/* LEFT (5 cols): Interactive 3D Character & Emote Showcase */}
-              <div className="flex flex-col justify-between gap-4 lg:col-span-5">
+              <div
+                className={`flex flex-col justify-between gap-2.5 ${
+                  isMobileLandscape ? "col-span-5" : "lg:col-span-5"
+                }`}
+              >
                 <HeroPreview3D
                   avatarId={currentAvatar}
                   skinId={activePreviewSkin}
                   agentName={state.agent.name}
-                  heightClass="h-[340px] sm:h-[410px]"
+                  heightClass={
+                    isMobileLandscape ? "h-36 sm:h-44" : "h-[340px] sm:h-[410px]"
+                  }
                   showEmoteBar
+                  compact={isMobileLandscape}
                 />
 
                 {/* Selected Skin Lore & Equip / Unlock CTA */}
-                <div className="rounded-2xl border border-amber-400/35 bg-slate-900/90 p-4">
+                <div
+                  className={`rounded-2xl border border-amber-400/35 bg-slate-900/90 ${
+                    isMobileLandscape ? "p-2.5" : "p-4"
+                  }`}
+                >
                   <div className="flex items-center justify-between gap-2">
                     <span
                       className={`rounded-full border px-2.5 py-0.5 text-[10px] font-black tracking-widest uppercase ${
@@ -213,7 +254,11 @@ export function SkinWardrobeModal({ open, onClose }: SkinWardrobeModalProps) {
               </div>
 
               {/* RIGHT (7 cols): Champion Switcher, Nickname, Gift & 8 AAA Skins Grid */}
-              <div className="space-y-5 lg:col-span-7">
+              <div
+                className={`space-y-3 ${
+                  isMobileLandscape ? "col-span-7" : "lg:col-span-7 space-y-5"
+                }`}
+              >
                 {/* 1. Champion + Nickname Quick Switcher */}
                 <div className="rounded-2xl border border-slate-800 bg-slate-900/75 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">
