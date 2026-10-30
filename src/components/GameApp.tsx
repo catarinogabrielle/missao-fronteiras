@@ -21,7 +21,7 @@ export function GameApp() {
   const { state, hydrated, switchUser } = useGame();
   const {
     isCompactMobile,
-    isPortrait,
+    isMobilePortrait,
     toggleLandscapeFullscreen,
   } = useMobileViewport();
 
@@ -153,7 +153,7 @@ export function GameApp() {
       <ToastOverlay />
 
       {/* MANDATORY LANDSCAPE LOCK: GAME ONLY RUNS IN HORIZONTAL / LANDSCAPE WIDESCREEN! */}
-      {isPortrait && (
+      {isMobilePortrait && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/95 p-6 text-center backdrop-blur-lg">
           <div className="relative mb-6 flex h-24 w-24 items-center justify-center">
             <div className="absolute inset-0 animate-ping rounded-3xl bg-amber-500/20" />

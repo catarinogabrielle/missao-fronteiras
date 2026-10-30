@@ -13,28 +13,12 @@
 }
 
 html,
-body,
-#__next,
-main {
-  height: 100% !important;
-  height: 100dvh !important;
-  max-height: 100dvh !important;
-  width: 100% !important;
-  width: 100vw !important;
-  overflow: hidden !important;
-  position: fixed;
-  inset: 0;
+body {
+  height: 100%;
+  width: 100%;
   margin: 0;
   padding: 0;
   touch-action: manipulation;
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
-}
-
-::-webkit-scrollbar {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
 }
 
 html {
