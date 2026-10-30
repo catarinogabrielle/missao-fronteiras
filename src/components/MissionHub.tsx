@@ -13,6 +13,7 @@ import {
   Sparkles,
   Swords,
   Trophy,
+  Users,
 } from "lucide-react";
 import { Mission } from "@/types/game";
 import { useGame } from "@/context/GameContext";
@@ -35,6 +36,7 @@ interface MissionHubProps {
   onOpenPassport: () => void;
   onOpenWardrobe: () => void;
   onOpenLeaderPanel: () => void;
+  onSwitchUser?: () => void;
 }
 
 export function MissionHub({
@@ -45,6 +47,7 @@ export function MissionHub({
   onOpenPassport,
   onOpenWardrobe,
   onOpenLeaderPanel,
+  onSwitchUser,
 }: MissionHubProps) {
   const { state, allMissions, isMissionUnlocked, level, levelTitle, playSfx } =
     useGame();
@@ -90,7 +93,7 @@ export function MissionHub({
   );
 
   return (
-    <main className="relative flex-1 overflow-hidden">
+    <main className="relative flex-1 overflow-y-auto max-h-full">
       {/* Subtle Background Ambient Splash of Currently Highlighted Arena */}
       <AnimatePresence mode="wait">
         <motion.img
@@ -144,7 +147,7 @@ export function MissionHub({
                 </p>
               )}
 
-              <div className="mt-2.5">
+              <div className="mt-2.5 flex flex-col gap-1.5">
                 <MobaButton
                   variant="gold"
                   size="sm"
@@ -155,6 +158,20 @@ export function MissionHub({
                   <Sparkles className="h-3.5 w-3.5" />
                   TROCAR SKIN & CAMPEÃO 3D
                 </MobaButton>
+
+                {onSwitchUser && (
+                  <MobaButton
+                    variant="obsidian"
+                    size="sm"
+                    shape="slant"
+                    sheen={false}
+                    onClick={onSwitchUser}
+                    className="w-full"
+                  >
+                    <Users className="h-3.5 w-3.5 text-amber-300" />
+                    TROCAR USUÁRIO / AGENTE
+                  </MobaButton>
+                )}
               </div>
             </div>
           </div>

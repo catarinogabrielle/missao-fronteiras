@@ -7,15 +7,18 @@ import {
   Download,
   Flame,
   Gem,
+  Maximize2,
   Monitor,
   ShieldCheck,
   Sparkles,
+  Users,
   Volume2,
   VolumeX,
   WifiOff,
 } from "lucide-react";
 import { useGame } from "@/context/GameContext";
 import { usePwa } from "@/context/PwaContext";
+import { useMobileViewport } from "@/lib/useMobileViewport";
 import { GIFT_OPTIONS, SKIN_OPTIONS } from "@/data/avatarsAndGifts";
 import { HeroPortrait } from "./GamePortrait";
 import { MobaButton } from "./MobaButton";
@@ -24,6 +27,7 @@ interface HeaderBarProps {
   onOpenPassport: () => void;
   onOpenLeaderPanel: () => void;
   onOpenWardrobe: () => void;
+  onSwitchUser?: () => void;
   onGoHome?: () => void;
 }
 
@@ -31,6 +35,7 @@ export function HeaderBar({
   onOpenPassport,
   onOpenLeaderPanel,
   onOpenWardrobe,
+  onSwitchUser,
   onGoHome,
 }: HeaderBarProps) {
   const {
@@ -44,6 +49,7 @@ export function HeaderBar({
     playSfx,
   } = useGame();
   const { isOnline, offlineReady, isStandalone, triggerInstall } = usePwa();
+  const { isMobileDevice, toggleLandscapeFullscreen } = useMobileViewport();
 
   if (!state.agent) return null;
 
@@ -235,6 +241,34 @@ export function HeaderBar({
             <ShieldCheck className="h-3.5 w-3.5" />
             <span>Líder</span>
           </MobaButton>
+
+          {/* Trocar Usuário / Voltar à Home */}
+          {onSwitchUser && (
+            <MobaButton
+              variant="gold"
+              size="sm"
+              shape="slant"
+              onClick={onSwitchUser}
+              title="Trocar de Usuário / Selecionar outro Campeão"
+            >
+              <Users className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Trocar Usuário</span>
+            </MobaButton>
+          )}
+
+          {/* Fullscreen / Modo Deitado (se celular) */}
+          {isMobileDevice && (
+            <MobaButton
+              variant="cyan"
+              size="sm"
+              shape="rounded"
+              sheen={false}
+              onClick={() => toggleLandscapeFullscreen()}
+              title="Tela Cheia / Modo Deitado"
+            >
+              <Maximize2 className="h-4 w-4" />
+            </MobaButton>
+          )}
 
           {/* Mute */}
           <MobaButton

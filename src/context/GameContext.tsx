@@ -100,6 +100,8 @@ interface GameContextValue {
   toggleAllSkinsUnlockedByLeader: () => void;
   setLeaderPin: (newPin: string) => void;
   resetStudentProgress: () => void;
+  switchUser: () => void;
+  selectProfile: (profile: AgentProfile) => void;
   isMissionUnlocked: (mission: Mission) => boolean;
 }
 
@@ -275,18 +277,73 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         skinId,
         createdAt: new Date().toISOString(),
       };
-      setState((prev) => ({
-        ...prev,
-        agent: profile,
-        wisdom: Math.max(prev.wisdom, bonusWisdom),
-        unlockedSkins: Array.from(new Set([...prev.unlockedSkins, skinId])),
-        streak: Math.max(1, prev.streak),
-        lastActiveDate: getTodayIso(),
-      }));
+      setState((prev) => {
+        const nextSaved = Array.from(
+          new Map(
+            [...(prev.savedProfiles || []), profile].map((p) => [
+              p.name.toLowerCase(),
+              p,
+            ])
+          ).values()
+        );
+        return {
+          ...prev,
+          agent: profile,
+          savedProfiles: nextSaved,
+          wisdom: Math.max(prev.wisdom, bonusWisdom),
+          unlockedSkins: Array.from(new Set([...prev.unlockedSkins, skinId])),
+          streak: Math.max(1, prev.streak),
+          lastActiveDate: getTodayIso(),
+        };
+      });
       pushToast(
         `Bem-vindo à Base Ide, ${profile.name}!`,
         "Seu Campeão 3D e Passaporte Missionário foram ativados.",
         "🛂"
+      );
+    },
+    [pushToast]
+  );
+
+  const switchUser = useCallback(() => {
+    soundEngine.play("click");
+    setState((prev) => ({
+      ...prev,
+      agent: null,
+    }));
+    pushToast(
+      "Trocar Usuário / Agente",
+      "Selecione um campeão existente ou crie uma nova identidade!",
+      "👥"
+    );
+  }, [pushToast]);
+
+  const selectProfile = useCallback(
+    (profile: AgentProfile) => {
+      soundEngine.play("levelUp");
+      setState((prev) => {
+        const nextSaved = Array.from(
+          new Map(
+            [...(prev.savedProfiles || []), profile].map((p) => [
+              p.name.toLowerCase(),
+              p,
+            ])
+          ).values()
+        );
+        return {
+          ...prev,
+          agent: profile,
+          savedProfiles: nextSaved,
+          unlockedSkins: Array.from(
+            new Set([...prev.unlockedSkins, profile.skinId || "padrao"])
+          ),
+          lastActiveDate: getTodayIso(),
+        };
+      });
+      pushToast(
+        `Agente Conectado: ${profile.name}`,
+        "Bem-vindo(a) de volta à Base Ide!",
+        "🚀"
       );
     },
     [pushToast]
@@ -829,6 +886,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     toggleAllSkinsUnlockedByLeader,
     setLeaderPin,
     resetStudentProgress,
+    switchUser,
+    selectProfile,
     isMissionUnlocked,
   };
 

@@ -13,6 +13,7 @@ import {
   Monitor,
   ShieldCheck,
   Sparkles,
+  Users,
   Volume2,
   VolumeX,
   Wifi,
@@ -83,6 +84,7 @@ const CHAMPION_STATS: Record<
 export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
   const {
     createAgent,
+    selectProfile,
     isSkinUnlocked,
     playSfx,
     state,
@@ -134,7 +136,7 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
   };
 
   return (
-    <div className="relative flex min-h-screen flex-col justify-between overflow-hidden bg-slate-950">
+    <div className="relative flex h-full h-dvh flex-col justify-between overflow-y-auto bg-slate-950">
       {/* Dynamic 3D Arena Splash Wallpaper */}
       <AnimatePresence mode="wait">
         <motion.img
@@ -234,6 +236,39 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
           </MobaButton>
         </div>
       </header>
+
+      {/* QUICK AGENT SWITCHER FOR SAVED PROFILES */}
+      {state.savedProfiles && state.savedProfiles.length > 0 && (
+        <div className="relative z-20 mx-auto w-full max-w-7xl px-4 pt-3 sm:px-8">
+          <div className="moba-panel-cyan moba-clip-panel flex flex-wrap items-center justify-between gap-2.5 p-3">
+            <div className="flex items-center gap-2 text-xs font-black text-cyan-300 uppercase">
+              <Users className="h-4 w-4 text-amber-300" />
+              <span>Conectar com Agente Salvo:</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {state.savedProfiles.map((prof) => (
+                <button
+                  key={prof.name}
+                  type="button"
+                  onClick={() => {
+                    playSfx("levelUp");
+                    selectProfile(prof);
+                  }}
+                  className="flex cursor-pointer items-center gap-2 rounded-xl border border-amber-400/50 bg-slate-900/95 px-3 py-1.5 text-xs font-black text-white shadow-sm transition hover:border-amber-300 hover:bg-amber-500/25"
+                >
+                  <span className="text-amber-300">{prof.name}</span>
+                  <span className="rounded bg-cyan-500/20 px-1.5 py-0.5 text-[10px] text-cyan-200 uppercase">
+                    {prof.avatarId}
+                  </span>
+                  <span className="text-[10px] font-bold text-emerald-400">
+                    Entrar →
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MAIN 3-COLUMN AAA CHAMPION & 3D SKIN SELECT STAGE */}
       <form

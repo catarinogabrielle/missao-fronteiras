@@ -179,6 +179,7 @@ export interface AgentProfile {
 
 export interface GameState {
   agent: AgentProfile | null;
+  savedProfiles?: AgentProfile[];
   xp: number;
   wisdom: number;
   streak: number;

@@ -1094,6 +1094,63 @@ export function MobaGtaWorld3D({
     activeCheckpointGroup.visible = false;
     scene.add(activeCheckpointGroup);
 
+    // League of Legends-Style Animated Runic Movement Beacon (Ground Reticle)
+    const mobaBeaconGroup = new THREE.Group();
+    const mobaOuterRing = new THREE.Mesh(
+      new THREE.RingGeometry(0.8, 1.05, 32),
+      new THREE.MeshBasicMaterial({
+        color: 0x10b981,
+        transparent: true,
+        opacity: 0,
+        side: THREE.DoubleSide,
+      })
+    );
+    mobaOuterRing.rotation.x = -Math.PI / 2;
+    mobaOuterRing.position.y = 0.08;
+    mobaBeaconGroup.add(mobaOuterRing);
+
+    const mobaInnerRing = new THREE.Mesh(
+      new THREE.RingGeometry(0.3, 0.48, 24),
+      new THREE.MeshBasicMaterial({
+        color: 0x34d399,
+        transparent: true,
+        opacity: 0,
+        side: THREE.DoubleSide,
+      })
+    );
+    mobaInnerRing.rotation.x = -Math.PI / 2;
+    mobaInnerRing.position.y = 0.09;
+    mobaBeaconGroup.add(mobaInnerRing);
+
+    const mobaSpikeGeometry = new THREE.ConeGeometry(0.24, 0.65, 4);
+    const mobaSpike = new THREE.Mesh(
+      mobaSpikeGeometry,
+      new THREE.MeshBasicMaterial({
+        color: 0x6ee7b7,
+        transparent: true,
+        opacity: 0,
+      })
+    );
+    mobaSpike.rotation.x = Math.PI; // Point downwards into ground
+    mobaSpike.position.y = 0.85;
+    mobaBeaconGroup.add(mobaSpike);
+
+    mobaBeaconGroup.visible = false;
+    scene.add(mobaBeaconGroup);
+
+    let mobaBeaconTimer = 0;
+    const triggerMoveBeacon = (x: number, z: number) => {
+      mobaBeaconGroup.position.set(x, 0, z);
+      mobaBeaconGroup.visible = true;
+      mobaBeaconTimer = 1.0;
+      (mobaOuterRing.material as THREE.MeshBasicMaterial).opacity = 0.85;
+      (mobaInnerRing.material as THREE.MeshBasicMaterial).opacity = 0.95;
+      (mobaSpike.material as THREE.MeshBasicMaterial).opacity = 0.8;
+      mobaOuterRing.scale.set(1.4, 1.4, 1.4);
+      mobaInnerRing.scale.set(0.6, 0.6, 0.6);
+      mobaSpike.position.y = 1.1;
+    };
+
     // --- CULTURAL TOTEM & NEXUS DA PALAVRA ---
     const totemGroup = new THREE.Group();
     totemGroup.position.set(WORLD_LANDMARKS.totem.x, 0, WORLD_LANDMARKS.totem.z);
@@ -1460,7 +1517,7 @@ export function MobaGtaWorld3D({
     let hp = 120;
     const maxHp = 120;
     let activeVehicle: LiveVehicle | null = null;
-    let cameraMode: "gta" | "moba" = "gta";
+    let cameraMode: "gta" | "moba" = "moba";
     let camYaw = 0; // 0 = Camera South looking North (-Z)
     let nitroTimer = 0;
     let nitroCooldown = 0;
@@ -1888,64 +1945,130 @@ export function MobaGtaWorld3D({
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
     let isOrbitDragging = false;
+    let isMouseDownMove = false;
+    let orbitPointerId: number | null = null;
     let pointerDownX = 0;
     let pointerDownY = 0;
     let lastOrbitX = 0;
     let movedDuringDrag = false;
 
     const dom = renderer.domElement;
+    dom.style.touchAction = "none";
+
+    const updateRaycastPoint = (clientX: number, clientY: number) => {
+      const rect = dom.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return null;
+      pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(pointer, camera);
+      const hits = raycaster.intersectObject(groundMesh);
+      if (hits.length > 0) {
+        const pt = hits[0].point;
+        return {
+          x: Math.max(-96, Math.min(96, pt.x)),
+          z: Math.max(-96, Math.min(96, pt.z)),
+        };
+      }
+      return null;
+    };
 
     const onPointerDown = (e: PointerEvent) => {
-      if (pausedRef.current) return;
+      if (pausedRef.current || orbitPointerId !== null) return;
+      orbitPointerId = e.pointerId;
       isOrbitDragging = true;
       movedDuringDrag = false;
       pointerDownX = e.clientX;
       pointerDownY = e.clientY;
       lastOrbitX = e.clientX;
+
+      // In MOBA mode: mouse primary click triggers instant move or target attack (League of Legends style)
+      if (cameraMode === "moba") {
+        const groundPt = updateRaycastPoint(e.clientX, e.clientY);
+        if (groundPt) {
+          const clickedEnemy = enemies.find(
+            (en) => !en.dead && Math.hypot(en.x - groundPt.x, en.z - groundPt.z) < 2.8
+          );
+          if (
+            clickedEnemy &&
+            Math.hypot(clickedEnemy.x - heroPos.x, clickedEnemy.z - heroPos.z) < 5.4
+          ) {
+            performAction("attack");
+          } else {
+            clickMoveTarget = new THREE.Vector3(groundPt.x, 0, groundPt.z);
+            triggerMoveBeacon(groundPt.x, groundPt.z);
+            isMouseDownMove = true;
+            soundEngine.play("click");
+          }
+        }
+      }
     };
 
     const onPointerMove = (e: PointerEvent) => {
-      if (!isOrbitDragging || pausedRef.current) return;
+      if (
+        !isOrbitDragging ||
+        orbitPointerId === null ||
+        e.pointerId !== orbitPointerId ||
+        pausedRef.current
+      ) {
+        return;
+      }
       const dxTotal = e.clientX - pointerDownX;
       const dyTotal = e.clientY - pointerDownY;
       if (Math.hypot(dxTotal, dyTotal) > 7) {
         movedDuringDrag = true;
       }
-      if (movedDuringDrag && cameraMode === "gta") {
-        const deltaX = e.clientX - lastOrbitX;
-        camYaw -= deltaX * 0.0065;
-        lastOrbitX = e.clientX;
+
+      if (cameraMode === "gta") {
+        if (movedDuringDrag) {
+          const deltaX = e.clientX - lastOrbitX;
+          camYaw -= deltaX * 0.0065;
+          lastOrbitX = e.clientX;
+        }
+      } else if (isMouseDownMove) {
+        // Continuous smooth mouse pathing while dragging (League of Legends fluidity!)
+        const groundPt = updateRaycastPoint(e.clientX, e.clientY);
+        if (groundPt) {
+          clickMoveTarget = new THREE.Vector3(groundPt.x, 0, groundPt.z);
+        }
       }
     };
 
-    const onPointerUp = (e: PointerEvent) => {
-      if (!isOrbitDragging) return;
+    const onPointerCancel = (e: PointerEvent) => {
+      if (orbitPointerId === null || e.pointerId !== orbitPointerId) return;
+      orbitPointerId = null;
       isOrbitDragging = false;
-      if (pausedRef.current || movedDuringDrag) return;
+      isMouseDownMove = false;
+    };
 
-      // Quick Tap / Click -> Click-to-Move or Click-Enemy-to-Attack!
-      const rect = dom.getBoundingClientRect();
-      pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-      raycaster.setFromCamera(pointer, camera);
+    const onPointerUp = (e: PointerEvent) => {
+      if (
+        !isOrbitDragging ||
+        orbitPointerId === null ||
+        e.pointerId !== orbitPointerId
+      ) {
+        return;
+      }
+      orbitPointerId = null;
+      isOrbitDragging = false;
+      isMouseDownMove = false;
+      if (pausedRef.current) return;
 
-      const hits = raycaster.intersectObject(groundMesh);
-      if (hits.length > 0) {
-        const pt = hits[0].point;
-        const cx = Math.max(-96, Math.min(96, pt.x));
-        const cz = Math.max(-96, Math.min(96, pt.z));
-
-        const clickedEnemy = enemies.find(
-          (en) => !en.dead && Math.hypot(en.x - cx, en.z - cz) < 2.8
-        );
-        if (
-          clickedEnemy &&
-          Math.hypot(clickedEnemy.x - heroPos.x, clickedEnemy.z - heroPos.z) <
-            5.2
-        ) {
-          performAction("attack");
-        } else {
-          clickMoveTarget = new THREE.Vector3(cx, 0, cz);
+      // In GTA mode: tap to click-move if user didn't drag the camera
+      if (cameraMode === "gta" && !movedDuringDrag) {
+        const groundPt = updateRaycastPoint(e.clientX, e.clientY);
+        if (groundPt) {
+          const clickedEnemy = enemies.find(
+            (en) => !en.dead && Math.hypot(en.x - groundPt.x, en.z - groundPt.z) < 2.8
+          );
+          if (
+            clickedEnemy &&
+            Math.hypot(clickedEnemy.x - heroPos.x, clickedEnemy.z - heroPos.z) < 5.4
+          ) {
+            performAction("attack");
+          } else {
+            clickMoveTarget = new THREE.Vector3(groundPt.x, 0, groundPt.z);
+            triggerMoveBeacon(groundPt.x, groundPt.z);
+          }
         }
       }
     };
@@ -1953,16 +2076,24 @@ export function MobaGtaWorld3D({
     dom.addEventListener("pointerdown", onPointerDown);
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onPointerCancel);
 
     const onResize = () => {
       if (!container) return;
       const w = container.clientWidth || window.innerWidth;
       const h = container.clientHeight || window.innerHeight;
+      if (w <= 0 || h <= 0) return;
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
     };
     window.addEventListener("resize", onResize);
+    window.addEventListener("orientationchange", onResize);
+    const resizeObs =
+      typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(() => onResize())
+        : null;
+    resizeObs?.observe(container);
 
     // --- COLLISION RESOLVER ---
     const resolveWorldCollision = (nx: number, nz: number) => {
@@ -2009,6 +2140,7 @@ export function MobaGtaWorld3D({
       animId = requestAnimationFrame(animate);
       const dt = Math.min(0.05, (now - lastTime) / 1000);
       lastTime = now;
+      let isMoving = false;
 
       // Ambient Cruising GTA Traffic
       ambientCars.forEach((c) => {
@@ -2127,7 +2259,7 @@ export function MobaGtaWorld3D({
         if (keys["a"] || keys["arrowleft"]) rawX -= 1;
         if (keys["d"] || keys["arrowright"]) rawX += 1;
 
-        let isMoving = false;
+        isMoving = false;
         const vehSpeed = activeVehicle ? activeVehicle.cfg.topSpeed : 10.2;
         const baseSpeed =
           activeVehicle && nitroTimer > 0 ? vehSpeed * 1.55 : vehSpeed;
@@ -2190,14 +2322,19 @@ export function MobaGtaWorld3D({
           const dx = clickMoveTarget.x - heroPos.x;
           const dz = clickMoveTarget.z - heroPos.z;
           const dist = Math.hypot(dx, dz);
-          if (dist > 0.5) {
+          if (dist > 0.45) {
             const step = Math.min(dist, baseSpeed * dt);
             const resolved = resolveWorldCollision(
               heroPos.x + (dx / dist) * step,
               heroPos.z + (dz / dist) * step
             );
             heroPos.set(resolved.x, 0, resolved.z);
-            heroAngle = Math.atan2(dx, dz);
+            const targetAngle = Math.atan2(dx, dz);
+            const angleDiff = Math.atan2(
+              Math.sin(targetAngle - heroAngle),
+              Math.cos(targetAngle - heroAngle)
+            );
+            heroAngle += angleDiff * Math.min(1, 16 * dt);
             isMoving = true;
           } else {
             clickMoveTarget = null;
@@ -2584,7 +2721,24 @@ export function MobaGtaWorld3D({
         currentNearby = foundNearby;
       }
 
-      // --- GTA 3RD-PERSON STREET CAMERA vs TACTICAL MOBA CAMERA ---
+      // Animate LoL Movement Beacon (Smooth ground pulse & ring rotation)
+      if (mobaBeaconTimer > 0) {
+        mobaBeaconTimer = Math.max(0, mobaBeaconTimer - dt * 2.2);
+        const alpha = mobaBeaconTimer;
+        (mobaOuterRing.material as THREE.MeshBasicMaterial).opacity = alpha * 0.85;
+        (mobaInnerRing.material as THREE.MeshBasicMaterial).opacity = alpha * 0.95;
+        (mobaSpike.material as THREE.MeshBasicMaterial).opacity = alpha * 0.8;
+        mobaOuterRing.rotation.z += dt * 3.6;
+        mobaInnerRing.rotation.z -= dt * 4.2;
+        mobaOuterRing.scale.lerp(new THREE.Vector3(1, 1, 1), Math.min(1, 14 * dt));
+        mobaInnerRing.scale.lerp(new THREE.Vector3(1, 1, 1), Math.min(1, 14 * dt));
+        mobaSpike.position.y = 0.65 + alpha * 0.45;
+        if (mobaBeaconTimer <= 0) {
+          mobaBeaconGroup.visible = false;
+        }
+      }
+
+      // --- GTA 3RD-PERSON STREET CAMERA vs TACTICAL MOBA CAMERA (LEAGUE OF LEGENDS FLUIDITY) ---
       if (cameraMode === "gta") {
         const camDist = activeVehicle
           ? nitroTimer > 0
@@ -2604,12 +2758,21 @@ export function MobaGtaWorld3D({
         const lookAheadZ = heroPos.z - Math.cos(camYaw) * 4.5;
         camera.lookAt(lookAheadX, 2.1, lookAheadZ);
       } else {
-        const camHeight = activeVehicle ? 22 : 18.5;
-        const camBack = activeVehicle ? 22 : 18.5;
-        camera.position.x += (heroPos.x - camera.position.x) * 0.12;
-        camera.position.z += (heroPos.z + camBack - camera.position.z) * 0.12;
-        camera.position.y += (camHeight - camera.position.y) * 0.1;
-        camera.lookAt(heroPos.x, 1.2, heroPos.z - 2.2);
+        // High-angle tactical isometric MOBA camera with exponential glide
+        const camHeight = activeVehicle ? 23.5 : 20.5;
+        const camBack = activeVehicle ? 20.0 : 17.0;
+        const targetCamX = heroPos.x;
+        const targetCamZ = heroPos.z + camBack;
+        const camLerp = 1 - Math.exp(-9.5 * dt);
+
+        camera.position.x += (targetCamX - camera.position.x) * camLerp;
+        camera.position.z += (targetCamZ - camera.position.z) * camLerp;
+        camera.position.y += (camHeight - camera.position.y) * camLerp;
+
+        const leadDist = isMoving ? 1.6 : 0.8;
+        const lookTargetX = heroPos.x + Math.sin(heroAngle) * leadDist;
+        const lookTargetZ = heroPos.z + Math.cos(heroAngle) * leadDist - 1.2;
+        camera.lookAt(lookTargetX, 1.0, lookTargetZ);
       }
 
       // Keep Sky Dome centered around hero
@@ -2731,12 +2894,15 @@ export function MobaGtaWorld3D({
       cancelAnimationFrame(animId);
       heroHolderRef.current = null;
       heroRigRef.current = null;
+      resizeObs?.disconnect();
       dom.removeEventListener("pointerdown", onPointerDown);
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onPointerCancel);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("resize", onResize);
+      window.removeEventListener("orientationchange", onResize);
       renderer.dispose();
     };
   }, [
@@ -2750,7 +2916,7 @@ export function MobaGtaWorld3D({
   return (
     <div
       ref={containerRef}
-      className="h-full w-full cursor-grab overflow-hidden active:cursor-grabbing"
+      className="h-full w-full touch-none cursor-grab overflow-hidden active:cursor-grabbing"
     />
   );
 }

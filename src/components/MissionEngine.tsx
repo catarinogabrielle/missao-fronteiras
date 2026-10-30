@@ -35,12 +35,17 @@ import {
   Swords,
   ThumbsDown,
   ThumbsUp,
+  RotateCw,
+  Users,
+  ChevronDown,
+  ChevronUp,
   X,
   Zap,
 } from "lucide-react";
 import { DialogueOption, Mission } from "@/types/game";
 import { SKIN_OPTIONS } from "@/data/avatarsAndGifts";
 import { useGame } from "@/context/GameContext";
+import { useMobileViewport } from "@/lib/useMobileViewport";
 import {
   getMissionSplash,
   NPC_PORTRAITS,
@@ -72,6 +77,7 @@ interface MissionEngineProps {
   onExitToHub: () => void;
   externalPaused?: boolean;
   onOpenWardrobe?: () => void;
+  onSwitchUser?: () => void;
 }
 
 type OverlayMode = "none" | "briefing" | "dialogue" | "decoder" | "victory";
@@ -151,6 +157,7 @@ export function MissionEngine({
   onExitToHub,
   externalPaused,
   onOpenWardrobe,
+  onSwitchUser,
 }: MissionEngineProps) {
   const {
     state,
@@ -161,6 +168,16 @@ export function MissionEngine({
     completeMission,
     acceptSchoolChallenge,
   } = useGame();
+
+  const {
+    isMobileDevice,
+    isMobileLandscape,
+    isMobilePortrait,
+    isCompactMobile,
+    toggleLandscapeFullscreen,
+  } = useMobileViewport();
+
+  const [scorePanelOpen, setScorePanelOpen] = useState(false);
 
   const resolvedBiome = useMemo(
     () => resolveMissionBiome(mission.id, mission.biomeId),
@@ -192,13 +209,15 @@ export function MissionEngine({
     label: string;
   } | null>(null);
 
-  // Virtual Analog Thumbstick State
+  // Virtual Analog Thumbstick State & Multi-Touch Isolation
   const [joystickVec, setJoystickVec] = useState<{ x: number; y: number }>({
     x: 0,
     y: 0,
   });
   const joystickPadRef = useRef<HTMLDivElement | null>(null);
   const joystickDraggingRef = useRef(false);
+  const joystickPointerIdRef = useRef<number | null>(null);
+  const attackIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Open-World GTA Side-Missions Progression
   const [totemScanned, setTotemScanned] = useState(false);
@@ -492,6 +511,36 @@ export function MissionEngine({
     ]
   );
 
+  // Hold-to-repeat attack for smooth mobile combat
+  const startContinuousAttack = (e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    fireAction("attack");
+    if (attackIntervalRef.current) clearInterval(attackIntervalRef.current);
+    attackIntervalRef.current = setInterval(() => {
+      fireAction("attack");
+    }, 260);
+  };
+
+  const stopContinuousAttack = (e?: React.PointerEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (attackIntervalRef.current) {
+      clearInterval(attackIntervalRef.current);
+      attackIntervalRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (attackIntervalRef.current) {
+        clearInterval(attackIntervalRef.current);
+      }
+    };
+  }, []);
+
   // Virtual Analog Thumbstick Pointer Handlers
   const updateJoystickFromPointer = (clientX: number, clientY: number) => {
     const pad = joystickPadRef.current;
@@ -669,7 +718,7 @@ export function MissionEngine({
     missionPhoneOpen;
 
   return (
-    <div className="relative h-[calc(100vh-66px)] min-h-[580px] w-full overflow-hidden bg-slate-950 select-none">
+    <div className="relative h-full w-full overflow-hidden bg-slate-950 select-none touch-none">
       <ConfettiCanvas active={overlay === "victory"} durationMs={5500} />
 
       {/* =========================================================
@@ -722,8 +771,16 @@ export function MissionEngine({
       {/* =========================================================
           TOP-LEFT: GTA URBAN RADAR MINIMAP + MISSIONS PHONE BUTTON
          ========================================================= */}
-      <div className="pointer-events-auto absolute top-2.5 left-2.5 z-20 flex flex-col gap-1.5 sm:top-3 sm:left-3">
-        <div className="moba-panel-gold relative h-36 w-36 overflow-hidden rounded-2xl p-1.5 shadow-2xl sm:h-44 sm:w-44">
+      <div className="pointer-events-auto absolute top-2 left-2 z-20 flex flex-col gap-1.5 sm:top-3 sm:left-3">
+        <div
+          className={`moba-panel-gold relative overflow-hidden p-1.5 shadow-2xl ${
+            isMobileLandscape
+              ? "h-22 w-22 rounded-xl"
+              : isMobilePortrait
+              ? "h-28 w-28 rounded-xl"
+              : "h-36 w-36 sm:h-44 sm:w-44 rounded-2xl"
+          }`}
+        >
           <div
             onClick={handleRadarClick}
             title="Clique em qualquer rua do Radar para marcar GPS!"
@@ -904,7 +961,7 @@ export function MissionEngine({
             </div>
           </div>
 
-          <div className="pointer-events-none absolute right-2 bottom-1 left-2 flex items-center justify-between font-mono text-[8px] font-black text-amber-300/95 uppercase">
+          <div className="pointer-events-none absolute right-2 bottom-1 left-2 hidden sm:flex items-center justify-between font-mono text-[8px] font-black text-amber-300/95 uppercase">
             <span>MAPA GTA 3D</span>
             <span>CLIQUE = GPS</span>
           </div>
@@ -917,13 +974,15 @@ export function MissionEngine({
             playSfx("click");
             setMissionPhoneOpen(true);
           }}
-          className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-cyan-400/70 bg-gradient-to-r from-cyan-950 to-slate-950 px-2.5 py-2 text-[11px] font-black text-cyan-200 shadow-[0_0_16px_rgba(34,211,238,0.3)] transition hover:border-cyan-300 hover:text-white"
+          className={`flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-cyan-400/70 bg-gradient-to-r from-cyan-950 to-slate-950 font-black text-cyan-200 shadow-[0_0_16px_rgba(34,211,238,0.3)] transition hover:border-cyan-300 hover:text-white ${
+            isMobileLandscape ? "px-2 py-1 text-[9px]" : "px-2.5 py-2 text-[11px]"
+          }`}
         >
           <ClipboardList className="h-3.5 w-3.5 text-cyan-300" />
-          MISSÕES ({completedMapMissions}/{totalMapMissions})
+          <span>MISSÕES ({completedMapMissions}/{totalMapMissions})</span>
         </button>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           <MobaButton
             variant="obsidian"
             size="sm"
@@ -943,10 +1002,37 @@ export function MissionEngine({
                 onOpenWardrobe();
               }}
               title="Trocar Skin 3D em tempo real!"
-              className="flex cursor-pointer items-center gap-1 rounded-xl border border-fuchsia-400/65 bg-gradient-to-r from-fuchsia-950/90 to-slate-950 px-2.5 py-1.5 text-[10px] font-black text-fuchsia-200 shadow-[0_0_14px_rgba(217,70,239,0.3)] transition hover:border-fuchsia-300 hover:text-white"
+              className="flex cursor-pointer items-center gap-1 rounded-xl border border-fuchsia-400/65 bg-gradient-to-r from-fuchsia-950/90 to-slate-950 px-2 py-1 text-[10px] font-black text-fuchsia-200 shadow-[0_0_14px_rgba(217,70,239,0.3)] transition hover:border-fuchsia-300 hover:text-white"
             >
-              <Sparkles className="h-3.5 w-3.5 text-fuchsia-300" />
+              <Sparkles className="h-3 w-3 text-fuchsia-300" />
               SKIN
+            </button>
+          )}
+
+          {isMobileDevice && (
+            <button
+              type="button"
+              onClick={toggleLandscapeFullscreen}
+              title="Girar Celular / Modo Tela Cheia"
+              className="flex cursor-pointer items-center gap-1 rounded-xl border border-cyan-400/60 bg-slate-950/90 px-2 py-1 text-[10px] font-black text-cyan-300 shadow-md hover:bg-cyan-500/20"
+            >
+              <RotateCw className="h-3 w-3" />
+              <span className="hidden sm:inline">Girar</span>
+            </button>
+          )}
+
+          {onSwitchUser && (
+            <button
+              type="button"
+              onClick={() => {
+                playSfx("click");
+                onSwitchUser();
+              }}
+              title="Trocar de Usuário / Agente"
+              className="flex cursor-pointer items-center gap-1 rounded-xl border border-amber-400/50 bg-slate-950/90 px-2 py-1 text-[10px] font-black text-amber-300 shadow-md hover:bg-amber-500/20"
+            >
+              <Users className="h-3 w-3" />
+              <span className="hidden sm:inline">Trocar Usuário</span>
             </button>
           )}
         </div>
@@ -955,17 +1041,17 @@ export function MissionEngine({
       {/* =========================================================
           TOP-CENTER: HP, PONTE, LIVE RACE TIMER & BOSS BAR
          ========================================================= */}
-      <div className="pointer-events-none absolute top-2.5 right-36 left-40 z-20 mx-auto max-w-lg sm:top-3 sm:right-60 sm:left-52">
-        <div className="moba-panel-gold moba-clip-panel pointer-events-auto px-3 py-2 sm:px-4 sm:py-2.5">
+      <div className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 z-20 w-[94%] max-w-sm sm:max-w-md lg:max-w-lg">
+        <div className="moba-panel-gold moba-clip-panel pointer-events-auto px-2.5 py-1.5 sm:px-4 sm:py-2">
           <div className="flex flex-wrap items-center justify-between gap-1">
-            <div className="flex items-center gap-1.5">
-              <span className="text-sm sm:text-base">{mission.emoji}</span>
-              <span className="text-[10px] font-black tracking-wider text-amber-300 uppercase sm:text-xs">
+            <div className="flex items-center gap-1.5 truncate">
+              <span className="text-xs sm:text-base">{mission.emoji}</span>
+              <span className="truncate text-[9px] font-black tracking-wider text-amber-300 uppercase sm:text-xs">
                 {mission.title}
               </span>
             </div>
 
-            <div className="flex items-center gap-2 font-mono text-[10px] font-black sm:text-xs">
+            <div className="flex items-center gap-1.5 font-mono text-[9px] font-black sm:text-xs">
               <span className="flex items-center gap-1 rounded bg-rose-500/20 px-1.5 py-0.5 text-rose-300">
                 <Heart className="h-3 w-3 fill-rose-400 text-rose-400" />
                 {hudSnap.hp}/{hudSnap.maxHp}
@@ -977,14 +1063,14 @@ export function MissionEngine({
           </div>
 
           {/* Dual Progress Bars */}
-          <div className="mt-1.5 grid grid-cols-2 gap-2">
-            <div className="h-2 w-full overflow-hidden rounded-full border border-rose-400/40 bg-slate-950">
+          <div className="mt-1 grid grid-cols-2 gap-1.5 sm:mt-1.5 sm:gap-2">
+            <div className="h-1.5 sm:h-2 w-full overflow-hidden rounded-full border border-rose-400/40 bg-slate-950">
               <div
                 style={{ width: `${hpPct}%` }}
                 className="h-full bg-gradient-to-r from-rose-600 via-rose-400 to-emerald-400 transition-all duration-150"
               />
             </div>
-            <div className="h-2 w-full overflow-hidden rounded-full border border-amber-400/45 bg-slate-950">
+            <div className="h-1.5 sm:h-2 w-full overflow-hidden rounded-full border border-amber-400/45 bg-slate-950">
               <motion.div
                 animate={{ width: `${trust}%` }}
                 className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-300"
@@ -994,9 +1080,9 @@ export function MissionEngine({
 
           {/* Active GTA Checkpoint Express Race Countdown Banner! */}
           {hudSnap.raceActive && (
-            <div className="mt-1.5 flex items-center justify-between rounded-lg border border-emerald-400/70 bg-emerald-950/80 px-2.5 py-1 font-mono text-[10px] font-black text-emerald-200 sm:text-xs">
+            <div className="mt-1 flex items-center justify-between rounded-lg border border-emerald-400/70 bg-emerald-950/80 px-2.5 py-0.5 font-mono text-[9px] font-black text-emerald-200 sm:text-xs">
               <span className="flex items-center gap-1">
-                <Flag className="h-3.5 w-3.5 text-amber-300" />
+                <Flag className="h-3 w-3 text-amber-300" />
                 CHECKPOINT {hudSnap.raceCheckpointIdx + 1}/
                 {hudSnap.raceTotalCheckpoints}
               </span>
@@ -1014,29 +1100,26 @@ export function MissionEngine({
 
           {/* AAA Live District Shadow Boss HP Bar */}
           {nearBossArena && !hudSnap.raceActive && (
-            <div className="mt-1.5 rounded-xl border-2 border-fuchsia-400/70 bg-gradient-to-r from-fuchsia-950/90 via-slate-950/95 to-rose-950/85 px-2.5 py-1.5 shadow-[0_0_22px_rgba(217,70,239,0.45)]">
-              <div className="flex items-center justify-between text-[10px] font-black tracking-wide text-fuchsia-100 uppercase">
-                <span className="flex items-center gap-1.5">
-                  <Crown className="h-3.5 w-3.5 text-amber-300" />
-                  LÍDER DE SOMBRA: {worldCfg.bossName}
+            <div className="mt-1 rounded-xl border-2 border-fuchsia-400/70 bg-gradient-to-r from-fuchsia-950/90 via-slate-950/95 to-rose-950/85 px-2.5 py-1 shadow-[0_0_22px_rgba(217,70,239,0.45)]">
+              <div className="flex items-center justify-between text-[9px] font-black tracking-wide text-fuchsia-100 uppercase sm:text-[10px]">
+                <span className="flex items-center gap-1">
+                  <Crown className="h-3 w-3 text-amber-300" />
+                  BOSS: {worldCfg.bossName}
                 </span>
                 <span className="font-mono text-amber-300">
                   {hudSnap.bossHpPct}% HP
                 </span>
               </div>
-              <div className="mt-1 h-2.5 w-full overflow-hidden rounded-full border border-fuchsia-400/40 bg-slate-950">
+              <div className="mt-0.5 h-2 w-full overflow-hidden rounded-full border border-fuchsia-400/40 bg-slate-950">
                 <div
                   style={{ width: `${hudSnap.bossHpPct}%` }}
                   className="h-full bg-gradient-to-r from-rose-500 via-fuchsia-500 to-amber-400 transition-all duration-150"
                 />
               </div>
-              <div className="mt-0.5 text-[9px] font-bold text-rose-200/90">
-                ⚡ Atenção ao anel vermelho no chão! Use Escudo [E] ou Dash [2]
-              </div>
             </div>
           )}
 
-          <div className="mt-1 truncate text-[10px] font-bold text-cyan-200 sm:text-[11px]">
+          <div className="mt-0.5 truncate text-[9px] font-bold text-cyan-200 sm:text-[10px]">
             🎯 GPS:{" "}
             {hudSnap.raceActive
               ? `Atravesse o Anel Dourado ${hudSnap.raceCheckpointIdx + 1}/${hudSnap.raceTotalCheckpoints}!`
@@ -1048,64 +1131,116 @@ export function MissionEngine({
       {/* =========================================================
           TOP-RIGHT: GTA SCOREBOARD & OPEN-WORLD TRACKER
          ========================================================= */}
-      <div className="pointer-events-auto absolute top-2.5 right-2.5 z-20 flex flex-col items-end gap-1.5 sm:top-3 sm:right-3">
-        <div className="moba-panel-cyan rounded-2xl px-3 py-2 text-right shadow-2xl sm:px-3.5 sm:py-2.5">
-          <div className="text-[9px] font-black tracking-widest text-cyan-300 uppercase">
-            PONTUAÇÃO GTA 3D
+      <div className="pointer-events-auto absolute top-2 right-2 z-20 flex flex-col items-end gap-1.5 sm:top-3 sm:right-3">
+        {isCompactMobile ? (
+          <div className="moba-panel-cyan flex flex-col items-end rounded-xl px-2.5 py-1.5 shadow-xl">
+            <button
+              type="button"
+              onClick={() => setScorePanelOpen((prev) => !prev)}
+              className="flex cursor-pointer items-center gap-1.5 font-mono text-xs font-black text-amber-300"
+            >
+              <span>{hudSnap.score.toLocaleString("pt-BR")} PTS</span>
+              {hudSnap.combo > 1 && (
+                <span className="flex items-center gap-0.5 rounded-full bg-amber-500/30 px-1 text-[9px] text-amber-300">
+                  <Flame className="h-2.5 w-2.5" />
+                  {hudSnap.combo}x
+                </span>
+              )}
+              {scorePanelOpen ? (
+                <ChevronUp className="h-3 w-3 text-cyan-300" />
+              ) : (
+                <ChevronDown className="h-3 w-3 text-cyan-300" />
+              )}
+            </button>
+            {scorePanelOpen && (
+              <div className="mt-1.5 w-44 space-y-1 border-t border-cyan-500/25 pt-1 text-left font-mono text-[9px]">
+                <div className="flex items-center justify-between text-sky-200">
+                  <span className="flex items-center gap-1">
+                    <Package className="h-2.5 w-2.5 text-sky-400" />
+                    Suprimentos
+                  </span>
+                  <span className="rounded bg-sky-500/20 px-1 text-sky-300">{hudSnap.suppliesHeld}</span>
+                </div>
+                <div className="flex items-center justify-between text-emerald-200">
+                  <span>👥 Pessoas</span>
+                  <span className="text-emerald-300">
+                    {helpedPersonIds.length}/{worldCfg.people.length}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-cyan-200">
+                  <span>📡 Torres</span>
+                  <span className="text-cyan-300">
+                    {activatedTowerIds.length}/{worldCfg.radioTowers.length}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-rose-200">
+                  <span>⚔️ Sombras</span>
+                  <span className="text-rose-300">
+                    {hudSnap.enemiesDefeated}/{hudSnap.totalEnemies}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
-          <div className="font-mono text-lg font-black text-amber-300 sm:text-2xl">
-            {hudSnap.score.toLocaleString("pt-BR")}
-            <span className="ml-1 text-[10px] text-amber-200/80">PTS</span>
+        ) : (
+          <div className="moba-panel-cyan rounded-2xl px-3 py-2 text-right shadow-2xl sm:px-3.5 sm:py-2.5">
+            <div className="text-[9px] font-black tracking-widest text-cyan-300 uppercase">
+              PONTUAÇÃO GTA 3D
+            </div>
+            <div className="font-mono text-lg font-black text-amber-300 sm:text-2xl">
+              {hudSnap.score.toLocaleString("pt-BR")}
+              <span className="ml-1 text-[10px] text-amber-200/80">PTS</span>
+            </div>
+
+            {hudSnap.combo > 1 && (
+              <div className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-amber-500/25 px-2 py-0.5 font-mono text-[10px] font-black text-amber-300">
+                <Flame className="h-3 w-3 text-amber-400" />
+                {hudSnap.combo}x COMBO!
+              </div>
+            )}
+
+            <div className="mt-2 space-y-1 border-t border-cyan-500/25 pt-1.5 text-left font-mono text-[10px] font-bold">
+              <div className="flex items-center justify-between gap-2 text-sky-200">
+                <span className="flex items-center gap-1 truncate">
+                  <Package className="h-3 w-3 shrink-0 text-sky-400" />
+                  <span className="hidden sm:inline">{worldCfg.supplyLabel}</span>
+                  <span className="sm:hidden">Itens</span>
+                </span>
+                <span className="rounded bg-sky-500/20 px-1.5 text-sky-300">
+                  {hudSnap.suppliesHeld}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between gap-2 text-emerald-200">
+                <span>👥 Pessoas</span>
+                <span className="text-emerald-300">
+                  {helpedPersonIds.length}/{worldCfg.people.length}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between gap-2 text-cyan-200">
+                <span>📡 Torres Rádio</span>
+                <span className="text-cyan-300">
+                  {activatedTowerIds.length}/{worldCfg.radioTowers.length}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between gap-2 text-amber-200">
+                <span>🏁 Corrida GTA</span>
+                <span className="text-amber-300">
+                  {raceCompleted ? "OK ✓" : "Largada"}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between gap-2 text-rose-200">
+                <span>⚔️ Sombras</span>
+                <span className="text-rose-300">
+                  {hudSnap.enemiesDefeated}/{hudSnap.totalEnemies}
+                </span>
+              </div>
+            </div>
           </div>
-
-          {hudSnap.combo > 1 && (
-            <div className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-amber-500/25 px-2 py-0.5 font-mono text-[10px] font-black text-amber-300">
-              <Flame className="h-3 w-3 text-amber-400" />
-              {hudSnap.combo}x COMBO!
-            </div>
-          )}
-
-          <div className="mt-2 space-y-1 border-t border-cyan-500/25 pt-1.5 text-left font-mono text-[10px] font-bold">
-            <div className="flex items-center justify-between gap-2 text-sky-200">
-              <span className="flex items-center gap-1 truncate">
-                <Package className="h-3 w-3 shrink-0 text-sky-400" />
-                <span className="hidden sm:inline">{worldCfg.supplyLabel}</span>
-                <span className="sm:hidden">Itens</span>
-              </span>
-              <span className="rounded bg-sky-500/20 px-1.5 text-sky-300">
-                {hudSnap.suppliesHeld}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between gap-2 text-emerald-200">
-              <span>👥 Pessoas</span>
-              <span className="text-emerald-300">
-                {helpedPersonIds.length}/{worldCfg.people.length}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between gap-2 text-cyan-200">
-              <span>📡 Torres Rádio</span>
-              <span className="text-cyan-300">
-                {activatedTowerIds.length}/{worldCfg.radioTowers.length}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between gap-2 text-amber-200">
-              <span>🏁 Corrida GTA</span>
-              <span className="text-amber-300">
-                {raceCompleted ? "OK ✓" : "Largada"}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between gap-2 text-rose-200">
-              <span>⚔️ Sombras</span>
-              <span className="text-rose-300">
-                {hudSnap.enemiesDefeated}/{hudSnap.totalEnemies}
-              </span>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* =========================================================
@@ -1138,34 +1273,54 @@ export function MissionEngine({
       {/* =========================================================
           BOTTOM-LEFT: VIRTUAL ANALOG JOYSTICK + CHAMPION CREST
          ========================================================= */}
-      <div className="pointer-events-auto absolute bottom-3 left-3 z-20 flex items-end gap-3 sm:bottom-4 sm:left-4">
+      <div className="pointer-events-auto absolute bottom-2.5 left-2.5 z-20 flex items-end gap-2.5 sm:bottom-4 sm:left-4">
         <div
           ref={joystickPadRef}
           onPointerDown={(e) => {
-            e.currentTarget.setPointerCapture(e.pointerId);
+            if (joystickPointerIdRef.current !== null) return;
+            e.preventDefault();
+            e.stopPropagation();
+            joystickPointerIdRef.current = e.pointerId;
+            try {
+              e.currentTarget.setPointerCapture(e.pointerId);
+            } catch {}
             joystickDraggingRef.current = true;
             updateJoystickFromPointer(e.clientX, e.clientY);
           }}
           onPointerMove={(e) => {
-            if (!joystickDraggingRef.current) return;
+            if (!joystickDraggingRef.current || e.pointerId !== joystickPointerIdRef.current) return;
+            e.preventDefault();
+            e.stopPropagation();
             updateJoystickFromPointer(e.clientX, e.clientY);
           }}
-          onPointerUp={() => {
+          onPointerUp={(e) => {
+            if (e.pointerId !== joystickPointerIdRef.current) return;
+            try {
+              e.currentTarget.releasePointerCapture(e.pointerId);
+            } catch {}
+            joystickPointerIdRef.current = null;
             joystickDraggingRef.current = false;
             setJoystickVec({ x: 0, y: 0 });
           }}
-          onPointerCancel={() => {
+          onPointerCancel={(e) => {
+            if (e.pointerId !== joystickPointerIdRef.current) return;
+            try {
+              e.currentTarget.releasePointerCapture(e.pointerId);
+            } catch {}
+            joystickPointerIdRef.current = null;
             joystickDraggingRef.current = false;
             setJoystickVec({ x: 0, y: 0 });
           }}
-          className="relative flex h-24 w-24 touch-none items-center justify-center rounded-full border-2 border-amber-400/45 bg-slate-950/70 shadow-[0_0_24px_rgba(0,0,0,0.65)] backdrop-blur-xs sm:h-28 sm:w-28"
+          className={`relative flex touch-none items-center justify-center rounded-full border-2 border-amber-400/45 bg-slate-950/70 shadow-[0_0_24px_rgba(0,0,0,0.65)] backdrop-blur-xs ${
+            isMobileLandscape ? "h-22 w-22" : "h-24 w-24 sm:h-28 sm:w-28"
+          }`}
         >
-          <div className="pointer-events-none absolute inset-3 rounded-full border border-cyan-400/20" />
+          <div className="pointer-events-none absolute inset-2.5 rounded-full border border-cyan-400/20" />
           <div
             style={{
-              transform: `translate(${joystickVec.x * 28}px, ${joystickVec.y * 28}px)`,
+              transform: `translate(${joystickVec.x * 26}px, ${joystickVec.y * 26}px)`,
             }}
-            className="pointer-events-none flex h-11 w-11 items-center justify-center rounded-full border-2 border-amber-200 bg-gradient-to-b from-amber-300 to-amber-600 text-[10px] font-black text-slate-950 shadow-[0_0_15px_rgba(251,191,36,0.65)]"
+            className="pointer-events-none flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-full border-2 border-amber-200 bg-gradient-to-b from-amber-300 to-amber-600 text-[9px] sm:text-[10px] font-black text-slate-950 shadow-[0_0_15px_rgba(251,191,36,0.65)]"
           >
             MOVER
           </div>
@@ -1196,11 +1351,11 @@ export function MissionEngine({
               )}
             </div>
             <div className="mt-0.5 text-[10px] font-semibold text-amber-200/90">
-              🎥 Câmera: {hudSnap.cameraMode === "gta" ? "GTA Rua 3D" : "Tática"} •
-              Arraste a tela p/ girar visão
+              🎥 Câmera: {hudSnap.cameraMode === "gta" ? "GTA Rua 3D" : "Tática MOBA"} •
+              Clique no chão para mover estilo LoL
             </div>
             <div className="mt-0.5 font-mono text-[9px] text-slate-400">
-              WASD Mover • V Veículo • Shift Turbo • 5-8 Emotes 3D • Espaço Atacar
+              WASD / Clique Mover • V Veículo • Shift Turbo • 5-8 Emotes • Espaço Atacar
             </div>
           </div>
         </div>
@@ -1209,9 +1364,11 @@ export function MissionEngine({
       {/* =========================================================
           BOTTOM-RIGHT: GTA + MOBA ACTION, EMOTES, VEHICLE, TURBO & CAMERA PAD
          ========================================================= */}
-      <div className="pointer-events-auto absolute right-3 bottom-3 z-20 flex flex-col items-end gap-2 sm:right-4 sm:bottom-4">
+      <div className="pointer-events-auto absolute right-2 bottom-2 z-20 flex flex-col items-end gap-1.5 sm:right-4 sm:bottom-4 sm:gap-2">
         {/* AAA 3D Emote Quick-Strip [5, 6, 7, 8] */}
-        <div className="flex items-center justify-end gap-1 rounded-full border border-fuchsia-400/35 bg-slate-950/85 px-2 py-1 shadow-lg backdrop-blur-xs">
+        <div className={`flex items-center justify-end gap-1 rounded-full border border-fuchsia-400/35 bg-slate-950/85 px-2 py-0.5 shadow-lg backdrop-blur-xs ${
+          isMobileLandscape ? "scale-90 origin-right" : ""
+        }`}>
           <span className="mr-1 hidden font-mono text-[9px] font-black text-fuchsia-300 uppercase sm:inline">
             EMOTES 3D:
           </span>
@@ -1228,9 +1385,13 @@ export function MissionEngine({
               type="button"
               whileHover={{ scale: 1.14 }}
               whileTap={{ scale: 0.88 }}
-              onClick={() => fireAction(em.act)}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                fireAction(em.act);
+              }}
               title={em.title}
-              className="flex h-7 cursor-pointer items-center gap-0.5 rounded-full border border-white/15 bg-slate-900/90 px-2 text-xs font-black text-white transition hover:border-amber-300 hover:bg-amber-500/20"
+              className="flex h-6 sm:h-7 cursor-pointer items-center gap-0.5 rounded-full border border-white/15 bg-slate-900/90 px-1.5 sm:px-2 text-xs font-black text-white transition hover:border-amber-300 hover:bg-amber-500/20"
             >
               <span>{em.icon}</span>
               <span className="hidden font-mono text-[9px] text-amber-300 sm:inline">
@@ -1241,24 +1402,30 @@ export function MissionEngine({
         </div>
 
         {/* Top Utility Row: Camera [C] + Cultura + Turbo [Shift] + Vehicle [V] + Nexus */}
-        <div className="flex flex-wrap items-center justify-end gap-1.5">
+        <div className="flex flex-wrap items-center justify-end gap-1 sm:gap-1.5">
           <motion.button
             type="button"
             whileHover={{ scale: 1.07 }}
             whileTap={{ scale: 0.92 }}
-            onClick={() => fireAction("camera")}
-            title="Alternar Câmera GTA 3ª Pessoa / Tática [C]"
-            className="flex h-9 cursor-pointer items-center gap-1 rounded-full border border-slate-600 bg-slate-950/90 px-2.5 text-[10px] font-black text-slate-200 shadow-lg hover:border-amber-300"
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              fireAction("camera");
+            }}
+            title="Alternar Câmera GTA 3ª Pessoa / Tática MOBA [C]"
+            className="flex h-8 sm:h-9 cursor-pointer items-center gap-1 rounded-full border border-slate-600 bg-slate-950/90 px-2 sm:px-2.5 text-[9px] sm:text-[10px] font-black text-slate-200 shadow-lg hover:border-amber-300"
           >
-            <Camera className="h-3.5 w-3.5 text-amber-300" />
-            {hudSnap.cameraMode === "gta" ? "CAM GTA [C]" : "CAM MOBA [C]"}
+            <Camera className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-amber-300" />
+            {hudSnap.cameraMode === "gta" ? "CAM GTA" : "CAM MOBA"}
           </motion.button>
 
           <motion.button
             type="button"
             whileHover={{ scale: 1.07 }}
             whileTap={{ scale: 0.92 }}
-            onClick={() => {
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
               playSfx("click");
               if (totemScanned) {
                 setOverlay("briefing");
@@ -1275,9 +1442,9 @@ export function MissionEngine({
                 });
               }
             }}
-            className="flex h-9 cursor-pointer items-center gap-1 rounded-full border border-cyan-400/60 bg-slate-950/90 px-2.5 text-[10px] font-black text-cyan-300 shadow-lg hover:bg-cyan-500/15"
+            className="flex h-8 sm:h-9 cursor-pointer items-center gap-1 rounded-full border border-cyan-400/60 bg-slate-950/90 px-2 sm:px-2.5 text-[9px] sm:text-[10px] font-black text-cyan-300 shadow-lg hover:bg-cyan-500/15"
           >
-            <Compass className="h-3.5 w-3.5" />
+            <Compass className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
             CULTURA
           </motion.button>
 
@@ -1286,17 +1453,21 @@ export function MissionEngine({
               type="button"
               whileHover={{ scale: 1.08 }}
               whileTap={{ scale: 0.9 }}
-              onClick={() => fireAction("nitro")}
-              className={`flex h-9 cursor-pointer items-center gap-1 rounded-full border-2 px-3 text-[10px] font-black shadow-lg ${
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                fireAction("nitro");
+              }}
+              className={`flex h-8 sm:h-9 cursor-pointer items-center gap-1 rounded-full border-2 px-2.5 sm:px-3 text-[9px] sm:text-[10px] font-black shadow-lg ${
                 hudSnap.nitroCooldown > 0
                   ? "border-slate-700 bg-slate-900 text-slate-400"
                   : "border-sky-200 bg-gradient-to-r from-sky-400 to-blue-600 text-slate-950 shadow-[0_0_18px_#38bdf8]"
               }`}
             >
-              <Gauge className="h-3.5 w-3.5" />
+              <Gauge className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
               {hudSnap.nitroCooldown > 0
                 ? `${hudSnap.nitroCooldown.toFixed(1)}s`
-                : "TURBO [Shift]"}
+                : "TURBO"}
             </motion.button>
           )}
 
@@ -1304,15 +1475,19 @@ export function MissionEngine({
             type="button"
             whileHover={{ scale: 1.08 }}
             whileTap={{ scale: 0.92 }}
-            onClick={() => fireAction("vehicle")}
-            className={`flex h-9 cursor-pointer items-center gap-1.5 rounded-full border-2 px-3 text-[10px] font-black shadow-lg transition ${
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              fireAction("vehicle");
+            }}
+            className={`flex h-8 sm:h-9 cursor-pointer items-center gap-1 sm:gap-1.5 rounded-full border-2 px-2.5 sm:px-3 text-[9px] sm:text-[10px] font-black shadow-lg transition ${
               hudSnap.inVehicle
                 ? "border-cyan-200 bg-cyan-500 text-slate-950 shadow-[0_0_18px_#22d3ee]"
                 : "border-amber-400/60 bg-slate-950/90 text-amber-300 hover:bg-amber-500/15"
             }`}
           >
-            <Car className="h-3.5 w-3.5" />
-            {hudSnap.inVehicle ? "SAIR [V]" : "CARRO/MOTO [V]"}
+            <Car className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+            {hudSnap.inVehicle ? "SAIR [V]" : "CARRO/MOTO"}
           </motion.button>
 
           {dialogueCompleted && (
@@ -1320,41 +1495,47 @@ export function MissionEngine({
               type="button"
               whileHover={{ scale: 1.08 }}
               whileTap={{ scale: 0.92 }}
-              onClick={() => {
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 playSfx("levelUp");
                 setOverlay("decoder");
               }}
-              className="moba-ult-ready flex h-9 cursor-pointer items-center gap-1 rounded-full border-2 border-amber-200 bg-gradient-to-r from-amber-300 to-amber-500 px-3 text-[10px] font-black text-slate-950"
+              className="moba-ult-ready flex h-8 sm:h-9 cursor-pointer items-center gap-1 rounded-full border-2 border-amber-200 bg-gradient-to-r from-amber-300 to-amber-500 px-2.5 sm:px-3 text-[9px] sm:text-[10px] font-black text-slate-950"
             >
-              <Languages className="h-3.5 w-3.5" />
+              <Languages className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
               TRADUZIR
             </motion.button>
           )}
         </div>
 
         {/* MOBA Combat Arc + Giant Primary Attack Button */}
-        <div className="flex items-end gap-2 sm:gap-2.5">
+        <div className="flex items-end gap-1.5 sm:gap-2.5">
           {/* Skill Q [1]: Pulso de Luz */}
           <motion.button
             type="button"
             whileTap={{ scale: 0.88 }}
-            onClick={() => fireAction("skillQ")}
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              fireAction("skillQ");
+            }}
             className="relative flex flex-col items-center"
           >
             <div
-              className={`relative flex h-12 w-12 cursor-pointer items-center justify-center rounded-full border-2 sm:h-13 sm:w-13 ${
+              className={`relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-2 sm:h-13 sm:w-13 ${
                 hudSnap.cooldowns.q > 0
                   ? "border-slate-700 bg-slate-900/90 text-slate-500"
                   : "border-cyan-300 bg-gradient-to-b from-cyan-500/45 to-slate-950 text-cyan-200 shadow-[0_0_16px_rgba(34,211,238,0.45)]"
               }`}
             >
-              <Zap className="h-5 w-5" />
+              <Zap className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
               {hudSnap.cooldowns.q > 0 && (
-                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-slate-950/75 font-mono text-xs font-black text-white">
+                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-slate-950/75 font-mono text-[10px] sm:text-xs font-black text-white">
                   {hudSnap.cooldowns.q.toFixed(1)}
                 </span>
               )}
-              <span className="absolute -right-1 -bottom-1 rounded-full border border-cyan-200 bg-slate-950 px-1 font-mono text-[9px] font-black text-cyan-300">
+              <span className="absolute -right-1 -bottom-1 rounded-full border border-cyan-200 bg-slate-950 px-1 font-mono text-[8px] sm:text-[9px] font-black text-cyan-300">
                 Q
               </span>
             </div>
@@ -1364,23 +1545,27 @@ export function MissionEngine({
           <motion.button
             type="button"
             whileTap={{ scale: 0.88 }}
-            onClick={() => fireAction("skillW")}
-            className="-translate-y-3 relative flex flex-col items-center"
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              fireAction("skillW");
+            }}
+            className="-translate-y-2 relative flex flex-col items-center"
           >
             <div
-              className={`relative flex h-12 w-12 cursor-pointer items-center justify-center rounded-full border-2 sm:h-13 sm:w-13 ${
+              className={`relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-2 sm:h-13 sm:w-13 ${
                 hudSnap.cooldowns.w > 0
                   ? "border-slate-700 bg-slate-900/90 text-slate-500"
                   : "border-emerald-300 bg-gradient-to-b from-emerald-500/45 to-slate-950 text-emerald-200 shadow-[0_0_16px_rgba(16,185,129,0.45)]"
               }`}
             >
-              <ArrowRight className="h-5 w-5 -rotate-45" />
+              <ArrowRight className="h-4.5 w-4.5 -rotate-45 sm:h-5 sm:w-5" />
               {hudSnap.cooldowns.w > 0 && (
-                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-slate-950/75 font-mono text-xs font-black text-white">
+                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-slate-950/75 font-mono text-[10px] sm:text-xs font-black text-white">
                   {hudSnap.cooldowns.w.toFixed(1)}
                 </span>
               )}
-              <span className="absolute -right-1 -bottom-1 rounded-full border border-emerald-200 bg-slate-950 px-1 font-mono text-[9px] font-black text-emerald-300">
+              <span className="absolute -right-1 -bottom-1 rounded-full border border-emerald-200 bg-slate-950 px-1 font-mono text-[8px] sm:text-[9px] font-black text-emerald-300">
                 2
               </span>
             </div>
@@ -1390,23 +1575,27 @@ export function MissionEngine({
           <motion.button
             type="button"
             whileTap={{ scale: 0.88 }}
-            onClick={() => fireAction("skillE")}
-            className="-translate-y-5 relative flex flex-col items-center"
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              fireAction("skillE");
+            }}
+            className="-translate-y-4 relative flex flex-col items-center"
           >
             <div
-              className={`relative flex h-12 w-12 cursor-pointer items-center justify-center rounded-full border-2 sm:h-13 sm:w-13 ${
+              className={`relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-2 sm:h-13 sm:w-13 ${
                 hudSnap.cooldowns.e > 0
                   ? "border-slate-700 bg-slate-900/90 text-slate-500"
                   : "border-amber-300 bg-gradient-to-b from-amber-400/45 to-slate-950 text-amber-200 shadow-[0_0_16px_rgba(251,191,36,0.5)]"
               }`}
             >
-              <Shield className="h-5 w-5" />
+              <Shield className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
               {hudSnap.cooldowns.e > 0 && (
-                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-slate-950/75 font-mono text-xs font-black text-white">
+                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-slate-950/75 font-mono text-[10px] sm:text-xs font-black text-white">
                   {hudSnap.cooldowns.e.toFixed(1)}
                 </span>
               )}
-              <span className="absolute -right-1 -bottom-1 rounded-full border border-amber-200 bg-slate-950 px-1 font-mono text-[9px] font-black text-amber-300">
+              <span className="absolute -right-1 -bottom-1 rounded-full border border-amber-200 bg-slate-950 px-1 font-mono text-[8px] sm:text-[9px] font-black text-amber-300">
                 E
               </span>
             </div>
@@ -1416,38 +1605,45 @@ export function MissionEngine({
           <motion.button
             type="button"
             whileTap={{ scale: 0.88 }}
-            onClick={() => fireAction("skillR")}
-            className="-translate-y-2 relative flex flex-col items-center"
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              fireAction("skillR");
+            }}
+            className="-translate-y-1.5 relative flex flex-col items-center"
           >
             <div
-              className={`relative flex h-13 w-13 cursor-pointer items-center justify-center rounded-full border-2 sm:h-14 sm:w-14 ${
+              className={`relative flex h-12 w-12 cursor-pointer items-center justify-center rounded-full border-2 sm:h-14 sm:w-14 ${
                 hudSnap.cooldowns.r > 0
                   ? "border-slate-700 bg-slate-900/90 text-slate-500"
                   : "border-amber-200 bg-gradient-to-b from-amber-300 via-amber-500 to-orange-700 text-slate-950 shadow-[0_0_22px_rgba(251,191,36,0.75)]"
               }`}
             >
-              <Sparkles className="h-6 w-6" />
+              <Sparkles className="h-5 w-5 sm:h-6 sm:w-6" />
               {hudSnap.cooldowns.r > 0 && (
-                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-slate-950/80 font-mono text-xs font-black text-amber-200">
+                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-slate-950/80 font-mono text-[10px] sm:text-xs font-black text-amber-200">
                   {Math.ceil(hudSnap.cooldowns.r)}s
                 </span>
               )}
-              <span className="absolute -right-1 -bottom-1 rounded border border-amber-200 bg-slate-950 px-1 font-mono text-[8px] font-black text-amber-300">
+              <span className="absolute -right-1 -bottom-1 rounded border border-amber-200 bg-slate-950 px-1 font-mono text-[7px] sm:text-[8px] font-black text-amber-300">
                 ULT
               </span>
             </div>
           </motion.button>
 
-          {/* GIANT PRIMARY MELEE COMBO ATTACK BUTTON */}
+          {/* GIANT PRIMARY MELEE COMBO ATTACK BUTTON (AUTO-REPEAT ON HOLD!) */}
           <motion.button
             type="button"
             whileHover={{ scale: 1.06 }}
             whileTap={{ scale: 0.88 }}
-            onClick={() => fireAction("attack")}
-            className="relative flex h-18 w-18 cursor-pointer flex-col items-center justify-center rounded-full border-3 border-amber-200 bg-gradient-to-b from-rose-500 via-red-600 to-rose-900 text-white shadow-[0_0_28px_rgba(244,63,94,0.65)] sm:h-21 sm:w-21"
+            onPointerDown={startContinuousAttack}
+            onPointerUp={stopContinuousAttack}
+            onPointerLeave={stopContinuousAttack}
+            onPointerCancel={stopContinuousAttack}
+            className="relative flex h-16 w-16 sm:h-20 sm:w-20 cursor-pointer flex-col items-center justify-center rounded-full border-3 border-amber-200 bg-gradient-to-b from-rose-500 via-red-600 to-rose-900 text-white shadow-[0_0_28px_rgba(244,63,94,0.65)]"
           >
-            <Swords className="h-8 w-8 drop-shadow" />
-            <span className="mt-0.5 font-mono text-[9px] font-black tracking-wider text-amber-200 uppercase">
+            <Swords className="h-7 w-7 sm:h-8 sm:w-8 drop-shadow" />
+            <span className="mt-0.5 font-mono text-[8px] sm:text-[9px] font-black tracking-wider text-amber-200 uppercase">
               ATACAR
             </span>
           </motion.button>
