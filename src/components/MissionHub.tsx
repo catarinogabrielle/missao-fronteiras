@@ -6,8 +6,6 @@ import {
   BookOpen,
   CheckCircle2,
   Compass,
-  Flame,
-  Gem,
   Lock,
   MapPin,
   Radio,
@@ -16,8 +14,6 @@ import {
   Swords,
   Trophy,
   Users,
-  Volume2,
-  VolumeX,
 } from "lucide-react";
 import { Mission } from "@/types/game";
 import { useGame } from "@/context/GameContext";
@@ -32,6 +28,52 @@ import { WorldGlobe3D } from "./WorldGlobe3D";
 import { HeroPreview3D } from "./HeroPreview3D";
 import { HeroPortrait, NpcPortrait } from "./GamePortrait";
 import { MobaButton } from "./MobaButton";
+
+const MISSION_TACTICAL_OBJECTIVES: Record<
+  string,
+  {
+    role: string;
+    quote: string;
+    tasks: [string, string, string];
+  }
+> = {
+  amazonia: {
+    role: "GUIA LOCAL & PESCADOR",
+    quote: "A maré está subindo e precisamos levar os suprimentos médicos aos ribeirinhos!",
+    tasks: [
+      "Navegue pelo Rio Negro recolhendo caixas de remédios.",
+      "Ative as 3 torres de rádio missionárias na orla.",
+      "Conecte-se com Cauã e compartilhe a mensagem de fé.",
+    ],
+  },
+  janela1040: {
+    role: "LÍDER DA CARAVANA & DIPLOMATA",
+    quote: "As caravanas no deserto necessitam de água viva e mensagens de esperança.",
+    tasks: [
+      "Guie a caravana através das dunas evitando tempestades.",
+      "Restabeleça os poços de água e sinais de comunicação.",
+      "Dialogue com os anciãos locais com respeito e sabedoria.",
+    ],
+  },
+  toquio: {
+    role: "ESTUDANTE & CRIADORA DE CONTEÚDO",
+    quote: "No brilho do neon, milhares buscam um propósito verdadeiro de vida!",
+    tasks: [
+      "Ative murais digitais e conecte jovens isolados em Shibuya.",
+      "Distribua mensagens de acolhimento e escuta atenta.",
+      "Una a equipe em oração para transformar corações na metrópole.",
+    ],
+  },
+  mocambique: {
+    role: "PROFESSOR & TRADUTOR MACUA",
+    quote: "Ouvir as Escrituras na nossa língua mãe alegra toda a comunidade!",
+    tasks: [
+      "Distribua as áudio-bíblias na savana para vilarejos remotos.",
+      "Monte a tenda comunitária sob a grande árvore da vila.",
+      "Celebre com a comunidade Macua com cantos e ações de graças.",
+    ],
+  },
+};
 
 interface MissionHubProps {
   onSelectMission: (mission: Mission) => void;
@@ -63,7 +105,6 @@ export function MissionHub({
     xpInCurrentLevel,
     xpForNextLevel,
     playSfx,
-    toggleMute,
   } = useGame();
   const { isMobileLandscape } = useMobileViewport();
 
@@ -121,8 +162,12 @@ export function MissionHub({
      - Right (4 cols): NPC contact card, mission rewards, and giant JOGAR button.
      ========================================================================= */
   if (isMobileLandscape) {
+    const tacticalIntel =
+      MISSION_TACTICAL_OBJECTIVES[selectedMission.id] ||
+      MISSION_TACTICAL_OBJECTIVES.amazonia;
+
     return (
-      <div className="fixed inset-0 flex h-full h-dvh w-full flex-col justify-between overflow-hidden bg-slate-950 p-2 select-none touch-manipulation">
+      <div className="relative flex-1 min-h-0 w-full flex flex-col justify-between overflow-hidden bg-slate-950 p-1.5 sm:p-2 select-none touch-manipulation">
         {/* Subtle Background Ambient Splash of Highlighted Arena */}
         <AnimatePresence mode="wait">
           <motion.img
@@ -130,113 +175,19 @@ export function MissionHub({
             src={selectedSplash}
             alt=""
             initial={{ opacity: 0 }}
-            animate={{ opacity: 0.18 }}
+            animate={{ opacity: 0.22 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.35 }}
             className="pointer-events-none fixed inset-0 h-full w-full object-cover blur-xs"
           />
         </AnimatePresence>
+        <div className="pointer-events-none fixed inset-0 bg-radial from-transparent via-slate-950/60 to-slate-950/90" />
 
-        {/* 1. TOP ECHOES OF ARENA NAVBAR (36px fixed) */}
-        <header className="relative z-20 flex h-8 shrink-0 items-center justify-between border-b border-amber-500/25 px-2 bg-slate-950/80 backdrop-blur-md">
-          {/* Logo & Game Title */}
-          <div className="flex items-center gap-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/icons/icon-192.png"
-              alt="Logo"
-              className="h-6 w-6 rounded-lg border border-amber-400/70 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
-            />
-            <span className="font-black text-xs tracking-wider text-white uppercase bg-gradient-to-r from-amber-200 via-white to-cyan-300 bg-clip-text text-transparent">
-              Missão Fronteiras
-            </span>
-          </div>
-
-          {/* Center Tabs (Echoes of Arena matching Image 1) */}
-          <div className="flex items-center gap-1 sm:gap-2">
-            <div className="relative px-3 py-1 text-xs font-black text-white uppercase">
-              <span className="text-amber-300">Jogar</span>
-              <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-gradient-to-r from-amber-400 to-cyan-400 shadow-[0_0_8px_#fbbf24]" />
-            </div>
-            <button
-              type="button"
-              onClick={onOpenWardrobe}
-              className="px-3 py-1 text-xs font-black text-slate-400 transition hover:text-white uppercase cursor-pointer"
-            >
-              Heróis
-            </button>
-            <button
-              type="button"
-              onClick={() => onOpenPocketBible("gospel")}
-              className="px-3 py-1 text-xs font-black text-slate-400 transition hover:text-white uppercase cursor-pointer"
-            >
-              Aprender
-            </button>
-          </div>
-
-          {/* Right Resources & Controls */}
-          <div className="flex items-center gap-2 shrink-0">
-            <div
-              title="Chamas de Fervor"
-              className="inline-flex items-center gap-1 rounded-md border border-orange-500/40 bg-slate-900/90 px-1.5 py-0.5 text-[9px] font-black text-orange-300"
-            >
-              <Flame className="h-3 w-3 fill-orange-400 text-orange-400" />
-              <span>{state.streak}</span>
-            </div>
-
-            <div
-              title="Cristais de Sabedoria"
-              className="inline-flex items-center gap-1 rounded-md border border-cyan-400/40 bg-slate-900/90 px-1.5 py-0.5 text-[9px] font-black text-cyan-200"
-            >
-              <Gem className="h-3 w-3 text-cyan-300" />
-              <span>{state.wisdom}</span>
-            </div>
-
-            <MobaButton
-              variant="gold"
-              size="sm"
-              shape="slant"
-              onClick={onOpenLeaderPanel}
-              className="!py-0.5 !px-2 !text-[9px]"
-            >
-              <ShieldCheck className="h-3 w-3" />
-              <span>Líder</span>
-            </MobaButton>
-
-            {onSwitchUser && (
-              <MobaButton
-                variant="obsidian"
-                size="sm"
-                shape="slant"
-                sheen={false}
-                onClick={onSwitchUser}
-                className="!py-0.5 !px-2 !text-[9px]"
-              >
-                <Users className="h-3 w-3 text-amber-300" />
-                <span>Trocar</span>
-              </MobaButton>
-            )}
-
-            <button
-              type="button"
-              onClick={toggleMute}
-              title={state.muted ? "Ativar Som" : "Silenciar"}
-              className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-slate-300 hover:text-white"
-            >
-              {state.muted ? (
-                <VolumeX className="h-3 w-3 text-rose-400" />
-              ) : (
-                <Volume2 className="h-3 w-3 text-emerald-400" />
-              )}
-            </button>
-          </div>
-        </header>
-
-        {/* 2. MAIN 3-COLUMN LOBBY STAGE (100% NO SCROLL) */}
-        <div className="relative z-10 grid flex-1 min-h-0 grid-cols-12 gap-2 mt-1 overflow-hidden">
-          {/* LEFT COLUMN (3 cols, ~25%): Mode Selector + Summoner Profile Card */}
-          <section className="col-span-3 moba-panel-cyan moba-clip-panel flex flex-col justify-between h-full min-h-0 p-2 overflow-hidden">
-            {/* Top: Game Modes List (matching Image 1 left menu) */}
+        {/* MAIN 3-COLUMN LOBBY STAGE (100% NO SCROLL) */}
+        <div className="relative z-10 grid flex-1 min-h-0 grid-cols-12 gap-2 overflow-hidden">
+          {/* LEFT COLUMN (3 cols): Mode Selector + Summoner Profile Card */}
+          <section className="col-span-3 rounded-2xl border border-cyan-500/25 bg-slate-950/80 backdrop-blur-md flex flex-col justify-between h-full min-h-0 p-2 overflow-hidden shadow-xl">
+            {/* Top: Game Modes List */}
             <div className="space-y-1 shrink-0">
               <div className="text-[9px] font-black tracking-widest text-cyan-400 uppercase">
                 Modos & Cidades
@@ -250,7 +201,7 @@ export function MissionHub({
                     <div className="truncate text-[10px] font-black text-white uppercase">
                       JOGAR • {selectedMission.title}
                     </div>
-                    <div className="text-[8px] font-bold text-amber-300">
+                    <div className="text-[7.5px] font-bold text-amber-300">
                       Fase {selectedMission.order} • {selectedMission.difficulty}
                     </div>
                   </div>
@@ -263,11 +214,11 @@ export function MissionHub({
                 onClick={onOpenTribesQuiz}
                 className="w-full flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900/80 px-2 py-1 text-left text-slate-300 hover:border-cyan-400 hover:text-white cursor-pointer transition"
               >
-                <span className="flex items-center gap-1.5 text-[9px] font-black uppercase">
+                <span className="flex items-center gap-1.5 text-[8.5px] font-black uppercase">
                   <Swords className="h-3 w-3 text-fuchsia-400" />
                   Arena de Tribos
                 </span>
-                <span className="text-[8px] font-bold text-fuchsia-300">4v4</span>
+                <span className="text-[7.5px] font-bold text-fuchsia-300">4v4</span>
               </button>
 
               <button
@@ -275,11 +226,11 @@ export function MissionHub({
                 onClick={onOpenPrayerRadar}
                 className="w-full flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900/80 px-2 py-1 text-left text-slate-300 hover:border-cyan-400 hover:text-white cursor-pointer transition"
               >
-                <span className="flex items-center gap-1.5 text-[9px] font-black uppercase">
+                <span className="flex items-center gap-1.5 text-[8.5px] font-black uppercase">
                   <Radio className="h-3 w-3 text-amber-400" />
                   Radar de Oração
                 </span>
-                <span className="text-[8px] font-mono text-amber-300">
+                <span className="text-[7.5px] font-mono text-amber-300">
                   {state.prayedMissionIds.length}/4
                 </span>
               </button>
@@ -289,11 +240,11 @@ export function MissionHub({
                 onClick={() => onOpenPocketBible("gospel")}
                 className="w-full flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900/80 px-2 py-1 text-left text-slate-300 hover:border-cyan-400 hover:text-white cursor-pointer transition"
               >
-                <span className="flex items-center gap-1.5 text-[9px] font-black uppercase">
+                <span className="flex items-center gap-1.5 text-[8.5px] font-black uppercase">
                   <BookOpen className="h-3 w-3 text-emerald-400" />
                   Grimório Bíblico
                 </span>
-                <span className="text-[8px] font-mono text-emerald-300">
+                <span className="text-[7.5px] font-mono text-emerald-300">
                   {state.studiedGospelSteps.length}/4
                 </span>
               </button>
@@ -303,30 +254,30 @@ export function MissionHub({
                 onClick={onOpenPassport}
                 className="w-full flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900/80 px-2 py-1 text-left text-slate-300 hover:border-cyan-400 hover:text-white cursor-pointer transition"
               >
-                <span className="flex items-center gap-1.5 text-[9px] font-black uppercase">
+                <span className="flex items-center gap-1.5 text-[8.5px] font-black uppercase">
                   <Trophy className="h-3 w-3 text-cyan-400" />
                   Passaporte Cards
                 </span>
-                <span className="text-[8px] font-mono text-cyan-300">
+                <span className="text-[7.5px] font-mono text-cyan-300">
                   {completedIds.length}/{allMissions.length}
                 </span>
               </button>
             </div>
 
-            {/* Bottom: Summoner Profile Card (matching Image 1 bottom left) */}
+            {/* Bottom: Summoner Profile Card */}
             <div className="shrink-0 rounded-xl border border-cyan-500/30 bg-slate-950/90 p-1.5 mt-1">
               <div className="flex items-center gap-2">
                 <HeroPortrait
                   avatarId={state.agent.avatarId}
-                  size={32}
+                  size={30}
                   shape="hex"
                   active
                 />
                 <div className="min-w-0 flex-1 truncate">
-                  <div className="truncate text-[10px] font-black text-white uppercase">
+                  <div className="truncate text-[9.5px] font-black text-white uppercase">
                     {state.agent.name}
                   </div>
-                  <div className="text-[8px] font-bold text-amber-300 truncate">
+                  <div className="text-[7.5px] font-bold text-amber-300 truncate">
                     NV.{level} • {levelTitle}
                   </div>
                   <div className="mt-0.5 h-1 w-full overflow-hidden rounded-full bg-slate-900">
@@ -340,8 +291,8 @@ export function MissionHub({
             </div>
           </section>
 
-          {/* CENTER STAGE (5 cols, ~42%): 3D Champion Stand or World Altar & 4 City Buttons */}
-          <section className="col-span-5 moba-panel-gold moba-clip-panel flex flex-col justify-between h-full min-h-0 p-2 overflow-hidden">
+          {/* CENTER STAGE (5 cols): 3D Champion on Dais & 4 City Cards */}
+          <section className="col-span-5 rounded-2xl border border-amber-500/35 bg-gradient-to-b from-slate-950/80 via-[#071328]/75 to-slate-950/80 backdrop-blur-md flex flex-col justify-between h-full min-h-0 p-2 overflow-hidden shadow-2xl">
             {/* Top Stage Header */}
             <div className="shrink-0 flex items-center justify-between border-b border-amber-500/20 pb-1">
               <div>
@@ -352,24 +303,25 @@ export function MissionHub({
                   {selectedMission.emoji} {selectedMission.title}
                 </div>
               </div>
-              <span className="rounded border border-emerald-400/40 bg-emerald-500/15 px-2 py-0.5 font-mono text-[9px] font-black text-emerald-300">
+              <span className="rounded border border-emerald-400/40 bg-emerald-500/15 px-2 py-0.5 font-mono text-[8.5px] font-black text-emerald-300">
                 {completedIds.length}/{allMissions.length} VITÓRIAS
               </span>
             </div>
 
-            {/* Centerpiece: Interactive 3D Champion Stand on Runic Dais */}
+            {/* Centerpiece: Interactive 3D Champion Stand on Runic Dais (Borderless) */}
             <div className="my-0.5 flex flex-1 min-h-0 items-center justify-center overflow-hidden">
               <HeroPreview3D
                 avatarId={state.agent.avatarId}
                 skinId={state.agent.skinId ?? "padrao"}
                 agentName={state.agent.name}
-                heightClass="h-full max-h-[160px]"
+                heightClass="h-full max-h-[175px]"
                 showEmoteBar
                 compact
+                borderless
               />
             </div>
 
-            {/* Bottom: 4 City Quick-Select Buttons (matching Image 1 carousel) */}
+            {/* Bottom: 4 City Quick-Select Buttons */}
             <div className="shrink-0 border-t border-amber-500/20 pt-1">
               <div className="grid grid-cols-4 gap-1">
                 {allMissions.map((m) => {
@@ -407,20 +359,20 @@ export function MissionHub({
             </div>
           </section>
 
-          {/* RIGHT COLUMN (4 cols, ~33%): NPC Briefing Card + Rewards + Giant JOGAR Button */}
-          <section className="col-span-4 moba-panel-cyan moba-clip-panel flex flex-col justify-between h-full min-h-0 p-2 overflow-hidden">
-            {/* Card 1: NPC Ally Briefing (matching Image 1 NOTÍCIAS) */}
-            <div className="rounded-xl border border-cyan-500/30 bg-slate-950/90 p-2 shrink-0">
+          {/* RIGHT COLUMN (4 cols): Rich Tactical Intel + Objectives + Rewards + CTA */}
+          <section className="col-span-4 rounded-2xl border border-cyan-500/25 bg-slate-950/80 backdrop-blur-md flex flex-col justify-between h-full min-h-0 p-2 overflow-hidden shadow-xl">
+            {/* 1. NPC Ally Briefing */}
+            <div className="rounded-xl border border-cyan-500/30 bg-slate-900/90 p-1.5 shrink-0">
               <div className="flex items-center gap-2">
                 <NpcPortrait
                   avatarKey={selectedMission.npc.avatarKey}
-                  size={42}
+                  size={36}
                   shape="hex"
                 />
                 <div className="min-w-0 flex-1 truncate">
                   <div className="flex items-center justify-between">
-                    <span className="text-[8px] font-black tracking-widest text-cyan-400 uppercase">
-                      CONTATO PRINCIPAL
+                    <span className="text-[7.5px] font-black tracking-widest text-cyan-400 uppercase">
+                      {tacticalIntel.role}
                     </span>
                     {selectedPrayed && (
                       <span className="rounded-full bg-amber-500/20 px-1 py-0.2 text-[7px] font-bold text-amber-200">
@@ -428,42 +380,54 @@ export function MissionHub({
                       </span>
                     )}
                   </div>
-                  <div className="truncate text-xs font-black text-white">
+                  <div className="truncate text-[11px] font-black text-white">
                     {selectedMission.npc.name} ({selectedMission.npc.age} anos)
                   </div>
-                  <p className="line-clamp-2 text-[9px] text-slate-300 leading-tight mt-0.5">
-                    {selectedMission.npc.bio}
+                  <p className="line-clamp-2 text-[8px] text-slate-300 leading-tight italic mt-0.5">
+                    &ldquo;{tacticalIntel.quote}&rdquo;
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Card 2: Rewards and Missions Summary */}
-            <div className="my-1 flex-1 min-h-0 flex flex-col justify-center rounded-xl border border-slate-800 bg-slate-950/80 p-2 text-center">
-              <div className="text-[8px] font-bold text-slate-400 uppercase">
-                RECOMPENSA DE VITÓRIA
+            {/* 2. Tactical Objectives Checklist */}
+            <div className="my-1 flex-1 min-h-0 flex flex-col justify-between rounded-xl border border-slate-800 bg-slate-900/80 p-1.5">
+              <div className="text-[7.5px] font-bold text-cyan-300 uppercase mb-0.5">
+                Objetivos da Operação
               </div>
-              <div className="font-mono text-xs font-black text-emerald-400 mt-0.5">
-                +{selectedMission.rewardXp} XP • +{selectedMission.rewardWisdom} 💎
+              <div className="space-y-1 text-[8px] leading-tight">
+                {tacticalIntel.tasks.map((task, idx) => (
+                  <div key={idx} className="flex items-start gap-1 text-slate-300">
+                    <span className="text-amber-400 font-bold shrink-0">
+                      {idx === 0 ? "🏃" : idx === 1 ? "📡" : "🤝"}
+                    </span>
+                    <span className="line-clamp-1">{task}</span>
+                  </div>
+                ))}
               </div>
-              <div className="mt-1 border-t border-slate-800 pt-1 text-[8px] font-bold text-amber-300 uppercase">
-                {selectedRecord?.completed
-                  ? `RECORDE DE CONFIANÇA: ${selectedRecord.bestTrust}% ✨`
-                  : "12 MISSÕES: CORRIDA + TORRES + CHEFE"}
+
+              {/* Rewards Badge */}
+              <div className="mt-1 border-t border-slate-800 pt-1 flex items-center justify-between text-[7.5px]">
+                <span className="font-bold text-slate-400 uppercase">
+                  Recompensa:
+                </span>
+                <span className="font-mono font-black text-emerald-400">
+                  +{selectedMission.rewardXp} XP • +{selectedMission.rewardWisdom} 💎
+                </span>
               </div>
             </div>
 
-            {/* Bottom Right CTA: Giant Glowing JOGAR Button (matching Image 1 bottom right) */}
+            {/* 3. Bottom Right CTA: Giant Glowing JOGAR Button */}
             <div className="shrink-0 space-y-1">
               {selectedUnlocked ? (
                 <MobaButton
                   variant="gold"
-                  size="lg"
+                  size="md"
                   shape="hex"
                   onClick={() => onSelectMission(selectedMission)}
-                  className="w-full !py-2.5 !text-sm font-black shadow-[0_0_24px_rgba(245,158,11,0.65)]"
+                  className="w-full !py-2 !text-xs font-black shadow-[0_0_24px_rgba(245,158,11,0.65)]"
                 >
-                  <Sparkles className="h-4 w-4" />
+                  <Sparkles className="h-3.5 w-3.5" />
                   {selectedRecord?.completed
                     ? "REENTRAR NA CIDADE 3D"
                     : "JOGAR • ENTRAR NA CIDADE"}
@@ -474,14 +438,14 @@ export function MissionHub({
                   size="md"
                   shape="hex"
                   disabled
-                  className="w-full !py-2 text-xs"
+                  className="w-full !py-1.5 text-[10px]"
                 >
-                  <Lock className="h-3.5 w-3.5" />
+                  <Lock className="h-3 w-3" />
                   VENÇA A FASE {selectedMission.order - 1} PRIMEIRO
                 </MobaButton>
               )}
 
-              <div className="text-center font-mono text-[8px] font-bold text-cyan-300/80 uppercase">
+              <div className="text-center font-mono text-[7.5px] font-bold text-cyan-300/80 uppercase truncate">
                 BASE MISSIONÁRIA • {selectedMission.regionName}
               </div>
             </div>

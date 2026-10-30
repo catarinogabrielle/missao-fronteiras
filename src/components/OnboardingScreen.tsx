@@ -113,6 +113,62 @@ const CHAMPION_STATS: Record<
   },
 };
 
+const CHAMPION_TACTICAL_INTEL: Record<
+  AvatarId,
+  {
+    bio: string;
+    verse: string;
+    verseRef: string;
+    squadSynergy: string[];
+    tips: [string, string, string];
+  }
+> = {
+  lucas: {
+    bio: "Explorador intrépido dos rios e matas. Com mochila sempre pronta, lidera expedições ribeirinhas levando socorro prático e esperança.",
+    verse: "Não temas, porque eu sou contigo; não te assombres, porque eu sou o teu Deus.",
+    verseRef: "Isaías 41:10",
+    squadSynergy: ["VANGUARDA", "RESGATE", "SERVIÇO", "EXPLORAÇÃO"],
+    tips: [
+      "Use Pulso de Luz (Q) para limpar rotas escuras e curar aliados feridos.",
+      "O Dash Tático (W) permite cruzar pontes e terrenos difíceis com velocidade.",
+      "Ative o Escudo da Fé (E) para blindar seu esquadrão contra tempestades e desânimo.",
+    ],
+  },
+  sofia: {
+    bio: "Artista sensível e comunicadora acolhedora. Conecta corações de diferentes culturas através da música, murais expressivos e empatia viva.",
+    verse: "Alegrem-se com os que se alegram; chorem com os que choram.",
+    verseRef: "Romanos 12:15",
+    squadSynergy: ["SUPORTE", "ARTE", "EMPATIA", "COMUNHÃO"],
+    tips: [
+      "Música de Paz (Q) quebra resistências culturais e acalma corações nas cidades.",
+      "Ponte Visual (W) ilustra histórias bíblicas em murais para quem não sabe ler.",
+      "Acolhimento (E) restaura a esperança e regenera a confiança de povos isolados.",
+    ],
+  },
+  davi: {
+    bio: "Especialista em tecnologia, dialetos e rádio digital. Decifra línguas raras e conecta comunidades isoladas via satélite com sabedoria.",
+    verse: "Lâmpada para os meus pés é a tua palavra e luz para o meu caminho.",
+    verseRef: "Salmos 119:105",
+    squadSynergy: ["TECNOLOGIA", "TRADUÇÃO", "SINAL", "ESTRATÉGIA"],
+    tips: [
+      "O Decodificador (Q) traduz dialetos complexos ao dialogar com anciãos.",
+      "Link Satélite (W) sincroniza dados e transmite a Bíblia em áudio via rádio.",
+      "O Firewall da Verdade (E) bloqueia desinformação e protege jovens contra mentiras.",
+    ],
+  },
+  ester: {
+    bio: "Diplomata destemida e guardiã da Janela 10/40. Intercede com fé inabalável em governos, capitais e regiões de alta perseguição religiosa.",
+    verse: "Quem sabe se não foi para um momento como este que você chegou à realeza?",
+    verseRef: "Ester 4:14",
+    squadSynergy: ["DIPLOMACIA", "INTERCESSÃO", "LIDERANÇA", "PROTEÇÃO"],
+    tips: [
+      "Oração Fervente (Q) move montanhas espirituais e dissipa perigos invisíveis.",
+      "Voz de Justiça (W) estabelece pontes com autoridades para obter autorizações.",
+      "A Capa Protetora (E) estende um manto de refúgio celestial sobre a base.",
+    ],
+  },
+};
+
 export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
   const {
     createAgent,
@@ -189,24 +245,27 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
       return CHAMPION_STATS[av.id].category === mobileRoleFilter;
     });
 
+    const tacticalIntel = CHAMPION_TACTICAL_INTEL[selectedAvatar];
+
     return (
-      <div className="fixed inset-0 flex h-full h-dvh w-full flex-col justify-between overflow-hidden bg-slate-950 p-2 select-none touch-manipulation">
-        {/* Subtle Background Splash of Highlighted Champion Arena */}
+      <div className="fixed inset-0 flex h-full h-dvh w-full flex-col justify-between overflow-hidden bg-slate-950 p-1.5 sm:p-2 select-none touch-manipulation">
+        {/* Subtle Background Splash of Highlighted Champion Arena with Vignette */}
         <AnimatePresence mode="wait">
           <motion.img
             key={activeStats.arenaBg}
             src={activeStats.arenaBg}
             alt=""
             initial={{ opacity: 0 }}
-            animate={{ opacity: 0.16 }}
+            animate={{ opacity: 0.22 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.4 }}
             className="pointer-events-none fixed inset-0 h-full w-full object-cover blur-xs"
           />
         </AnimatePresence>
+        <div className="pointer-events-none fixed inset-0 bg-radial from-transparent via-slate-950/60 to-slate-950/90" />
 
-        {/* 1. TOP ECHOES OF ARENA NAVBAR (36px fixed) */}
-        <header className="relative z-20 flex h-8 shrink-0 items-center justify-between border-b border-amber-500/25 px-2 bg-slate-950/80 backdrop-blur-md">
+        {/* 1. TOP ECHOES OF ARENA NAVBAR (32px fixed) */}
+        <header className="relative z-20 flex h-8 shrink-0 items-center justify-between border-b border-amber-500/25 px-2 bg-slate-950/85 backdrop-blur-md rounded-lg">
           {/* Logo & Game Title */}
           <div className="flex items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -220,30 +279,30 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
             </span>
           </div>
 
-          {/* Center Tabs (Echoes of Arena) */}
-          <div className="flex items-center gap-1 sm:gap-2">
+          {/* Center Tabs (Echoes of Arena: Jogar | Heróis | Painel) */}
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => handleConfirm()}
-              className="px-3 py-1 text-xs font-black text-slate-400 transition hover:text-white uppercase"
+              className="px-2.5 py-0.5 text-xs font-black text-slate-400 transition hover:text-white uppercase cursor-pointer"
             >
               Jogar
             </button>
-            <div className="relative px-3 py-1 text-xs font-black text-white uppercase">
-              <span className="text-amber-300">Heróis</span>
+            <div className="relative px-2.5 py-0.5 text-xs font-black text-amber-300 uppercase">
+              <span>Heróis</span>
               <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-gradient-to-r from-amber-400 to-cyan-400 shadow-[0_0_8px_#fbbf24]" />
             </div>
             <button
               type="button"
               onClick={onOpenLeaderPanel}
-              className="px-3 py-1 text-xs font-black text-slate-400 transition hover:text-white uppercase"
+              className="px-2.5 py-0.5 text-xs font-black text-slate-400 transition hover:text-white uppercase cursor-pointer"
             >
               Painel
             </button>
           </div>
 
           {/* Right Resources & Controls */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             <div className="inline-flex items-center gap-1 rounded-md border border-cyan-400/40 bg-slate-900/90 px-2 py-0.5 text-[10px] font-black text-cyan-200">
               <Gem className="h-3 w-3 text-cyan-300" />
               <span>{state.wisdom} 💎</span>
@@ -276,15 +335,15 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
         </header>
 
         {/* 2. MAIN 3-COLUMN HEROES WORKBENCH (100% NO SCROLL) */}
-        <div className="relative z-10 grid flex-1 min-h-0 grid-cols-12 gap-2 mt-1 overflow-hidden">
-          {/* LEFT COLUMN (3 cols, ~25%): Role Filters + 4 Hero Cards */}
-          <section className="col-span-3 moba-panel-cyan moba-clip-panel flex flex-col justify-between h-full min-h-0 p-2 overflow-hidden">
+        <div className="relative z-10 grid flex-1 min-h-0 grid-cols-12 gap-2 mt-1.5 overflow-hidden">
+          {/* LEFT COLUMN (3 cols): Role Filters + Non-stretching Hero Cards */}
+          <section className="col-span-3 rounded-2xl border border-cyan-500/25 bg-slate-950/80 backdrop-blur-md flex flex-col justify-between h-full min-h-0 p-2 overflow-hidden shadow-xl">
             {/* Top: Role Filter Pills */}
             <div className="shrink-0">
               <div className="text-[9px] font-black tracking-widest text-cyan-400 uppercase mb-1">
                 Função do Agente
               </div>
-              <div className="grid grid-cols-5 gap-1">
+              <div className="grid grid-cols-5 gap-0.5">
                 {(["TODOS", "CAMPO", "ARTE", "TECH", "FÉ"] as const).map(
                   (role) => (
                     <button
@@ -304,45 +363,58 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
               </div>
             </div>
 
-            {/* Hero Cards Grid (matching Image 3 Thorn, Astra, Leo cards) */}
-            <div className="my-1 flex-1 min-h-0 grid grid-cols-2 gap-1.5 overflow-hidden">
-              {filteredAvatars.map((av) => {
-                const isSelected = av.id === selectedAvatar;
-                const stats = CHAMPION_STATS[av.id];
-                return (
-                  <button
-                    key={av.id}
-                    type="button"
-                    onClick={() => {
-                      playSfx("click");
-                      setSelectedAvatar(av.id);
-                    }}
-                    className={`relative flex flex-col items-center justify-between rounded-xl border p-1 text-center transition cursor-pointer ${
-                      isSelected
-                        ? "border-amber-300 bg-amber-500/20 shadow-[0_0_16px_rgba(245,158,11,0.5)] ring-1 ring-amber-300"
-                        : "border-slate-800 bg-slate-900/80 hover:border-slate-600"
-                    }`}
-                  >
-                    <HeroPortrait
-                      avatarId={av.id}
-                      size={36}
-                      shape="hex"
-                      active={isSelected}
-                    />
-                    <div className="w-full truncate">
-                      <div className="truncate text-[10px] font-black text-white uppercase">
-                        {av.name}
+            {/* Hero Cards List: Fixed Height Cards (Never Stretch!) */}
+            <div className="my-1 flex-1 min-h-0 flex flex-col gap-1.5 overflow-y-auto">
+              <div className="grid grid-cols-2 gap-1.5 auto-rows-max">
+                {filteredAvatars.map((av) => {
+                  const isSelected = av.id === selectedAvatar;
+                  const stats = CHAMPION_STATS[av.id];
+                  return (
+                    <button
+                      key={av.id}
+                      type="button"
+                      onClick={() => {
+                        playSfx("click");
+                        setSelectedAvatar(av.id);
+                      }}
+                      className={`relative flex items-center gap-1.5 rounded-xl border p-1 text-left transition cursor-pointer h-13 ${
+                        isSelected
+                          ? "border-amber-300 bg-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.5)] ring-1 ring-amber-300"
+                          : "border-slate-800 bg-slate-900/80 hover:border-slate-600"
+                      }`}
+                    >
+                      <HeroPortrait
+                        avatarId={av.id}
+                        size={32}
+                        shape="hex"
+                        active={isSelected}
+                      />
+                      <div className="min-w-0 flex-1 truncate">
+                        <div className="truncate text-[10px] font-black text-white uppercase">
+                          {av.name}
+                        </div>
+                        <div className="text-[7px] font-bold text-amber-300 truncate">
+                          {stats.category}
+                        </div>
                       </div>
-                      <div className="text-[8px] font-bold text-amber-300/90 truncate">
-                        {stats.category}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Tactical Speciality Insight when filtered to 1 hero (Prevents empty look) */}
+              {filteredAvatars.length === 1 && (
+                <div className="mt-auto rounded-xl border border-cyan-500/20 bg-slate-900/70 p-1.5 text-[8px] text-slate-300">
+                  <div className="font-bold text-cyan-300 uppercase mb-0.5 flex items-center gap-1">
+                    <Sparkles className="h-2.5 w-2.5 text-amber-300" />
+                    <span>Especialidade de {activeChampion.name}</span>
+                  </div>
+                  <p className="leading-tight text-slate-300">{activeStats.roleTitle}</p>
+                </div>
+              )}
             </div>
 
-            {/* Bottom: Quick Test Button */}
+            {/* Bottom: Quick View Mode Toggle */}
             <button
               type="button"
               onClick={() => {
@@ -352,13 +424,13 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
               className="shrink-0 flex items-center justify-center gap-1 rounded-lg border border-slate-700 bg-slate-900/90 py-1 text-[9px] font-black text-slate-300 hover:border-cyan-400 hover:text-white cursor-pointer"
             >
               <Box className="h-3 w-3 text-cyan-300" />
-              <span>{viewMode === "3d" ? "Ver Arte Oficial" : "Ver 3D"}</span>
+              <span>{viewMode === "3d" ? "Ver Arte Oficial" : "Ver Boneco 3D"}</span>
             </button>
           </section>
 
-          {/* CENTER STAGE (5 cols, ~42%): Hero Title, 4 Stat Bars, 3D Turntable, 3 Skill Circles */}
-          <section className="col-span-5 moba-panel-gold moba-clip-panel flex flex-col justify-between h-full min-h-0 p-2 overflow-hidden">
-            {/* Header: Title + Role + Difficulty */}
+          {/* CENTER STAGE (5 cols): Hero Title, 4 Stat Bars, 3D Character on Dais, 3 Runic Skills */}
+          <section className="col-span-5 rounded-2xl border border-amber-500/35 bg-gradient-to-b from-slate-950/80 via-[#071328]/75 to-slate-950/80 backdrop-blur-md flex flex-col justify-between h-full min-h-0 p-2 overflow-hidden shadow-2xl">
+            {/* Header: Title + Role + 4 Glowing Power Meters */}
             <div className="shrink-0 text-center border-b border-amber-500/20 pb-1">
               <h2 className="text-sm font-black tracking-wide text-white uppercase">
                 {activeChampion.name} •{" "}
@@ -366,11 +438,11 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
                   {activeChampion.codename}
                 </span>
               </h2>
-              <div className="text-[9px] font-bold text-cyan-300 uppercase">
+              <div className="text-[8px] font-bold text-cyan-300 uppercase tracking-wider">
                 {activeStats.roleTitle}
               </div>
 
-              {/* 4 Crisp Stat Bars (matching Image 3 Defesa/Ataque/Habilidades/Mobilidade) */}
+              {/* 4 Stat Bars (Echoes of Arena Image 3 Style) */}
               <div className="mt-1 grid grid-cols-4 gap-1.5 text-[8px] font-bold">
                 <div>
                   <div className="flex justify-between text-slate-300">
@@ -431,28 +503,29 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
               </div>
             </div>
 
-            {/* Center: Live 3D Turntable / Character on Dais */}
+            {/* Center: Live 3D Turntable / Character on Dais (Borderless, Seamless) */}
             <div className="my-0.5 flex flex-1 min-h-0 items-center justify-center overflow-hidden">
               {viewMode === "3d" ? (
                 <HeroPreview3D
                   avatarId={selectedAvatar}
                   skinId={previewSkin}
                   agentName={name || activeChampion.name}
-                  heightClass="h-full max-h-[145px]"
+                  heightClass="h-full max-h-[175px]"
                   showEmoteBar
                   compact
+                  borderless
                 />
               ) : (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   src={HERO_PORTRAITS[selectedAvatar]}
                   alt={activeChampion.name}
-                  className="h-full max-h-[145px] w-auto rounded-xl object-contain shadow-[0_0_25px_rgba(245,158,11,0.4)]"
+                  className="h-full max-h-[175px] w-auto rounded-xl object-contain shadow-[0_0_25px_rgba(245,158,11,0.4)]"
                 />
               )}
             </div>
 
-            {/* Bottom: 3 Runic Ability Circles (matching Image 3 Q/W/E) */}
+            {/* Bottom: 3 Runic Ability Circles (Q, W, E) */}
             <div className="shrink-0 flex items-center justify-around border-t border-amber-500/20 pt-1">
               <div
                 title={activeStats.skills.q.desc}
@@ -461,7 +534,7 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
                 <div className="flex h-5 w-5 items-center justify-center rounded-full border border-cyan-300 bg-cyan-500/20 text-[9px] font-mono font-black text-cyan-300 shadow-[0_0_8px_#22d3ee]">
                   Q
                 </div>
-                <span className="truncate max-w-[80px]">
+                <span className="truncate max-w-[85px]">
                   {activeStats.skills.q.name}
                 </span>
               </div>
@@ -472,7 +545,7 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
                 <div className="flex h-5 w-5 items-center justify-center rounded-full border border-amber-300 bg-amber-500/20 text-[9px] font-mono font-black text-amber-300 shadow-[0_0_8px_#fbbf24]">
                   W
                 </div>
-                <span className="truncate max-w-[80px]">
+                <span className="truncate max-w-[85px]">
                   {activeStats.skills.w.name}
                 </span>
               </div>
@@ -483,21 +556,21 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
                 <div className="flex h-5 w-5 items-center justify-center rounded-full border border-emerald-300 bg-emerald-500/20 text-[9px] font-mono font-black text-emerald-300 shadow-[0_0_8px_#34d399]">
                   E
                 </div>
-                <span className="truncate max-w-[80px]">
+                <span className="truncate max-w-[85px]">
                   {activeStats.skills.e.name}
                 </span>
               </div>
             </div>
           </section>
 
-          {/* RIGHT COLUMN (4 cols, ~33%): Tabs (História, Skins, Dons) + Nickname + Giant Confirm Button */}
-          <section className="col-span-4 moba-panel-cyan moba-clip-panel flex flex-col justify-between h-full min-h-0 p-2 overflow-hidden">
-            {/* Top Tabs (matching Image 3 HISTÓRIA, SKINS, TALENTOS) */}
+          {/* RIGHT COLUMN (4 cols): Rich Intel Tabs + Nickname + Confirm CTA */}
+          <section className="col-span-4 rounded-2xl border border-cyan-500/25 bg-slate-950/80 backdrop-blur-md flex flex-col justify-between h-full min-h-0 p-2 overflow-hidden shadow-xl">
+            {/* Top Tabs (História, Skins 3D, Runas/Dons) */}
             <div className="shrink-0 flex items-center justify-around border-b border-cyan-500/30 pb-1">
               <button
                 type="button"
                 onClick={() => setMobileRightTab("historia")}
-                className={`text-[9px] font-black uppercase pb-0.5 cursor-pointer ${
+                className={`text-[9px] font-black uppercase pb-0.5 cursor-pointer transition ${
                   mobileRightTab === "historia"
                     ? "text-amber-300 border-b-2 border-amber-300"
                     : "text-slate-400 hover:text-white"
@@ -508,7 +581,7 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
               <button
                 type="button"
                 onClick={() => setMobileRightTab("skins")}
-                className={`text-[9px] font-black uppercase pb-0.5 cursor-pointer ${
+                className={`text-[9px] font-black uppercase pb-0.5 cursor-pointer transition ${
                   mobileRightTab === "skins"
                     ? "text-amber-300 border-b-2 border-amber-300"
                     : "text-slate-400 hover:text-white"
@@ -519,7 +592,7 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
               <button
                 type="button"
                 onClick={() => setMobileRightTab("dons")}
-                className={`text-[9px] font-black uppercase pb-0.5 cursor-pointer ${
+                className={`text-[9px] font-black uppercase pb-0.5 cursor-pointer transition ${
                   mobileRightTab === "dons"
                     ? "text-amber-300 border-b-2 border-amber-300"
                     : "text-slate-400 hover:text-white"
@@ -529,19 +602,56 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
               </button>
             </div>
 
-            {/* Tab Body */}
-            <div className="my-1 flex-1 min-h-0 overflow-y-auto">
+            {/* Tab Body: Rich AAA Content (NO EMPTY VOIDS!) */}
+            <div className="my-1 flex-1 min-h-0 overflow-y-auto space-y-1.5 pr-0.5">
               {mobileRightTab === "historia" && (
-                <div className="space-y-1 text-slate-300 text-[9px] leading-tight">
-                  <p className="line-clamp-3 text-slate-200">
-                    {activeChampion.description}
+                <div className="space-y-1.5 text-[8.5px] leading-tight">
+                  {/* Hero Lore */}
+                  <p className="text-slate-200 line-clamp-2">
+                    {tacticalIntel.bio}
                   </p>
-                  <div className="rounded border border-amber-400/30 bg-slate-950/80 p-1">
-                    <span className="font-bold text-amber-300 uppercase">
-                      Dica Tática:
-                    </span>{" "}
-                    Use as habilidades de {activeChampion.name} para cumprir
-                    resgates na cidade e erguer as torres!
+
+                  {/* Sinergia & Composição */}
+                  <div className="rounded-lg border border-slate-800 bg-slate-900/80 p-1.5">
+                    <div className="text-[7.5px] font-bold text-amber-300 uppercase mb-1">
+                      Composição Sugerida & Sinergia
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {tacticalIntel.squadSynergy.map((tag) => (
+                        <span
+                          key={tag}
+                          className="rounded border border-cyan-400/30 bg-cyan-950/60 px-1 py-0.2 text-[7.5px] font-black text-cyan-200"
+                        >
+                          ⚡ {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Dicas Táticas */}
+                  <div className="space-y-1 rounded-lg border border-slate-800 bg-slate-900/80 p-1.5">
+                    <div className="text-[7.5px] font-bold text-cyan-300 uppercase">
+                      Dicas Táticas de Combate
+                    </div>
+                    {tacticalIntel.tips.map((tip, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-start gap-1 text-slate-300 text-[8px] leading-tight"
+                      >
+                        <span className="text-amber-400 font-bold shrink-0">
+                          {idx + 1}.
+                        </span>
+                        <span>{tip}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Scripture Verse */}
+                  <div className="rounded border border-amber-400/30 bg-amber-500/10 p-1 text-[8px] text-amber-200 italic leading-tight">
+                    &ldquo;{tacticalIntel.verse}&rdquo;{" "}
+                    <span className="not-italic font-bold text-amber-300">
+                      ({tacticalIntel.verseRef})
+                    </span>
                   </div>
                 </div>
               )}
@@ -573,11 +683,11 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
                             }
                           }}
                           title={`${sk.name} (${sk.rarity})`}
-                          className={`relative flex h-7 cursor-pointer items-center justify-center rounded border text-xs transition ${
+                          className={`relative flex h-8 cursor-pointer items-center justify-center rounded-lg border text-xs transition ${
                             sk.gradientClass
                           } ${
                             active
-                              ? "border-amber-300 shadow-[0_0_10px_#fbbf24]"
+                              ? "border-amber-300 shadow-[0_0_10px_#fbbf24] ring-1 ring-amber-300"
                               : unlocked
                                 ? "border-slate-700 hover:border-cyan-400"
                                 : "border-slate-800 opacity-60"
@@ -608,11 +718,11 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
                         }}
                         className={`flex flex-col items-center justify-center rounded-lg border p-1 text-center cursor-pointer transition ${
                           active
-                            ? "border-amber-300 bg-amber-500/20 text-amber-200"
-                            : "border-slate-800 bg-slate-900/80 text-slate-400"
+                            ? "border-amber-300 bg-amber-500/20 text-amber-200 ring-1 ring-amber-300"
+                            : "border-slate-800 bg-slate-900/80 text-slate-400 hover:border-slate-600"
                         }`}
                       >
-                        <span className="text-[9px] font-black truncate w-full">
+                        <span className="text-[8.5px] font-black truncate w-full">
                           {g.name}
                         </span>
                         <span className="text-[7px] text-cyan-300 truncate w-full">
@@ -625,19 +735,19 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
               )}
             </div>
 
-            {/* Bottom: Summoner Nickname Input + Presets */}
+            {/* Bottom: Summoner Nickname Input + Presets + Confirm CTA */}
             <div className="shrink-0 border-t border-cyan-500/25 pt-1 space-y-1">
               <div className="flex items-center justify-between">
-                <span className="text-[9px] font-black uppercase text-amber-300">
+                <span className="text-[8.5px] font-black uppercase text-amber-300">
                   Nome do Agente
                 </span>
                 <div className="flex gap-1">
-                  {["Kaleb_BR", "Sofia_Ide"].map((preset) => (
+                  {["Kaleb_BR", "Sofia_Ide", "Tribo Atos", "Rede Teens"].map((preset) => (
                     <button
                       key={preset}
                       type="button"
                       onClick={() => setName(preset)}
-                      className="cursor-pointer rounded border border-slate-700 bg-slate-900/90 px-1 py-0.2 text-[8px] font-bold text-slate-300 hover:border-amber-400"
+                      className="cursor-pointer rounded border border-slate-700 bg-slate-900/90 px-1 py-0.2 text-[7.5px] font-bold text-slate-300 hover:border-amber-400"
                     >
                       {preset}
                     </button>
@@ -651,16 +761,16 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Seu Nick de Invocador..."
-                className="w-full rounded border border-amber-500/40 bg-slate-950 px-2 py-1 text-xs font-black text-white focus:border-cyan-400 focus:outline-none"
+                className="w-full rounded border border-amber-500/40 bg-slate-950 px-2 py-0.5 text-xs font-black text-white focus:border-cyan-400 focus:outline-none"
               />
 
-              {/* Giant Glowing Confirm Button (matching Image 3 CONFIRMAR) */}
+              {/* Giant Glowing Confirm Button (Echoes of Arena Style) */}
               <MobaButton
                 variant="gold"
                 size="md"
                 shape="hex"
                 onClick={() => handleConfirm()}
-                className="w-full !py-2 !text-xs font-black shadow-[0_0_24px_rgba(245,158,11,0.65)]"
+                className="w-full !py-1.5 !text-xs font-black shadow-[0_0_24px_rgba(245,158,11,0.65)]"
               >
                 <Sparkles className="h-3.5 w-3.5" />
                 CONFIRMAR • ESCOLHER ESTE HERÓI

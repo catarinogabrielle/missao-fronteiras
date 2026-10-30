@@ -540,18 +540,18 @@ export function MissionEngine({
     };
   }, []);
 
-  // Virtual Analog Thumbstick Pointer Handlers
+  // Virtual Analog Thumbstick Pointer Handlers (Enhanced for wider/larger fingers)
   const updateJoystickFromPointer = (clientX: number, clientY: number) => {
     const pad = joystickPadRef.current;
     if (!pad) return;
     const rect = pad.getBoundingClientRect();
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
-    const maxR = rect.width * 0.38;
+    const maxR = rect.width * 0.44;
     const dx = clientX - cx;
     const dy = clientY - cy;
     const dist = Math.hypot(dx, dy);
-    if (dist < 2) {
+    if (dist < 4) {
       setJoystickVec({ x: 0, y: 0 });
       return;
     }
@@ -1304,18 +1304,25 @@ export function MissionEngine({
             joystickDraggingRef.current = false;
             setJoystickVec({ x: 0, y: 0 });
           }}
-          className={`relative flex touch-none items-center justify-center rounded-full border-2 border-amber-400/45 bg-slate-950/70 shadow-[0_0_24px_rgba(0,0,0,0.65)] backdrop-blur-xs ${
-            isMobileLandscape ? "h-22 w-22" : "h-24 w-24 sm:h-28 sm:w-28"
-          }`}
+          className="relative flex touch-none items-center justify-center rounded-full border-3 border-amber-400/60 bg-slate-950/85 shadow-[0_0_35px_rgba(245,158,11,0.45)] backdrop-blur-md h-36 w-36 sm:h-40 sm:w-40"
         >
-          <div className="pointer-events-none absolute inset-2.5 rounded-full border border-cyan-400/20" />
+          {/* Inner aesthetic guide ring & cardinal notches */}
+          <div className="pointer-events-none absolute inset-3 rounded-full border border-cyan-400/35 bg-radial from-slate-900/50 to-transparent" />
+          <span className="pointer-events-none absolute top-1.5 font-mono text-[9px] font-black text-amber-300/80">▲</span>
+          <span className="pointer-events-none absolute bottom-1.5 font-mono text-[9px] font-black text-amber-300/80">▼</span>
+          <span className="pointer-events-none absolute left-1.5 font-mono text-[9px] font-black text-amber-300/80">◄</span>
+          <span className="pointer-events-none absolute right-1.5 font-mono text-[9px] font-black text-amber-300/80">►</span>
+
+          {/* Large Ergonomic Thumb Knob (Easy for wider fingers) */}
           <div
             style={{
-              transform: `translate(${joystickVec.x * 26}px, ${joystickVec.y * 26}px)`,
+              transform: `translate(${joystickVec.x * 44}px, ${joystickVec.y * 44}px)`,
             }}
-            className="pointer-events-none flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-full border-2 border-amber-200 bg-gradient-to-b from-amber-300 to-amber-600 text-[9px] sm:text-[10px] font-black text-slate-950 shadow-[0_0_15px_rgba(251,191,36,0.65)]"
+            className="pointer-events-none flex h-16 w-16 sm:h-18 sm:w-18 items-center justify-center rounded-full border-2 border-amber-200 bg-gradient-to-b from-amber-300 via-amber-500 to-orange-600 text-[10px] sm:text-[11px] font-black text-slate-950 shadow-[0_0_24px_rgba(251,191,36,0.85)] active:scale-95"
           >
-            MOVER
+            <div className="flex h-11 w-11 items-center justify-center rounded-full border border-amber-950/40 bg-amber-400/30">
+              MOVER
+            </div>
           </div>
         </div>
 

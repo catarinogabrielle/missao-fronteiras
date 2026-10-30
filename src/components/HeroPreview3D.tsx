@@ -20,6 +20,7 @@ interface HeroPreview3DProps {
   heightClass?: string;
   showEmoteBar?: boolean;
   compact?: boolean;
+  borderless?: boolean;
 }
 
 const EMOTE_BUTTONS: {
@@ -40,6 +41,7 @@ export function HeroPreview3D({
   heightClass = "h-80 sm:h-96",
   showEmoteBar = true,
   compact = false,
+  borderless = false,
 }: HeroPreview3DProps) {
   const { playSfx } = useGame();
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -367,19 +369,23 @@ export function HeroPreview3D({
 
   return (
     <div
-      className={`relative w-full overflow-hidden rounded-3xl border border-amber-400/45 bg-gradient-to-b from-slate-900/90 via-[#071124] to-slate-950 shadow-[0_0_45px_rgba(6,182,212,0.18)] select-none ${heightClass}`}
+      className={`relative w-full overflow-hidden select-none ${
+        borderless
+          ? "rounded-2xl border-0 bg-transparent"
+          : "rounded-3xl border border-amber-400/45 bg-gradient-to-b from-slate-900/90 via-[#071124] to-slate-950 shadow-[0_0_45px_rgba(6,182,212,0.18)]"
+      } ${heightClass}`}
     >
       {/* Top Rarity & Drag Hint Pill */}
-      <div className="pointer-events-none absolute top-2.5 right-3 left-3 z-10 flex items-center justify-between gap-2">
+      <div className="pointer-events-none absolute top-1.5 right-2 left-2 z-10 flex items-center justify-between gap-2">
         <span
-          className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-slate-950/80 px-2.5 py-0.5 text-[10px] font-black tracking-widest uppercase backdrop-blur"
+          className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-slate-950/80 px-2 py-0.5 text-[9px] font-black tracking-widest uppercase backdrop-blur"
           style={{ color: skinMeta.accentHex }}
         >
           {skinMeta.badgeEmoji} {skinMeta.rarity}
         </span>
 
-        <span className="inline-flex items-center gap-1 rounded-full border border-slate-700/80 bg-slate-950/75 px-2 py-0.5 font-mono text-[9px] font-bold text-slate-300 backdrop-blur">
-          <RotateCw className="h-2.5 w-2.5 text-cyan-300" />
+        <span className="inline-flex items-center gap-1 rounded-full border border-slate-700/80 bg-slate-950/75 px-1.5 py-0.5 font-mono text-[8px] font-bold text-slate-300 backdrop-blur">
+          <RotateCw className="h-2 w-2 text-cyan-300" />
           GIRE 360°
         </span>
       </div>
@@ -389,7 +395,7 @@ export function HeroPreview3D({
 
       {/* Bottom Interactive AAA Emote Animation Bar */}
       {showEmoteBar && (
-        <div className="absolute right-2.5 bottom-2.5 left-2.5 z-10 flex items-center justify-center gap-1.5">
+        <div className="absolute right-1 bottom-1.5 left-1 z-10 flex items-center justify-center gap-1">
           {EMOTE_BUTTONS.map((em) => {
             const isPlaying = activeEmote === em.id;
             return (
@@ -399,10 +405,10 @@ export function HeroPreview3D({
                 whileHover={{ scale: 1.07, y: -2 }}
                 whileTap={{ scale: 0.93 }}
                 onClick={() => triggerEmote(em.id)}
-                className={`inline-flex cursor-pointer items-center gap-1 rounded-xl border px-2.5 py-1.5 text-[10px] font-black tracking-wide uppercase backdrop-blur-md transition ${
+                className={`inline-flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1 text-[9px] font-black tracking-wide uppercase backdrop-blur-md transition ${
                   isPlaying
-                    ? "border-amber-300 bg-amber-400/25 text-amber-200 shadow-[0_0_16px_rgba(251,191,36,0.45)]"
-                    : "border-slate-700/85 bg-slate-950/80 text-slate-200 hover:border-cyan-400/70 hover:text-white"
+                    ? "border-amber-300 bg-amber-400/25 text-amber-200 shadow-[0_0_12px_rgba(251,191,36,0.45)]"
+                    : "border-slate-700/85 bg-slate-950/85 text-slate-200 hover:border-cyan-400/70 hover:text-white"
                 }`}
               >
                 <span>{em.emoji}</span>

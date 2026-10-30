@@ -97,10 +97,47 @@ export function HeaderBar({
                 {level}
               </span>
             </div>
-            <span className="truncate text-xs font-black tracking-wide text-white uppercase max-w-[120px]">
+            <span className="truncate text-xs font-black tracking-wide text-white uppercase max-w-[110px]">
               {state.agent.name}
             </span>
           </button>
+
+          {/* Center Tabs (Echoes of Arena: Jogar | Heróis | Aprender) */}
+          <div className="flex items-center gap-1 sm:gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (onGoHome) {
+                  playSfx("click");
+                  onGoHome();
+                }
+              }}
+              className="relative px-2 py-0.5 text-xs font-black text-amber-300 uppercase cursor-pointer"
+            >
+              <span>Jogar</span>
+              <span className="absolute bottom-0 left-1 right-1 h-0.5 bg-gradient-to-r from-amber-400 to-cyan-400 shadow-[0_0_8px_#fbbf24]" />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                playSfx("click");
+                onOpenWardrobe();
+              }}
+              className="px-2 py-0.5 text-xs font-black text-slate-400 transition hover:text-white uppercase cursor-pointer"
+            >
+              Heróis
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                playSfx("click");
+                onOpenPassport();
+              }}
+              className="px-2 py-0.5 text-xs font-black text-slate-400 transition hover:text-white uppercase cursor-pointer"
+            >
+              Aprender
+            </button>
+          </div>
 
           {/* Currencies & Controls */}
           <div className="flex items-center gap-1.5 shrink-0">
