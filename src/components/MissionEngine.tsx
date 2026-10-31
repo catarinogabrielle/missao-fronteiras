@@ -814,9 +814,9 @@ export function MissionEngine({
       {/* =========================================================
           TOP-LEFT: GTA URBAN RADAR MINIMAP + MISSIONS PHONE BUTTON
          ========================================================= */}
-      <div className="pointer-events-auto absolute top-2 left-2 z-20 flex flex-col gap-2 sm:gap-2.5 sm:top-3 sm:left-3 w-48 sm:w-56">
+      <div className="pointer-events-auto absolute top-2 left-2 z-20 flex flex-col gap-1.5 sm:top-3 sm:left-3 w-36 sm:w-40">
         <div
-          className="moba-panel-gold relative overflow-hidden p-1.5 shadow-2xl h-22 w-22 sm:h-26 sm:w-26 rounded-xl"
+          className="moba-panel-gold relative overflow-hidden p-1 shadow-xl h-20 w-20 sm:h-22 sm:w-22 rounded-xl"
         >
           <div
             onClick={handleRadarClick}
@@ -999,29 +999,29 @@ export function MissionEngine({
           </div>
         </div>
 
-        {/* QUEST & HUB NAVIGATION CONTROLS (SPACIOUS, ERGONOMIC, GAMER UI) */}
-        <div className="flex flex-col gap-2 sm:gap-2.5 w-full">
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            {/* Professional Beveled Back to Lobby Button */}
+        {/* QUEST & HUB NAVIGATION CONTROLS (COMPACT, TRANSLUCENT, GAMER HUD) */}
+        <div className="flex flex-col gap-1.5 w-full">
+          <div className="flex items-center gap-1.5">
+            {/* Professional Compact Back to Lobby Button */}
             <motion.button
               type="button"
-              whileHover={{ scale: 1.03 }}
+              whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.94 }}
               onClick={() => {
                 playSfx("click");
                 onExitToHub();
               }}
               title="Sair da Missão e Voltar ao Lobby [ESC]"
-              className="flex-1 min-h-[38px] flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-amber-400/80 bg-gradient-to-b from-amber-500/25 via-slate-900 to-slate-950 px-2.5 py-1.5 text-xs font-black uppercase text-amber-300 shadow-[0_2px_10px_rgba(245,158,11,0.25)] transition hover:border-amber-300 hover:text-white active:scale-95"
+              className="flex-1 h-7 sm:h-7.5 flex cursor-pointer items-center justify-center gap-1 rounded-lg border border-amber-400/50 bg-slate-950/80 backdrop-blur-md px-2 text-[9.5px] font-black uppercase text-amber-300 shadow-sm transition hover:border-amber-300 hover:text-white active:scale-95"
             >
-              <ArrowLeft className="h-3.5 w-3.5 text-amber-400 shrink-0" />
-              <span>{isMobile ? "LOBBY" : "LOBBY [ESC]"}</span>
+              <ArrowLeft className="h-3 w-3 text-amber-400 shrink-0" />
+              <span>LOBBY</span>
             </motion.button>
 
             {/* Cultural Intelligence & Lore */}
             <motion.button
               type="button"
-              whileHover={{ scale: 1.03 }}
+              whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.94 }}
               onClick={() => {
                 playSfx("click");
@@ -1041,10 +1041,10 @@ export function MissionEngine({
                 }
               }}
               title="Inteligência Cultural & Tradições"
-              className="flex-1 min-h-[38px] flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-cyan-400/70 bg-gradient-to-b from-cyan-950/80 via-slate-900 to-slate-950 px-2.5 py-1.5 text-xs font-black uppercase text-cyan-300 shadow-[0_2px_10px_rgba(34,211,238,0.25)] transition hover:border-cyan-300 hover:text-white active:scale-95"
+              className="flex-1 h-7 sm:h-7.5 flex cursor-pointer items-center justify-center gap-1 rounded-lg border border-cyan-400/50 bg-slate-950/80 backdrop-blur-md px-2 text-[9.5px] font-black uppercase text-cyan-300 shadow-sm transition hover:border-cyan-300 hover:text-white active:scale-95"
             >
-              <Compass className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
-              <span>{isMobile ? "CULTURA" : "CULTURA [F]"}</span>
+              <Compass className="h-3 w-3 text-cyan-400 shrink-0" />
+              <span>CULTURA</span>
             </motion.button>
 
             {isMobileDevice && !isMobileLandscape && (
@@ -1052,9 +1052,9 @@ export function MissionEngine({
                 type="button"
                 onClick={toggleLandscapeFullscreen}
                 title="Girar Celular / Modo Tela Cheia"
-                className="flex cursor-pointer items-center justify-center h-[38px] w-[38px] rounded-xl border-2 border-cyan-400/60 bg-slate-950/90 text-cyan-300 shadow-md hover:bg-cyan-500/20 active:scale-90 transition shrink-0"
+                className="flex cursor-pointer items-center justify-center h-7 w-7 rounded-lg border border-cyan-400/50 bg-slate-950/80 text-cyan-300 shadow-sm hover:bg-cyan-500/20 active:scale-90 transition shrink-0"
               >
-                <RotateCw className="h-3.5 w-3.5" />
+                <RotateCw className="h-3 w-3" />
               </button>
             )}
           </div>
@@ -1069,18 +1069,18 @@ export function MissionEngine({
               setMissionPhoneOpen(true);
             }}
             title="Ver Todas as 12 Missões"
-            className="flex min-h-[40px] w-full cursor-pointer items-center justify-between rounded-xl border-2 border-cyan-400/80 bg-gradient-to-r from-cyan-950 via-slate-900 to-cyan-950 px-3 py-2 text-xs font-black text-cyan-200 shadow-[0_3px_14px_rgba(34,211,238,0.3)] transition hover:border-cyan-300 hover:text-white active:scale-95"
+            className="h-7 sm:h-7.5 w-full flex cursor-pointer items-center justify-between rounded-lg border border-cyan-400/50 bg-slate-950/80 backdrop-blur-md px-2.5 text-[9.5px] font-black text-cyan-200 shadow-sm transition hover:border-cyan-300 hover:text-white active:scale-95"
           >
-            <div className="flex items-center gap-2">
-              <ClipboardList className="h-4 w-4 text-cyan-300 shrink-0" />
+            <div className="flex items-center gap-1.5">
+              <ClipboardList className="h-3.5 w-3.5 text-cyan-300 shrink-0" />
               <span className="tracking-wide">MISSÕES</span>
             </div>
-            <span className="rounded-lg bg-cyan-500/25 border border-cyan-400/50 px-2 py-0.5 font-mono text-[10px] font-black text-cyan-300">
+            <span className="rounded bg-cyan-500/20 border border-cyan-400/40 px-1.5 py-0.2 font-mono text-[9px] font-black text-cyan-300">
               {completedMapMissions}/{totalMapMissions}
             </span>
           </motion.button>
 
-          {/* TACTILE 3D GAMER PUSH-BUTTON: Camera Mode Switcher */}
+          {/* TACTILE 3D GAMER PUSH-BUTTON: Camera Mode Switcher (Sleek, Proportional, Single Line) */}
           <motion.button
             type="button"
             whileHover={{ scale: 1.02 }}
@@ -1092,30 +1092,23 @@ export function MissionEngine({
               fireAction("camera");
             }}
             title="Alternar Ângulo da Câmera (3D GTA / Tática MOBA) [C]"
-            className={`group relative flex min-h-[44px] w-full cursor-pointer items-center justify-between rounded-xl border-t-2 border-x-2 border-b-4 px-3 py-1.5 transition active:translate-y-1 active:border-b-2 select-none ${
+            className={`group relative h-7.5 sm:h-8 w-full flex cursor-pointer items-center justify-between rounded-lg border-t border-x border-b-2 px-2.5 transition active:translate-y-0.5 active:border-b select-none ${
               hudSnap.cameraMode === "gta"
-                ? "border-t-amber-200 border-x-amber-400 border-b-amber-700 bg-gradient-to-b from-amber-400 via-amber-500 to-amber-600 text-slate-950 shadow-[0_4px_14px_rgba(245,158,11,0.5),0_2px_4px_rgba(0,0,0,0.6)] active:shadow-[0_1px_6px_rgba(245,158,11,0.3)]"
-                : "border-t-sky-200 border-x-sky-400 border-b-sky-700 bg-gradient-to-b from-sky-400 via-sky-500 to-cyan-600 text-slate-950 shadow-[0_4px_14px_rgba(56,189,248,0.5),0_2px_4px_rgba(0,0,0,0.6)] active:shadow-[0_1px_6px_rgba(56,189,248,0.3)]"
+                ? "border-t-amber-300/80 border-x-amber-500/60 border-b-amber-700 bg-gradient-to-r from-amber-500/30 via-slate-950/90 to-slate-950/90 text-amber-300 shadow-[0_2px_8px_rgba(245,158,11,0.25)] hover:border-amber-300"
+                : "border-t-sky-300/80 border-x-sky-500/60 border-b-sky-700 bg-gradient-to-r from-sky-500/30 via-slate-950/90 to-slate-950/90 text-sky-300 shadow-[0_2px_8px_rgba(56,189,248,0.25)] hover:border-sky-300"
             }`}
           >
-            {/* Left: Tactile Icon Box */}
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-950/25 border border-black/20 shadow-inner shrink-0">
-              <Camera className="h-4 w-4 fill-slate-950 text-slate-950" />
+            <div className="flex items-center gap-1.5 min-w-0">
+              <div className="flex h-5 w-5 items-center justify-center rounded bg-slate-950/70 border border-amber-400/40 shrink-0">
+                <Camera className="h-3 w-3 text-amber-300" />
+              </div>
+              <span className="text-[9.5px] font-black uppercase tracking-wider truncate">
+                {hudSnap.cameraMode === "gta" ? "CÂMERA 3D" : "CÂMERA MOBA"}
+              </span>
             </div>
 
-            {/* Center: Bold Typography */}
-            <div className="flex-1 min-w-0 px-2 text-left leading-tight">
-              <div className="text-[11px] font-black uppercase tracking-wider truncate">
-                {hudSnap.cameraMode === "gta" ? "CÂMERA 3D (RUA)" : "CÂMERA MOBA (TOPO)"}
-              </div>
-              <div className="text-[8.5px] font-black text-slate-950/80 uppercase tracking-tight truncate">
-                Toque p/ alternar ângulo
-              </div>
-            </div>
-
-            {/* Right: Tactile Switch / Keyboard badge */}
-            <div className="flex items-center gap-1 rounded-md bg-slate-950/30 px-1.5 py-0.5 font-mono text-[9px] font-black text-slate-950 shrink-0">
-              <RotateCw className="h-3 w-3" />
+            <div className="flex items-center gap-1 rounded bg-slate-950/60 border border-slate-700/60 px-1.5 py-0.2 font-mono text-[8.5px] font-black text-amber-300 shrink-0">
+              <RotateCw className="h-2.5 w-2.5" />
               {!isMobile && <span>C</span>}
             </div>
           </motion.button>
