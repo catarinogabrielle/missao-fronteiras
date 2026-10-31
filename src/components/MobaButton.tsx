@@ -29,8 +29,8 @@ const VARIANT_STYLES: Record<NonNullable<MobaButtonProps["variant"]>, string> = 
 };
 
 const SIZE_STYLES: Record<NonNullable<MobaButtonProps["size"]>, string> = {
-  sm: "px-3.5 py-1.5 text-xs font-black tracking-wider uppercase",
-  md: "px-5 py-2.5 text-xs sm:text-sm font-black tracking-wider uppercase",
+  sm: "px-4.5 py-1.5 text-xs font-black tracking-wider uppercase",
+  md: "px-6 py-2.5 text-xs sm:text-sm font-black tracking-wider uppercase",
   lg: "px-7 py-3.5 text-sm sm:text-base font-black tracking-widest uppercase",
   xl: "px-9 py-4 text-base sm:text-lg font-black tracking-widest uppercase",
 };

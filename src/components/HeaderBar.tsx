@@ -131,12 +131,12 @@ export function HeaderBar({
           {/* Top-Right: Currencies & Console Control Hub (Ultra-Compact, No Overflow) */}
           <div className="flex items-center gap-1.5 shrink-0">
             {/* Currencies Capsule (Streak + Wisdom) */}
-            <div className="flex items-center gap-1.5 rounded-xl border border-slate-700/80 bg-slate-900/90 px-2 py-0.5 text-[11px] font-black">
+            <div className="flex items-center gap-2 rounded-xl border border-slate-700/80 bg-slate-900/90 px-3 py-1 text-[11px] font-black shadow-sm">
               <div
                 title="Chamas de Fervor Diário"
-                className="flex items-center gap-1 text-orange-400"
+                className="flex items-center gap-1.5 text-orange-400"
               >
-                <Flame className="h-3 w-3 fill-orange-400" />
+                <Flame className="h-3.5 w-3.5 fill-orange-400" />
                 <span>{state.streak}</span>
               </div>
               <span className="text-slate-600 font-normal">|</span>
@@ -147,9 +147,9 @@ export function HeaderBar({
                   onOpenWardrobe();
                 }}
                 title="Cristais de Sabedoria • Clique para abrir Vestiário"
-                className="flex items-center gap-1 text-cyan-300 hover:text-white transition cursor-pointer"
+                className="flex items-center gap-1.5 text-cyan-300 hover:text-white transition cursor-pointer"
               >
-                <Gem className="h-3 w-3" />
+                <Gem className="h-3.5 w-3.5" />
                 <span>{state.wisdom}</span>
               </button>
             </div>
@@ -339,7 +339,7 @@ export function HeaderBar({
           {/* Streak Flames */}
           <div
             title="Chamas de Fervor"
-            className="moba-clip-slant inline-flex items-center gap-1 border border-orange-500/45 bg-slate-900/90 px-2 py-1 text-xs font-black text-orange-300"
+            className="moba-clip-slant inline-flex items-center gap-2 border border-orange-500/50 bg-slate-900/95 px-5 py-1.5 text-xs font-black text-orange-300 shadow-sm"
           >
             <Flame className="h-3.5 w-3.5 fill-orange-400 text-orange-400" />
             <span>{state.streak}</span>
@@ -353,7 +353,7 @@ export function HeaderBar({
               onOpenWardrobe();
             }}
             title="Cristais de Sabedoria • Clique para abrir Skins 3D"
-            className="moba-clip-slant inline-flex cursor-pointer items-center gap-1 border border-cyan-400/45 bg-slate-900/90 px-2 py-1 text-xs font-black text-cyan-200 transition hover:border-amber-300"
+            className="moba-clip-slant inline-flex cursor-pointer items-center gap-2 border border-cyan-400/50 bg-slate-900/95 px-5 py-1.5 text-xs font-black text-cyan-200 shadow-sm transition hover:border-amber-300 hover:text-white"
           >
             <Gem className="h-3.5 w-3.5 text-cyan-300" />
             <span>{state.wisdom}</span>
