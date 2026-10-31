@@ -219,8 +219,8 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
 
   const [name, setName] = useState("");
   const [selectedAvatar, setSelectedAvatar] = useState<AvatarId>("lucas");
-  const [selectedSkin, setSelectedSkin] = useState<SkinId>("cyber_neon");
-  const [previewSkin, setPreviewSkin] = useState<SkinId>("cyber_neon");
+  const [selectedSkin, setSelectedSkin] = useState<SkinId>("padrao");
+  const [previewSkin, setPreviewSkin] = useState<SkinId>("padrao");
   const [selectedGift, setSelectedGift] = useState<GiftId>("acolhedor");
   const [viewMode, setViewMode] = useState<"3d" | "art">("3d");
 
@@ -250,12 +250,11 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
 
   const handleConfirm = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const finalSkin = isSkinUnlocked(previewSkin) ? previewSkin : selectedSkin;
     createAgent(
       name || `Agente ${activeChampion.name}`,
       selectedAvatar,
       selectedGift,
-      finalSkin
+      "padrao"
     );
   };
 
@@ -268,18 +267,6 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
      ========================================================================= */
   if (isMobileLandscape) {
     const quickLore = CHAMPION_QUICK_LORE[selectedAvatar];
-    const availableSkins = SKIN_OPTIONS;
-    const currentSkinIndex = availableSkins.findIndex((s) => s.id === previewSkin);
-
-    const handleCycleSkin = () => {
-      const nextIdx = (currentSkinIndex + 1) % availableSkins.length;
-      const nextSkin = availableSkins[nextIdx];
-      setPreviewSkin(nextSkin.id);
-      if (isSkinUnlocked(nextSkin.id)) {
-        setSelectedSkin(nextSkin.id);
-      }
-      playSfx("click");
-    };
 
     return (
       <div className="fixed inset-0 flex h-full h-dvh w-full flex-col justify-between overflow-hidden bg-slate-950 p-2 select-none touch-manipulation">
@@ -399,31 +386,28 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
                 </p>
               </div>
 
-              {/* Skin Cycle Pill & 3D/Art Toggle */}
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={handleCycleSkin}
-                  className="flex items-center gap-1 rounded-full border border-cyan-400/40 bg-slate-900/80 px-2.5 py-1 text-[10px] font-black text-cyan-200 backdrop-blur-md hover:border-cyan-300 transition cursor-pointer shadow-md"
-                  title="Clique para alternar de skin"
-                >
-                  <Sparkles className="h-3 w-3 text-cyan-300" />
-                  <span className="truncate max-w-[90px] sm:max-w-[120px]">{activeSkinMeta.name}</span>
-                  <span className="text-[9px] text-amber-300 font-bold">↻</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    playSfx("click");
-                    setViewMode(viewMode === "3d" ? "art" : "3d");
-                  }}
-                  className="flex items-center gap-1 rounded-full border border-slate-700 bg-slate-900/80 px-2 py-1 text-[10px] font-bold text-slate-300 hover:text-white cursor-pointer"
-                  title="Alternar entre 3D e Ilustração"
-                >
-                  {viewMode === "3d" ? <ImageIcon className="h-3 w-3 text-cyan-300" /> : <Box className="h-3 w-3 text-amber-300" />}
-                </button>
-              </div>
+              {/* 3D vs Official Art Toggle */}
+              <button
+                type="button"
+                onClick={() => {
+                  playSfx("click");
+                  setViewMode(viewMode === "3d" ? "art" : "3d");
+                }}
+                className="flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900/90 px-3 py-1 text-[10px] font-black text-slate-300 hover:text-white hover:border-cyan-400 cursor-pointer shadow-md transition"
+                title="Alternar entre Boneco 3D e Ilustração Oficial"
+              >
+                {viewMode === "3d" ? (
+                  <>
+                    <ImageIcon className="h-3.5 w-3.5 text-cyan-300" />
+                    <span>Ver Arte Oficial</span>
+                  </>
+                ) : (
+                  <>
+                    <Box className="h-3.5 w-3.5 text-amber-300" />
+                    <span>Ver Boneco 3D</span>
+                  </>
+                )}
+              </button>
             </div>
 
             {/* Center: Live 3D Model Stage or 2D Art */}
@@ -432,7 +416,7 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
                 <div className="relative h-full w-full max-w-md flex items-center justify-center">
                   <HeroPreview3D
                     avatarId={selectedAvatar}
-                    skinId={previewSkin}
+                    skinId="padrao"
                     agentName={name || `Agente ${activeChampion.name}`}
                     heightClass="h-full w-full"
                     showEmoteBar
@@ -457,7 +441,7 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
 
             {/* Bottom: 4 Horizontal Champion Selection Cards */}
             <div className="relative z-10 shrink-0 border-t border-cyan-500/20 pt-1.5">
-              <div className="grid grid-cols-4 gap-1.5">
+              <div className="grid grid-cols-4 gap-1 sm:gap-1.5">
                 {AVATAR_OPTIONS.map((av) => {
                   const isSelected = av.id === selectedAvatar;
                   const stats = CHAMPION_STATS[av.id];
@@ -470,7 +454,7 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
                         playSfx("click");
                         setSelectedAvatar(av.id);
                       }}
-                      className={`relative flex items-center gap-2 rounded-xl border p-1 sm:p-1.5 text-left transition cursor-pointer min-h-[46px] ${
+                      className={`relative flex items-center gap-1.5 sm:gap-2 rounded-xl border p-1 sm:p-1.5 text-left transition cursor-pointer min-h-[46px] ${
                         isSelected
                           ? "border-amber-300 bg-gradient-to-r from-amber-500/30 to-amber-600/15 shadow-[0_0_16px_rgba(245,158,11,0.55)] ring-1.5 ring-amber-300"
                           : "border-slate-800 bg-slate-900/80 hover:border-slate-600 opacity-80 hover:opacity-100"
@@ -478,26 +462,24 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
                     >
                       <HeroPortrait
                         avatarId={av.id}
-                        size={34}
+                        size={28}
                         shape="hex"
                         active={isSelected}
                       />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between">
-                          <span className="truncate text-[11px] sm:text-xs font-black text-white uppercase">
-                            {av.name}
-                          </span>
-                          {isSelected && (
-                            <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shadow-[0_0_6px_#fbbf24]" />
-                          )}
+                      <div className="min-w-0 flex-1 leading-none">
+                        <div className="text-[10px] sm:text-xs font-black text-white uppercase whitespace-nowrap">
+                          {av.name}
                         </div>
                         <div
                           style={{ color: lore.accentColor }}
-                          className="text-[8.5px] font-black uppercase tracking-wider truncate"
+                          className="text-[8px] font-black uppercase tracking-wider mt-0.5 whitespace-nowrap"
                         >
                           {stats.category}
                         </div>
                       </div>
+                      {isSelected && (
+                        <span className="h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_8px_#fbbf24] shrink-0 mr-0.5" />
+                      )}
                     </button>
                   );
                 })}
