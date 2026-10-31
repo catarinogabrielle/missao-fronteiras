@@ -1,23 +1,33 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
+  ArrowRight,
   BookOpen,
+  Car,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Crosshair,
   Flame,
   Globe,
+  Heart,
+  Pause,
+  Play,
   Radio,
+  RotateCcw,
   Shield,
+  SkipForward,
   Sparkles,
   Swords,
-  Truck,
   Users,
+  Volume2,
   X,
   Zap,
 } from "lucide-react";
+import { HERO_PORTRAITS, MAP_SPLASHES } from "@/lib/assets";
+import { AvatarId } from "@/types/game";
 import { useGame } from "@/context/GameContext";
 
 interface StoryPrologueModalProps {
@@ -25,218 +35,178 @@ interface StoryPrologueModalProps {
   onClose: () => void;
 }
 
-interface StoryChapter {
-  id: string;
-  badge: string;
+interface HeroBio {
+  id: AvatarId;
+  name: string;
   title: string;
-  subtitle: string;
+  role: string;
   verseRef: string;
   verseText: string;
-  accentGradient: string;
-  borderClass: string;
-  icon: React.ReactNode;
-  paragraphs: string[];
-  bulletPoints: { title: string; desc: string; icon: string }[];
+  accent: string;
+  gradient: string;
+  specialty: string;
+  gear: string;
 }
 
-const STORY_CHAPTERS: StoryChapter[] = [
+const HEROES_DATA: HeroBio[] = [
   {
-    id: "chamado",
-    badge: "CAPÍTULO I • O DESPERTAR",
-    title: "A Base Missionária Ide",
-    subtitle: "Uma luz acesa nas fronteiras mais remotas do mundo",
-    verseRef: "Marcos 16:15 & Atos 1:8",
-    verseText: "Ide por todo o mundo e pregai o evangelho a toda criatura... sereis minhas testemunhas até aos confins da terra.",
-    accentGradient: "from-amber-500 via-orange-500 to-amber-600",
-    borderClass: "border-amber-400/50 shadow-[0_0_35px_rgba(245,158,11,0.35)]",
-    icon: <Globe className="h-8 w-8 text-amber-300" />,
-    paragraphs: [
-      "Nas fronteiras mais esquecidas da Terra — entre aldeias isoladas na floresta amazônica, vilarejos nas montanhas e vielas em megalópoles futuristas — muitas comunidades nunca ouviram as Boas Novas da Graça.",
-      "Para atender ao chamado do Mestre, foi erguida a Base Missionária Ide: um centro avançado de treinamento, comunhão e logística que envia socorro humanitário e a mensagem da Cruz.",
-    ],
-    bulletPoints: [
-      {
-        icon: "🧭",
-        title: "12 Fronteiras Globais",
-        desc: "Do Brasil a Moçambique, da Janela 10/40 a Tóquio, nenhum povo fica para trás.",
-      },
-      {
-        icon: "🤝",
-        title: "Ponte da Fé",
-        desc: "Construa confiança genuína com os moradores através de respeito, serviço e diálogo sincero.",
-      },
-      {
-        icon: "📡",
-        title: "Torres de Rádio",
-        desc: "Ative as antenas de transmissão para irradiar esperança e as Escrituras Sagradas.",
-      },
-    ],
+    id: "lucas",
+    name: "Lucas",
+    title: "O Explorador de Fronteiras",
+    role: "Vanguarda, Resgate & Exploração Prática",
+    verseRef: "Isaías 41:10",
+    verseText: "Não temas, porque eu sou contigo; não te assombres, porque eu sou o teu Deus.",
+    accent: "#34d399",
+    gradient: "from-emerald-500 via-teal-500 to-emerald-600",
+    specialty: "Velocidade em trilhas fluviais, resgate rápido em selvas e coragem diante do perigo.",
+    gear: "Mochila de sobrevivência, bússola de navegação e bota anfíbia.",
   },
   {
-    id: "campeoes",
-    badge: "CAPÍTULO II • OS ENVIADOS",
-    title: "Os Quatro Missionários",
-    subtitle: "Dons diferentes, um só coração e um mesmo propósito",
-    verseRef: "1 Coríntios 12:4",
-    verseText: "Há diversidade de dons, mas o Espírito é o mesmo. A manifestação do Espírito é dada a cada um para o que for útil.",
-    accentGradient: "from-cyan-500 via-teal-500 to-emerald-600",
-    borderClass: "border-cyan-400/50 shadow-[0_0_35px_rgba(34,211,238,0.35)]",
-    icon: <Users className="h-8 w-8 text-cyan-300" />,
-    paragraphs: [
-      "Quatro jovens voluntários disseram 'Eis-me aqui' para desbravar o desconhecido. Cada um carrega uma vocação única e dons espirituais indispensáveis para a sobrevivência e o resgate nas fronteiras.",
-    ],
-    bulletPoints: [
-      {
-        icon: "🎒",
-        title: "Lucas • Vanguarda & Resgate",
-        desc: "Pioneiro de campo e trilhas fluviais. Sempre com mochila pronta, é especialista em exploração prática.",
-      },
-      {
-        icon: "🎨",
-        title: "Sofia • Conexão Criativa & Arte",
-        desc: "Comunicadora sensível. Conecta corações de diferentes culturas através da música, arte e empatia profunda.",
-      },
-      {
-        icon: "💻",
-        title: "Davi • Tech & Decodificação",
-        desc: "Prodígio digital. Opera decodificadores de dialetos e links satelitais para quebrar barreiras linguísticas.",
-      },
-      {
-        icon: "👑",
-        title: "Ester • Intercessão & Diplomacia",
-        desc: "Mulher de oração inabalável. Abre portas com líderes locais e estende um manto de refúgio celestial.",
-      },
-    ],
+    id: "sofia",
+    name: "Sofia",
+    title: "A Artista da Comunicação",
+    role: "Conexão Criativa, Música & Empatia Transcultural",
+    verseRef: "Romanos 12:15",
+    verseText: "Alegrem-se com os que se alegram; chorem com os que choram.",
+    accent: "#22d3ee",
+    gradient: "from-cyan-500 via-sky-500 to-blue-600",
+    specialty: "Criação de pontes culturais através de murais visuais, música e escuta atenta aos povos isolados.",
+    gear: "Fones de estúdio, tablet holográfico e spray de pigmentos naturais.",
   },
   {
-    id: "sombras",
-    badge: "CAPÍTULO III • O COMBATE",
-    title: "A Invasão das Sombras",
-    subtitle: "Criaturas do medo e da desesperança tentam apagar a verdade",
-    verseRef: "Efésios 6:12",
-    verseText: "Porque não temos que lutar contra a carne e o sangue, mas contra os dominadores deste mundo tenebroso.",
-    accentGradient: "from-fuchsia-600 via-purple-600 to-rose-700",
-    borderClass: "border-fuchsia-400/50 shadow-[0_0_35px_rgba(217,70,239,0.35)]",
-    icon: <Swords className="h-8 w-8 text-fuchsia-300" />,
-    paragraphs: [
-      "Uma escuridão silenciosa começou a se espalhar pelos territórios: as Sombras do Desânimo. Elas roubam a alegria das pessoas, semeiam discórdia e tentam impedir os mensageiros da paz.",
-      "Lideradas pelo temível Titã do Abismo, as sombras atacam ativamente em combate! Os lacaios menores empunham foices sombrias e lançam projéteis arcanos, enquanto o Boss golpeia com uma espada colossal.",
-    ],
-    bulletPoints: [
-      {
-        icon: "⚠️",
-        title: "Círculos Vermelhos de Perigo",
-        desc: "Antes de golpear, o inimigo projeta um círculo de telégrafo no chão. Esquive-se imediatamente!",
-      },
-      {
-        icon: "🔮",
-        title: "Projéteis Mágicos",
-        desc: "Inimigos feiticeiros disparam orbes roxos à distância. Mantenha-se em movimento contínuo.",
-      },
-      {
-        icon: "🛡️",
-        title: "Luz Dissipadora",
-        desc: "Suas habilidades de luz e a Palavra quebram o poder das trevas e libertam os vilarejos.",
-      },
-    ],
+    id: "davi",
+    name: "Davi",
+    title: "O Estrategista Tecnológico",
+    role: "Sistemas Digitais, Satélites & Decodificação",
+    verseRef: "Daniel 12:3",
+    verseText: "Os sábios resplandecerão como o fulgor do firmamento... como as estrelas sempre e eternamente.",
+    accent: "#fbbf24",
+    gradient: "from-amber-400 via-yellow-500 to-amber-600",
+    specialty: "Tradução simultânea de dialetos arcaicos e conexão de satélites para transmissão das Escrituras.",
+    gear: "Óculos cibernéticos, decodificador portátil de línguas e link via rádio.",
   },
   {
-    id: "garagem",
-    badge: "CAPÍTULO IV • LOGÍSTICA TÁTICA",
-    title: "A Garagem & Arsenal de Campo",
-    subtitle: "Veículos táticos com combustível estratégico e bíblia de bolso",
-    verseRef: "Salmos 119:105",
-    verseText: "Lâmpada para os meus pés é a tua palavra e luz para o meu caminho.",
-    accentGradient: "from-emerald-500 via-teal-500 to-cyan-600",
-    borderClass: "border-emerald-400/50 shadow-[0_0_35px_rgba(52,211,153,0.35)]",
-    icon: <Truck className="h-8 w-8 text-emerald-300" />,
-    paragraphs: [
-      "Para cruzar o vasto mundo aberto de 220 metros, você conta com um arsenal tático da Base Ide e uma frota de resgate com recursos limitados que exigem planejamento.",
-    ],
-    bulletPoints: [
-      {
-        icon: "🚙",
-        title: "Carro SUV Tático (2 unidades)",
-        desc: "45 segundos de autonomia por tanque. Robusto, seguro e ideal para longas distâncias.",
-      },
-      {
-        icon: "🏍️",
-        title: "Moto Ágil (3 unidades)",
-        desc: "30 segundos de autonomia por tanque. Ultra-rápida, perfeita para passar por becos e desvios.",
-      },
-      {
-        icon: "🔄",
-        title: "Troca Rápida de Veículo",
-        desc: "Você pode alternar entre Carro e Moto direto no HUD de combate quando estiver a pé.",
-      },
-      {
-        icon: "📖",
-        title: "Bíblia de Bolso & Tradutor",
-        desc: "Acesse o Manual de Campo com o Evangelho em 4 Passos e responda às dúvidas dos moradores.",
-      },
-    ],
-  },
-  {
-    id: "controles",
-    badge: "CAPÍTULO V • MANUAL DE OPERAÇÃO",
-    title: "Como Jogar & Sobreviver",
-    subtitle: "Cargas de ataque, movimentação inteligente e vitória",
-    verseRef: "2 Timóteo 4:7",
-    verseText: "Combati o bom combate, acabei a carreira, guardei a fé.",
-    accentGradient: "from-amber-400 via-yellow-500 to-orange-600",
-    borderClass: "border-amber-300/60 shadow-[0_0_40px_rgba(251,191,36,0.4)]",
-    icon: <Zap className="h-8 w-8 text-amber-200" />,
-    paragraphs: [
-      "Domine os controles no teclado ou toque para cumprir sua missão com excelência e salvar o distrito:",
-    ],
-    bulletPoints: [
-      {
-        icon: "⚡",
-        title: "6 Cargas de Ataque (Energia)",
-        desc: "Cada golpe consome 1 carga. A energia se regenera a cada 1.2s. Não gaste tudo de uma vez!",
-      },
-      {
-        icon: "🎮",
-        title: "Controles no Teclado / Toque",
-        desc: "Mover: WASD ou Joystick Virtual. Atacar: Espaço / Botão de Ataque. Dash: Shift. Câmera: C.",
-      },
-      {
-        icon: "🤝",
-        title: "Resgate de Moradores",
-        desc: "Aproxime-se dos cidadãos com o ícone de diálogo (F / Toque) para confortá-los e subir o medidor de Ponte.",
-      },
-      {
-        icon: "🏆",
-        title: "Derrote o Titã do Abismo",
-        desc: "Reduza a vida do Boss desviando de seus golpes devastadores e liberte o Nexus para concluir a missão!",
-      },
-    ],
+    id: "ester",
+    name: "Ester",
+    title: "A Embaixadora da Fé",
+    role: "Liderança de Paz, Sabedoria & Intercessão",
+    verseRef: "Ester 4:14",
+    verseText: "Quem sabe se não foi para um momento como este que você chegou?",
+    accent: "#c084fc",
+    gradient: "from-purple-500 via-fuchsia-500 to-rose-600",
+    specialty: "Diplomacia e oração destemida perante líderes locais, abrindo portas onde tudo parecia bloqueado.",
+    gear: "Diadema dourado da coragem, véu de seda de oração e pergaminho da aliança.",
   },
 ];
 
 export function StoryPrologueModal({ open, onClose }: StoryPrologueModalProps) {
   const { playSfx } = useGame();
-  const [chapterIdx, setChapterIdx] = useState(0);
+  const [currentChapter, setCurrentChapter] = useState(0);
+  const [selectedHeroTab, setSelectedHeroTab] = useState<AvatarId>("lucas");
+  const [autoPlay, setAutoPlay] = useState(true);
+  const [autoPlayProgress, setAutoPlayProgress] = useState(0);
+
+  // Chapter 5 Combat Simulator state
+  const [simCharges, setSimCharges] = useState(6);
+  const [simDodgeActive, setSimDodgeActive] = useState(false);
+  const [simDodgeSuccess, setSimDodgeSuccess] = useState(false);
+
+  const CHAPTER_COUNT = 5;
+  const AUTO_PLAY_SECONDS = 9;
+
+  // Auto-play timer loop
+  useEffect(() => {
+    if (!open || !autoPlay) return;
+
+    const intervalMs = 100;
+    const increment = (intervalMs / (AUTO_PLAY_SECONDS * 1000)) * 100;
+
+    const timer = setInterval(() => {
+      setAutoPlayProgress((prev) => {
+        if (prev >= 100) {
+          setCurrentChapter((ch) => {
+            if (ch >= CHAPTER_COUNT - 1) {
+              setAutoPlay(false);
+              return ch;
+            }
+            playSfx("levelUp");
+            return ch + 1;
+          });
+          return 0;
+        }
+        return prev + increment;
+      });
+    }, intervalMs);
+
+    return () => clearInterval(timer);
+  }, [open, autoPlay, currentChapter, playSfx]);
+
+  // Recharge simulator attack charges in Chapter 5
+  useEffect(() => {
+    if (currentChapter !== 4) return;
+    if (simCharges >= 6) return;
+
+    const timer = setTimeout(() => {
+      setSimCharges((prev) => Math.min(6, prev + 1));
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [simCharges, currentChapter]);
+
+  // Simulate enemy attack telegraph in Chapter 5
+  useEffect(() => {
+    if (currentChapter !== 4) return;
+
+    const interval = setInterval(() => {
+      setSimDodgeActive(true);
+      setSimDodgeSuccess(false);
+
+      const hitTimer = setTimeout(() => {
+        setSimDodgeActive(false);
+      }, 2600);
+
+      return () => clearTimeout(hitTimer);
+    }, 4500);
+
+    return () => clearInterval(interval);
+  }, [currentChapter]);
 
   if (!open) return null;
 
-  const currentChapter = STORY_CHAPTERS[chapterIdx];
-  const isFirst = chapterIdx === 0;
-  const isLast = chapterIdx === STORY_CHAPTERS.length - 1;
+  const handleSimAttack = () => {
+    if (simCharges <= 0) {
+      playSfx("error");
+      return;
+    }
+    playSfx("slash");
+    setSimCharges((prev) => Math.max(0, prev - 1));
+  };
+
+  const handleSimDodge = () => {
+    if (simDodgeActive) {
+      playSfx("dash");
+      setSimDodgeSuccess(true);
+      setSimDodgeActive(false);
+    } else {
+      playSfx("dash");
+    }
+  };
 
   const handleNext = () => {
     playSfx("click");
-    if (isLast) {
+    setAutoPlayProgress(0);
+    if (currentChapter >= CHAPTER_COUNT - 1) {
       onClose();
     } else {
-      setChapterIdx((prev) => prev + 1);
+      setCurrentChapter((prev) => prev + 1);
     }
   };
 
   const handlePrev = () => {
     playSfx("click");
-    if (!isFirst) {
-      setChapterIdx((prev) => prev - 1);
+    setAutoPlayProgress(0);
+    if (currentChapter > 0) {
+      setCurrentChapter((prev) => prev - 1);
     }
   };
 
@@ -245,135 +215,593 @@ export function StoryPrologueModal({ open, onClose }: StoryPrologueModalProps) {
     onClose();
   };
 
+  const currentHeroData =
+    HEROES_DATA.find((h) => h.id === selectedHeroTab) || HEROES_DATA[0];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-slate-950/85 backdrop-blur-xl select-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/90 backdrop-blur-2xl select-none overflow-hidden touch-manipulation">
       <motion.div
-        initial={{ opacity: 0, scale: 0.94, y: 12 }}
+        initial={{ opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.94, y: 12 }}
-        className={`relative flex flex-col w-full max-w-2xl max-h-[92vh] rounded-3xl border-2 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 overflow-hidden ${currentChapter.borderClass}`}
+        exit={{ opacity: 0, scale: 0.95, y: 15 }}
+        className="relative flex flex-col w-full max-w-4xl max-h-[94vh] rounded-3xl border-2 border-amber-400/50 bg-slate-950 shadow-[0_0_50px_rgba(245,158,11,0.25)] overflow-hidden"
       >
-        {/* TOP CINEMATIC HEADER */}
-        <div className="relative shrink-0 flex items-center justify-between px-4 py-3 sm:px-6 sm:py-3.5 border-b border-slate-800 bg-slate-950/80">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className={`p-2 rounded-xl bg-gradient-to-br ${currentChapter.accentGradient} text-slate-950 shadow-md`}>
-              {currentChapter.icon}
-            </div>
+        {/* TOP STORY CUTSCENE PROGRESS BAR (INSTAGRAM/CUTSCENE STYLE) */}
+        <div className="absolute top-0 left-0 right-0 z-30 flex items-center gap-1.5 px-4 pt-2.5">
+          {[0, 1, 2, 3, 4].map((stepIdx) => {
+            const isPast = stepIdx < currentChapter;
+            const isCurrent = stepIdx === currentChapter;
+            return (
+              <div
+                key={stepIdx}
+                className="relative h-1.5 flex-1 rounded-full bg-slate-800/80 overflow-hidden"
+              >
+                {isPast && (
+                  <div className="h-full w-full bg-gradient-to-r from-amber-400 to-amber-500" />
+                )}
+                {isCurrent && (
+                  <div
+                    style={{ width: `${autoPlay ? autoPlayProgress : 100}%` }}
+                    className="h-full bg-gradient-to-r from-cyan-400 via-amber-300 to-amber-500 transition-all duration-100"
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* TOP CINEMATIC HEADER BAR */}
+        <div className="relative z-20 shrink-0 flex items-center justify-between px-4 pt-5 pb-3 sm:px-6 border-b border-slate-800 bg-slate-950/90">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-amber-500/20 border border-amber-400/50 text-amber-300 font-mono text-xs font-black">
+              {currentChapter + 1}
+            </span>
             <div>
               <div className="font-mono text-[9px] sm:text-[10px] font-black tracking-widest text-amber-300 uppercase">
-                {currentChapter.badge} ({chapterIdx + 1}/{STORY_CHAPTERS.length})
+                MISSÃO FRONTEIRAS • O PRÓLOGO
               </div>
-              <h2 className="text-sm sm:text-lg font-black text-white uppercase tracking-tight">
-                {currentChapter.title}
+              <h2 className="text-xs sm:text-base font-black text-white uppercase tracking-wide">
+                {currentChapter === 0 && "1. O Despertar da Base Ide"}
+                {currentChapter === 1 && "2. A Chegada dos Quatro Campeões"}
+                {currentChapter === 2 && "3. A Ameaça das Sombras & O Titã"}
+                {currentChapter === 3 && "4. A Garagem & O Arsenal Sagrado"}
+                {currentChapter === 4 && "5. Manual de Combate & Sobrevivência"}
               </h2>
             </div>
           </div>
 
-          {/* Quick Skip Story Button */}
-          <button
-            type="button"
-            onClick={handleSkip}
-            className="flex items-center gap-1.5 rounded-xl border border-amber-400/50 bg-amber-500/15 px-2.5 py-1 text-[10px] sm:text-xs font-black text-amber-300 hover:bg-amber-500/25 transition cursor-pointer shadow-sm"
-            title="Pular história e entrar direto no jogo"
-          >
-            <span>Pular História</span>
-            <X className="h-3.5 w-3.5" />
-          </button>
+          {/* Header Controls: Auto-Play Toggle & Skip Button */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                playSfx("click");
+                setAutoPlay((prev) => !prev);
+              }}
+              className={`flex items-center gap-1 rounded-xl border px-2.5 py-1 text-[10px] font-black uppercase transition cursor-pointer ${
+                autoPlay
+                  ? "border-emerald-400/50 bg-emerald-500/20 text-emerald-300"
+                  : "border-slate-700 bg-slate-900 text-slate-400"
+              }`}
+              title={autoPlay ? "Pausar reprodução automática" : "Ativar reprodução automática"}
+            >
+              {autoPlay ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+              <span className="hidden sm:inline">{autoPlay ? "Pausar" : "Auto"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSkip}
+              className="flex items-center gap-1.5 rounded-xl border-2 border-amber-300 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-400 px-3 py-1 text-xs font-black text-slate-950 shadow-[0_0_15px_rgba(245,158,11,0.5)] hover:brightness-110 active:scale-95 transition cursor-pointer"
+            >
+              <span>Pular História</span>
+              <SkipForward className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
 
-        {/* SCROLLABLE CHAPTER CONTENT */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 no-scrollbar">
+        {/* MAIN ANIMATED CHAPTER STAGE */}
+        <div className="relative flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 no-scrollbar">
           <AnimatePresence mode="wait">
-            <motion.div
-              key={currentChapter.id}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.22 }}
-              className="space-y-3.5 sm:space-y-4"
-            >
-              {/* Subtitle & Scripture Quote */}
-              <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-slate-900/60 to-transparent p-3 sm:p-4">
-                <div className="text-xs sm:text-sm font-bold text-amber-200">
-                  {currentChapter.subtitle}
-                </div>
-                <div className="mt-2 flex items-start gap-2 border-t border-amber-400/20 pt-2 font-mono text-[10px] sm:text-xs italic text-slate-300">
-                  <span className="font-black text-amber-400 shrink-0">📖 {currentChapter.verseRef}:</span>
-                  <span>&ldquo;{currentChapter.verseText}&rdquo;</span>
-                </div>
-              </div>
+            {/* =========================================================
+                CENA 1: A FUNDAÇÃO DA BASE IDE NAS FRONTEIRAS
+               ========================================================= */}
+            {currentChapter === 0 && (
+              <motion.div
+                key="cap-0"
+                initial={{ opacity: 0, x: 25 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -25 }}
+                transition={{ duration: 0.35 }}
+                className="space-y-4"
+              >
+                {/* Cinematic Background Canvas with Ken Burns Pan */}
+                <div className="relative h-44 sm:h-56 w-full rounded-2xl overflow-hidden border border-amber-400/40 shadow-2xl">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <motion.img
+                    src={MAP_SPLASHES.amazonia}
+                    alt="Fronteiras Globais"
+                    initial={{ scale: 1 }}
+                    animate={{ scale: 1.08 }}
+                    transition={{ duration: 10, repeat: Infinity, repeatType: "reverse" }}
+                    className="h-full w-full object-cover filter brightness-50"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
 
-              {/* Story Narrative Paragraphs */}
-              <div className="space-y-2 text-xs sm:text-sm text-slate-300 leading-relaxed">
-                {currentChapter.paragraphs.map((p, idx) => (
-                  <p key={idx}>{p}</p>
-                ))}
-              </div>
+                  {/* Overlaid Animated Typography & Scripture Badge */}
+                  <div className="absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-4">
+                    <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/60 bg-amber-500/25 px-2.5 py-0.5 text-[9px] sm:text-[10px] font-mono font-black text-amber-200 backdrop-blur-md">
+                      <span>📖 ATOS 1:8 & MARCOS 16:15</span>
+                    </div>
+                    <h3 className="mt-1 text-base sm:text-xl font-black text-white drop-shadow-md">
+                      &ldquo;Até aos confins da Terra... Ide e anunciai a Esperança!&rdquo;
+                    </h3>
+                  </div>
+                </div>
 
-              {/* Interactive Feature Bullet Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5 pt-1">
-                {currentChapter.bulletPoints.map((b, bIdx) => (
-                  <div
-                    key={bIdx}
-                    className="flex items-start gap-2.5 rounded-xl border border-slate-800 bg-slate-900/80 p-2.5 sm:p-3 shadow-sm hover:border-slate-700 transition"
-                  >
-                    <span className="text-xl shrink-0 mt-0.5">{b.icon}</span>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[11px] sm:text-xs font-black text-white uppercase tracking-tight">
-                        {b.title}
+                {/* Narrative Lore */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs sm:text-sm text-slate-300">
+                  <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-3 sm:p-4 space-y-1">
+                    <div className="text-amber-300 font-black text-xs uppercase flex items-center gap-1.5">
+                      <Globe className="h-4 w-4" />
+                      <span>Territórios Esquecidos</span>
+                    </div>
+                    <p className="text-[11px] sm:text-xs text-slate-300 leading-relaxed">
+                      Entre rios bravios na Amazônia, desertos da Janela 10/40 e vielas em Tóquio, milhões nunca ouviram as Boas Novas do Evangelho.
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-3 sm:p-4 space-y-1">
+                    <div className="text-cyan-300 font-black text-xs uppercase flex items-center gap-1.5">
+                      <Sparkles className="h-4 w-4" />
+                      <span>O Farol da Base Ide</span>
+                    </div>
+                    <p className="text-[11px] sm:text-xs text-slate-300 leading-relaxed">
+                      Erguida como refúgio e centro logístico, a Base Ide prepara missionários com tecnologia, suprimentos humanitários e vigor espiritual.
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-3 sm:p-4 space-y-1">
+                    <div className="text-emerald-300 font-black text-xs uppercase flex items-center gap-1.5">
+                      <Heart className="h-4 w-4" />
+                      <span>A Ponte da Fé</span>
+                    </div>
+                    <p className="text-[11px] sm:text-xs text-slate-300 leading-relaxed">
+                      A missão nunca foi forçar ideias, mas construir Pontes de Amizade através de serviço real, escuta sincera e demonstração do amor de Cristo.
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* =========================================================
+                CENA 2: APRESENTAÇÃO DOS 4 MISSIONÁRIOS
+               ========================================================= */}
+            {currentChapter === 1 && (
+              <motion.div
+                key="cap-1"
+                initial={{ opacity: 0, x: 25 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -25 }}
+                transition={{ duration: 0.35 }}
+                className="space-y-4"
+              >
+                {/* 4 Interactive Hero Selection Tabs */}
+                <div className="grid grid-cols-4 gap-2">
+                  {HEROES_DATA.map((hero) => {
+                    const active = selectedHeroTab === hero.id;
+                    return (
+                      <button
+                        key={hero.id}
+                        type="button"
+                        onClick={() => {
+                          playSfx("click");
+                          setSelectedHeroTab(hero.id);
+                        }}
+                        className={`flex flex-col items-center p-2 rounded-2xl border-2 transition cursor-pointer ${
+                          active
+                            ? "border-amber-300 bg-amber-500/20 shadow-[0_0_18px_rgba(245,158,11,0.4)]"
+                            : "border-slate-800 bg-slate-900/70 hover:border-slate-700"
+                        }`}
+                      >
+                        <div className="relative h-11 w-11 sm:h-14 sm:w-14 rounded-xl overflow-hidden border border-current">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={HERO_PORTRAITS[hero.id]}
+                            alt={hero.name}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                        <span className="mt-1 font-black text-xs text-white uppercase">
+                          {hero.name}
+                        </span>
+                        <span
+                          style={{ color: hero.accent }}
+                          className="text-[8px] sm:text-[9px] font-mono font-bold truncate max-w-[70px]"
+                        >
+                          {hero.id.toUpperCase()}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Highlighted Champion Spotlight Card */}
+                <div className="relative rounded-2xl border-2 border-slate-700 bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 p-4 sm:p-5 overflow-hidden shadow-xl">
+                  <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                    {/* Champion Portrait with Glow Ring */}
+                    <div className="relative shrink-0 h-28 w-28 sm:h-36 sm:w-36 rounded-2xl overflow-hidden border-2 border-amber-300 shadow-[0_0_24px_rgba(245,158,11,0.4)]">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={HERO_PORTRAITS[currentHeroData.id]}
+                        alt={currentHeroData.name}
+                        className="h-full w-full object-cover"
+                      />
+                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-slate-950 to-transparent p-1.5 text-center">
+                        <span className="text-[9px] font-black text-amber-300 uppercase tracking-wider">
+                          AGENTE IDE
+                        </span>
                       </div>
-                      <div className="text-[10px] sm:text-[11px] text-slate-400 leading-snug mt-0.5">
-                        {b.desc}
+                    </div>
+
+                    {/* Bio & Verse */}
+                    <div className="flex-1 text-center sm:text-left space-y-2">
+                      <div>
+                        <span
+                          style={{ color: currentHeroData.accent }}
+                          className="font-mono text-[9px] sm:text-[10px] font-black tracking-widest uppercase"
+                        >
+                          {currentHeroData.role}
+                        </span>
+                        <h4 className="text-base sm:text-xl font-black text-white uppercase">
+                          {currentHeroData.name} — {currentHeroData.title}
+                        </h4>
+                      </div>
+
+                      <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                        {currentHeroData.specialty}
+                      </p>
+
+                      <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-2.5 text-[11px] sm:text-xs">
+                        <span className="font-bold text-amber-300">Equipamento de Campo: </span>
+                        <span className="text-slate-300">{currentHeroData.gear}</span>
+                      </div>
+
+                      <div className="rounded-xl border border-cyan-500/30 bg-cyan-950/30 p-2 font-mono text-[10px] sm:text-xs italic text-cyan-200">
+                        📖 <span className="font-bold">{currentHeroData.verseRef}:</span> &ldquo;{currentHeroData.verseText}&rdquo;
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            </motion.div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* =========================================================
+                CENA 3: A INVASÃO DAS SOMBRAS E O TITÃ DO ABISMO
+               ========================================================= */}
+            {currentChapter === 2 && (
+              <motion.div
+                key="cap-2"
+                initial={{ opacity: 0, x: 25 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -25 }}
+                transition={{ duration: 0.35 }}
+                className="space-y-4"
+              >
+                {/* Menacing Dark Arena Artwork */}
+                <div className="relative h-44 sm:h-52 w-full rounded-2xl overflow-hidden border-2 border-fuchsia-500/50 shadow-[0_0_35px_rgba(217,70,239,0.3)] bg-gradient-to-r from-fuchsia-950 via-slate-950 to-purple-950 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-radial from-fuchsia-900/30 via-slate-950/80 to-slate-950" />
+                  
+                  {/* Boss Silhouette Illustration */}
+                  <div className="relative text-center p-4 space-y-1 z-10">
+                    <span className="text-4xl sm:text-5xl animate-bounce">👑</span>
+                    <h3 className="text-lg sm:text-2xl font-black text-fuchsia-200 uppercase tracking-widest drop-shadow-[0_0_15px_rgba(217,70,239,0.8)]">
+                      O TITÃ DO ABISMO & AS SOMBRAS
+                    </h3>
+                    <p className="text-xs sm:text-sm text-slate-300 max-w-lg mx-auto leading-snug">
+                      Criaturas sombrias armadas com foices e magia escura tentam roubar a fé, espalhar o pânico e aprisionar os moradores no silêncio.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Threat Features Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div className="rounded-2xl border border-fuchsia-500/30 bg-slate-900/90 p-3 sm:p-4 space-y-1.5">
+                    <div className="text-rose-400 font-black flex items-center gap-1.5 text-xs uppercase">
+                      <Flame className="h-4 w-4" />
+                      <span>Círculos Vermelhos de Perigo</span>
+                    </div>
+                    <p className="text-slate-300 text-[11px] sm:text-xs leading-relaxed">
+                      Antes de qualquer golpe melee, o chão se acende em vermelho (telégrafo). Saia da área imediatamente com o Dash (`Shift` / botão de esquiva)!
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-purple-500/30 bg-slate-900/90 p-3 sm:p-4 space-y-1.5">
+                    <div className="text-purple-300 font-black flex items-center gap-1.5 text-xs uppercase">
+                      <Sparkles className="h-4 w-4" />
+                      <span>Projéteis Arcanos</span>
+                    </div>
+                    <p className="text-slate-300 text-[11px] sm:text-xs leading-relaxed">
+                      Sombras feiticeiras lançam orbes roxos teleguiados à distância. Fique em movimento constante para não sofrer dano contínuo.
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-amber-500/30 bg-slate-900/90 p-3 sm:p-4 space-y-1.5">
+                    <div className="text-amber-300 font-black flex items-center gap-1.5 text-xs uppercase">
+                      <Swords className="h-4 w-4" />
+                      <span>O Espadão do Titã</span>
+                    </div>
+                    <p className="text-slate-300 text-[11px] sm:text-xs leading-relaxed">
+                      O chefe do distrito possui 2.35x o tamanho de um soldado e desfere ondas de choque. Golpeie em ritmo certo e use seu escudo!
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* =========================================================
+                CENA 4: A GARAGEM TÁTICA E ARSENAL DE CAMPO
+               ========================================================= */}
+            {currentChapter === 3 && (
+              <motion.div
+                key="cap-3"
+                initial={{ opacity: 0, x: 25 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -25 }}
+                transition={{ duration: 0.35 }}
+                className="space-y-4"
+              >
+                {/* Vehicles Comparison Card */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  {/* Carro SUV 4x4 */}
+                  <div className="rounded-2xl border-2 border-sky-400/50 bg-gradient-to-b from-sky-950/60 via-slate-900 to-slate-950 p-4 space-y-2 shadow-lg">
+                    <div className="flex items-center justify-between">
+                      <span className="text-3xl">🚙</span>
+                      <span className="rounded-full bg-sky-500/20 border border-sky-400/40 px-2 py-0.5 text-[9px] font-mono font-black text-sky-300">
+                        2 UNIDADES POR MISSÃO
+                      </span>
+                    </div>
+                    <h4 className="text-sm sm:text-base font-black text-white uppercase">
+                      SUV Tático 4x4 • Autonomia 45s
+                    </h4>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      Veículo blindado e estável. Possui 45 segundos de autonomia de combustível por unidade. Ideal para cruzar o mapa e transportar suprimentos.
+                    </p>
+                    <div className="rounded-xl border border-sky-500/30 bg-slate-950/70 p-2 text-[10px] sm:text-[11px] font-mono text-sky-200">
+                      ⚡ Turbo Nitro no Shift • Retorno automático quando o tanque esvazia.
+                    </div>
+                  </div>
+
+                  {/* Moto Ágil */}
+                  <div className="rounded-2xl border-2 border-amber-400/50 bg-gradient-to-b from-amber-950/60 via-slate-900 to-slate-950 p-4 space-y-2 shadow-lg">
+                    <div className="flex items-center justify-between">
+                      <span className="text-3xl">🏍️</span>
+                      <span className="rounded-full bg-amber-500/20 border border-amber-400/40 px-2 py-0.5 text-[9px] font-mono font-black text-amber-300">
+                        3 UNIDADES POR MISSÃO
+                      </span>
+                    </div>
+                    <h4 className="text-sm sm:text-base font-black text-white uppercase">
+                      Moto Tática • Autonomia 30s
+                    </h4>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      Ultra-veloz e compacta. Possui 30 segundos de combustível por unidade. Perfeita para passar entre vielas estreitas e desviar dos projéteis das sombras.
+                    </p>
+                    <div className="rounded-xl border border-amber-500/30 bg-slate-950/70 p-2 text-[10px] sm:text-[11px] font-mono text-amber-200">
+                      🔄 Botão no HUD: Alterne entre Carro e Moto a qualquer momento a pé!
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pocket Bible Card */}
+                <div className="rounded-2xl border border-emerald-400/40 bg-slate-900/90 p-4 flex flex-col sm:flex-row items-center gap-3">
+                  <div className="p-3 rounded-2xl bg-emerald-500/20 border border-emerald-400/50 text-emerald-300 shrink-0">
+                    <BookOpen className="h-6 w-6" />
+                  </div>
+                  <div className="text-center sm:text-left space-y-0.5">
+                    <h5 className="text-xs sm:text-sm font-black text-white uppercase">
+                      A Bíblia de Bolso & Guia Transcultural
+                    </h5>
+                    <p className="text-[11px] sm:text-xs text-slate-300 leading-relaxed">
+                      Abra o manual a qualquer momento para consultar o Evangelho em 4 Passos, aprender expressões culturais e responder às dúvidas dos moradores.
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* =========================================================
+                CENA 5: TUTORIAL INTERATIVO DE COMBATE E SOBREVIVÊNCIA
+               ========================================================= */}
+            {currentChapter === 4 && (
+              <motion.div
+                key="cap-4"
+                initial={{ opacity: 0, x: 25 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -25 }}
+                transition={{ duration: 0.35 }}
+                className="space-y-4"
+              >
+                {/* Interactive Simulator: Click Attack & Dodge */}
+                <div className="rounded-2xl border-2 border-amber-300/60 bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 p-4 sm:p-5 shadow-2xl">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-2.5 mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">🎮</span>
+                      <h4 className="text-xs sm:text-sm font-black text-amber-300 uppercase">
+                        Simulador de Mecânicas de Combate (Teste Agora!)
+                      </h4>
+                    </div>
+                    <span className="font-mono text-[10px] font-black text-cyan-300">
+                      INTERATIVO
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                    {/* Test 1: Attack Charges Simulator */}
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-3 text-center space-y-2">
+                      <div className="flex items-center justify-between text-[11px] font-bold">
+                        <span className="text-slate-300">Cargas de Energia de Ataque:</span>
+                        <span className="font-mono font-black text-amber-300">
+                          ⚡ {simCharges}/6
+                        </span>
+                      </div>
+
+                      {/* 6 Pips */}
+                      <div className="flex justify-center gap-1.5 my-1">
+                        {[0, 1, 2, 3, 4, 5].map((idx) => (
+                          <div
+                            key={idx}
+                            className={`h-2.5 w-6 rounded-full transition-all ${
+                              idx < simCharges
+                                ? "bg-amber-400 shadow-[0_0_8px_#f59e0b]"
+                                : "bg-slate-800"
+                            }`}
+                          />
+                        ))}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleSimAttack}
+                        className={`w-full py-2 px-3 rounded-xl border-2 font-mono text-xs font-black transition cursor-pointer ${
+                          simCharges > 0
+                            ? "border-rose-400 bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-[0_0_15px_rgba(244,63,94,0.5)] active:scale-95"
+                            : "border-slate-800 bg-slate-900 text-slate-500 cursor-not-allowed"
+                        }`}
+                      >
+                        {simCharges > 0 ? "⚔️ Desferir Golpe (Clique para Testar)" : "⏳ Recarregando Energia..."}
+                      </button>
+                      <p className="text-[10px] text-slate-400">
+                        Cada golpe consome 1 carga. A energia retorna a cada 1.2s!
+                      </p>
+                    </div>
+
+                    {/* Test 2: Dodge Warning Circle Simulator */}
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-3 text-center space-y-2">
+                      <div className="flex items-center justify-between text-[11px] font-bold">
+                        <span className="text-slate-300">Esquiva do Círculo de Perigo:</span>
+                        <span
+                          className={`font-mono text-[10px] font-black ${
+                            simDodgeSuccess
+                              ? "text-emerald-400"
+                              : simDodgeActive
+                                ? "text-rose-400 animate-pulse"
+                                : "text-slate-400"
+                          }`}
+                        >
+                          {simDodgeSuccess ? "✓ ESQUIVOU!" : simDodgeActive ? "⚠️ PERIGO!" : "PRONTO"}
+                        </span>
+                      </div>
+
+                      <div className="relative h-12 flex items-center justify-center">
+                        {simDodgeActive && (
+                          <motion.div
+                            initial={{ scale: 0.3, opacity: 0.9 }}
+                            animate={{ scale: 1.2, opacity: 0.3 }}
+                            transition={{ duration: 1.2, repeat: Infinity }}
+                            className="absolute h-10 w-28 rounded-full border-2 border-rose-500 bg-rose-500/20"
+                          />
+                        )}
+                        <span className="text-xs font-black text-white z-10">
+                          {simDodgeActive ? "💥 Inimigo vai atacar!" : "Área segura"}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleSimDodge}
+                        className="w-full py-2 px-3 rounded-xl border-2 border-emerald-400 bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-mono text-xs font-black shadow-[0_0_15px_rgba(52,211,153,0.4)] active:scale-95 transition cursor-pointer"
+                      >
+                        🏃 Esquivar com Dash (Shift / Botão)
+                      </button>
+                      <p className="text-[10px] text-slate-400">
+                        Saia do círculo vermelho antes do golpe do Boss cair!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4 Steps to Victory */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+                  <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-2.5 space-y-1">
+                    <span className="text-lg">🧭</span>
+                    <div className="font-black text-amber-300 text-[11px] uppercase">1. Explore</div>
+                    <p className="text-[10px] text-slate-400 leading-snug">
+                      Siga o GPS e explore o mapa aberto de 220m.
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-2.5 space-y-1">
+                    <span className="text-lg">🤝</span>
+                    <div className="font-black text-cyan-300 text-[11px] uppercase">2. Dialogue</div>
+                    <p className="text-[10px] text-slate-400 leading-snug">
+                      Converse com 6 moradores para subir a barra de Fé.
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-2.5 space-y-1">
+                    <span className="text-lg">📡</span>
+                    <div className="font-black text-emerald-300 text-[11px] uppercase">3. Torres</div>
+                    <p className="text-[10px] text-slate-400 leading-snug">
+                      Ative as 3 antenas de rádio para irradiar a Palavra.
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-2.5 space-y-1">
+                    <span className="text-lg">👑</span>
+                    <div className="font-black text-fuchsia-300 text-[11px] uppercase">4. Derrote</div>
+                    <p className="text-[10px] text-slate-400 leading-snug">
+                      Vença o Titã do Abismo e liberte o Nexus Sagrado!
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
           </AnimatePresence>
         </div>
 
         {/* BOTTOM NAVIGATION FOOTER */}
-        <div className="shrink-0 flex items-center justify-between px-4 py-3 sm:px-6 sm:py-3.5 border-t border-slate-800 bg-slate-950/90">
-          {/* Step Dots */}
-          <div className="flex items-center gap-1.5">
-            {STORY_CHAPTERS.map((ch, idx) => (
+        <div className="relative z-20 shrink-0 flex items-center justify-between px-4 py-3 sm:px-6 border-t border-slate-800 bg-slate-950/95">
+          {/* Chapter Selector Buttons */}
+          <div className="flex items-center gap-1 sm:gap-2">
+            {[0, 1, 2, 3, 4].map((idx) => (
               <button
-                key={ch.id}
+                key={idx}
                 type="button"
                 onClick={() => {
                   playSfx("click");
-                  setChapterIdx(idx);
+                  setAutoPlayProgress(0);
+                  setCurrentChapter(idx);
                 }}
-                className={`h-2 rounded-full transition-all cursor-pointer ${
-                  idx === chapterIdx
-                    ? "w-6 bg-gradient-to-r from-amber-400 to-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.7)]"
-                    : "w-2 bg-slate-700 hover:bg-slate-500"
+                className={`flex items-center justify-center rounded-xl transition cursor-pointer text-xs font-black ${
+                  idx === currentChapter
+                    ? "h-8 px-3 bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 shadow-[0_0_12px_rgba(245,158,11,0.6)]"
+                    : "h-8 w-8 bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
                 }`}
-                title={`Ir para ${ch.badge}`}
-              />
+              >
+                {idx === currentChapter ? `Cap. ${idx + 1}` : idx + 1}
+              </button>
             ))}
           </div>
 
-          {/* Action Buttons */}
+          {/* Prev & Next Controls */}
           <div className="flex items-center gap-2">
-            {!isFirst && (
+            {currentChapter > 0 && (
               <button
                 type="button"
                 onClick={handlePrev}
                 className="flex items-center gap-1 rounded-xl border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-black text-slate-300 hover:text-white hover:border-slate-600 transition cursor-pointer"
               >
                 <ChevronLeft className="h-4 w-4" />
-                <span>Anterior</span>
+                <span className="hidden sm:inline">Anterior</span>
               </button>
             )}
 
             <button
               type="button"
               onClick={handleNext}
-              className="flex items-center gap-1.5 rounded-xl border-2 border-amber-300 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 px-4 py-1.5 text-xs font-black text-slate-950 shadow-[0_0_16px_rgba(245,158,11,0.5)] hover:brightness-105 active:scale-95 transition cursor-pointer"
+              className="flex items-center gap-1.5 rounded-xl border-2 border-amber-300 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 px-4 py-1.5 text-xs font-black text-slate-950 shadow-[0_0_18px_rgba(245,158,11,0.6)] hover:brightness-105 active:scale-95 transition cursor-pointer uppercase tracking-tight"
             >
-              <span>{isLast ? "⚔️ Iniciar Aventura!" : "Próximo"}</span>
+              <span>{currentChapter === CHAPTER_COUNT - 1 ? "⚔️ Iniciar Aventura!" : "Próximo"}</span>
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
