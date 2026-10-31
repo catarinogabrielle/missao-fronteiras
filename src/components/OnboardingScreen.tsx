@@ -14,6 +14,7 @@ import {
   Monitor,
   ShieldCheck,
   Sparkles,
+  UserPlus,
   Users,
   Volume2,
   VolumeX,
@@ -543,50 +544,97 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
           {/* ZONE 2: AGENT SETUP & INSTANT JOGAR TERMINAL (~35% width, w-72 sm:w-80) */}
           <section className="relative flex w-72 sm:w-80 shrink-0 flex-col justify-between min-h-0 rounded-2xl border border-amber-500/35 bg-slate-950/90 backdrop-blur-xl p-2.5 shadow-2xl overflow-hidden">
             
-            {/* Top: Identity / Nickname */}
-            <div className="shrink-0 space-y-1">
+            {/* Top: Identity / Saved Profiles & Nickname */}
+            <div className="shrink-0 space-y-1.5">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase tracking-wider text-amber-300">
-                  Nome do Agente
+                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-amber-300">
+                  <Users className="h-3 w-3 text-cyan-400" />
+                  <span>Identidade do Agente</span>
                 </span>
                 {state.savedProfiles && state.savedProfiles.length > 0 && (
-                  <span className="text-[8.5px] font-bold text-cyan-400">
-                    {state.savedProfiles.length} perfil(s) salvo(s)
+                  <span className="rounded-full bg-cyan-500/15 border border-cyan-400/35 px-1.5 py-0.2 font-mono text-[8px] font-black text-cyan-300">
+                    {state.savedProfiles.length} CONTA{state.savedProfiles.length > 1 ? "S" : ""}
                   </span>
                 )}
               </div>
-              <input
-                type="text"
-                maxLength={24}
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder={`Ex: Agente ${activeChampion.name}`}
-                className="w-full rounded-xl border border-slate-700 bg-slate-900/90 px-2.5 py-1.5 text-xs font-black text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400 transition"
-              />
 
-              {/* Quick Saved Profile Chips if returning player */}
+              {/* Saved Profiles Horizontal Cards if returning player */}
               {state.savedProfiles && state.savedProfiles.length > 0 && (
-                <div className="flex items-center gap-1 overflow-x-auto py-0.5 no-scrollbar">
-                  {state.savedProfiles.map((prof) => (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-[8px] font-extrabold uppercase tracking-wider text-slate-400">
+                    <span>Perfis Salvos (Toque para carregar):</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+                    {state.savedProfiles.map((prof) => {
+                      const isCurrentActive =
+                        prof.avatarId === selectedAvatar && prof.name === name;
+                      const champ = AVATAR_OPTIONS.find((a) => a.id === prof.avatarId);
+                      return (
+                        <button
+                          key={prof.name}
+                          type="button"
+                          onClick={() => {
+                            playSfx("click");
+                            handleSelectSavedProfile(prof, false);
+                          }}
+                          className={`shrink-0 flex items-center gap-1.5 cursor-pointer rounded-xl border p-1 pr-2 transition ${
+                            isCurrentActive
+                              ? "border-amber-300 bg-gradient-to-r from-amber-500/30 to-amber-600/20 text-white ring-1.5 ring-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.4)]"
+                              : "border-slate-800 bg-slate-900/90 text-slate-300 hover:border-slate-600"
+                          }`}
+                        >
+                          <HeroPortrait
+                            avatarId={prof.avatarId}
+                            size={22}
+                            shape="hex"
+                            active={isCurrentActive}
+                          />
+                          <div className="text-left leading-none">
+                            <div className="text-[9.5px] font-black text-white uppercase truncate max-w-[85px]">
+                              {prof.name}
+                            </div>
+                            <div className="text-[7.5px] font-bold text-amber-300 uppercase mt-0.5 flex items-center gap-1">
+                              <span>{champ?.name || prof.avatarId}</span>
+                              {isCurrentActive && (
+                                <span className="text-emerald-400 font-black">✓ ATIVO</span>
+                              )}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+
                     <button
-                      key={prof.name}
                       type="button"
-                      onClick={() => handleSelectSavedProfile(prof, true)}
-                      className={`shrink-0 flex items-center gap-1 cursor-pointer rounded-lg border px-2 py-0.5 text-[8.5px] font-bold transition ${
-                        prof.avatarId === selectedAvatar && prof.name === name
-                          ? "border-amber-400 bg-amber-500/25 text-amber-200 ring-1 ring-amber-300"
-                          : "border-slate-800 bg-slate-900 text-slate-300 hover:border-amber-400/50"
-                      }`}
+                      onClick={() => {
+                        playSfx("click");
+                        setName(`Agente_${activeChampion.name}`);
+                      }}
+                      className="shrink-0 flex items-center gap-1 rounded-xl border border-dashed border-slate-700 bg-slate-900/50 px-2 py-1.5 text-[8.5px] font-black text-slate-400 hover:text-white hover:border-amber-400 transition cursor-pointer"
+                      title="Criar novo perfil para este campeão"
                     >
-                      <span>{prof.name}</span>
-                      <span className="text-[7.5px] uppercase font-mono text-cyan-300">
-                        ({prof.avatarId})
-                      </span>
+                      <UserPlus className="h-3 w-3 text-amber-300" />
+                      <span>+ Novo</span>
                     </button>
-                  ))}
+                  </div>
                 </div>
               )}
+
+              {/* Editable Nickname Input */}
+              <div className="space-y-0.5">
+                <div className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">
+                  Apelido no Jogo:
+                </div>
+                <input
+                  type="text"
+                  maxLength={24}
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={`Ex: Agente ${activeChampion.name}`}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900/90 px-2.5 py-1 text-xs font-black text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400 transition"
+                />
+              </div>
             </div>
 
             {/* Middle: Dom Espiritual Selection (2x2 Grid) */}
@@ -653,8 +701,8 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
                     <span className="text-sm font-black tracking-wider uppercase">
                       ⚔️ JOGAR AGORA
                     </span>
-                    <span className="text-[9px] font-extrabold text-amber-950 uppercase tracking-widest">
-                      ENTRAR COM {activeChampion.name}
+                    <span className="text-[9px] font-extrabold text-amber-950 uppercase tracking-widest truncate max-w-[200px]">
+                      ENTRAR COMO {name || activeChampion.name}
                     </span>
                   </div>
                 </div>
@@ -765,36 +813,48 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
           <div className="moba-panel-cyan moba-clip-panel flex flex-wrap items-center justify-between gap-2.5 p-3">
             <div className="flex items-center gap-2 text-xs font-black text-cyan-300 uppercase">
               <Users className="h-4 w-4 text-amber-300" />
-              <span>Conectar com Agente Salvo:</span>
+              <span>Contas & Perfis Salvos:</span>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {state.savedProfiles.map((prof) => {
                 const isCurrentActive =
                   prof.avatarId === selectedAvatar && prof.name === name;
+                const champ = AVATAR_OPTIONS.find((a) => a.id === prof.avatarId);
                 return (
                   <button
                     key={prof.name}
                     type="button"
-                    onClick={() => handleSelectSavedProfile(prof, true)}
-                    className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-black shadow-sm transition ${
+                    onClick={() => {
+                      playSfx("click");
+                      handleSelectSavedProfile(prof, false);
+                    }}
+                    className={`flex cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-1.5 text-xs font-black shadow-sm transition ${
                       isCurrentActive
-                        ? "border-amber-300 bg-amber-500/30 text-amber-200 ring-1.5 ring-amber-300"
+                        ? "border-amber-300 bg-amber-500/30 text-amber-200 ring-2 ring-amber-300"
                         : "border-amber-400/50 bg-slate-900/95 text-white hover:border-amber-300 hover:bg-amber-500/25"
                     }`}
                   >
                     <HeroPortrait
                       avatarId={prof.avatarId}
-                      size={20}
+                      size={24}
                       shape="hex"
                       active={isCurrentActive}
                     />
-                    <span className="text-amber-300">{prof.name}</span>
-                    <span className="rounded bg-cyan-500/20 px-1.5 py-0.5 text-[10px] text-cyan-200 uppercase font-mono">
-                      {prof.avatarId}
-                    </span>
-                    <span className="text-[10px] font-bold text-emerald-400">
-                      Entrar →
-                    </span>
+                    <div className="text-left leading-tight">
+                      <span className="text-amber-300 block">{prof.name}</span>
+                      <span className="text-[9px] text-cyan-300 uppercase font-mono">
+                        {champ?.name || prof.avatarId}
+                      </span>
+                    </div>
+                    {isCurrentActive ? (
+                      <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-black text-emerald-400">
+                        ✓ ATIVO
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold text-slate-400 hover:text-white">
+                        Carregar ↺
+                      </span>
+                    )}
                   </button>
                 );
               })}
