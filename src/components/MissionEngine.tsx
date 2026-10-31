@@ -818,6 +818,18 @@ export function MissionEngine({
         <div
           className="moba-panel-gold relative overflow-hidden p-1.5 shadow-2xl h-22 w-22 sm:h-26 sm:w-26 rounded-xl"
         >
+          {/* Quick Camera Mode Switcher icon pinned to Radar Minimap Corner */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              fireAction("camera");
+            }}
+            title="Alternar Câmera: 3D GTA / MOBA Tática [C]"
+            className="pointer-events-auto absolute top-1 right-1 z-10 flex h-5 w-5 items-center justify-center rounded-md border border-amber-400/60 bg-slate-950/85 text-amber-300 shadow hover:bg-amber-500/25 active:scale-90 transition cursor-pointer"
+          >
+            <Camera className="h-2.5 w-2.5" />
+          </button>
           <div
             onClick={handleRadarClick}
             title="Clique em qualquer rua do Radar para marcar GPS!"
@@ -1072,19 +1084,48 @@ export function MissionEngine({
             }}
             title="Ver Todas as 12 Missões"
             className={`flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-cyan-400/70 bg-gradient-to-r from-cyan-950 to-slate-950 font-black text-cyan-200 shadow-[0_0_14px_rgba(34,211,238,0.3)] transition hover:border-cyan-300 hover:text-white ${
-              isMobileLandscape ? "px-2 py-0.5 text-[9px]" : "px-2.5 py-1.5 text-[11px]"
+              isMobileLandscape ? "px-2 py-0.5 text-[9px]" : "px-2.5 py-1 text-[10.5px]"
             }`}
           >
             <ClipboardList className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-cyan-300" />
             <span>MISSÕES ({completedMapMissions}/{totalMapMissions})</span>
           </button>
+
+          {/* Quick Camera Mode Switcher (Tactile 3D Action Button - Ergonomically Docked in Nav Stack, Zero HUD Collisions!) */}
+          <motion.button
+            type="button"
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.94 }}
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              fireAction("camera");
+            }}
+            title="Alternar Ângulo da Câmera (3D GTA / Tática MOBA) [C]"
+            className={`flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 font-black uppercase shadow-lg transition ${
+              isMobileLandscape ? "py-0.5 text-[8.5px]" : "py-1 text-[9.5px] sm:text-[10px]"
+            } ${
+              hudSnap.cameraMode === "gta"
+                ? "border-amber-400 bg-gradient-to-r from-amber-500/30 via-slate-900 to-slate-950 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.35)] hover:border-amber-300"
+                : "border-sky-400 bg-gradient-to-r from-sky-500/30 via-slate-900 to-slate-950 text-sky-300 shadow-[0_0_12px_rgba(56,189,248,0.35)] hover:border-sky-300"
+            }`}
+          >
+            <Camera className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-amber-400" />
+            <span>{hudSnap.cameraMode === "gta" ? "CÂMERA 3D" : "CÂMERA MOBA"}</span>
+            <span className="text-[9px] font-mono opacity-80">↻</span>
+            {!isMobile && (
+              <kbd className="hidden md:inline-block rounded bg-slate-950/70 px-1 py-0.2 font-mono text-[8px] text-amber-300">
+                C
+              </kbd>
+            )}
+          </motion.button>
         </div>
       </div>
 
       {/* =========================================================
           TOP-CENTER: HP, PONTE, LIVE RACE TIMER & BOSS BAR
          ========================================================= */}
-      <div className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 z-20 w-auto max-w-[calc(100%-190px)] sm:max-w-md lg:max-w-lg">
+      <div className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 z-20 w-auto max-w-[calc(100%-230px)] sm:max-w-md lg:max-w-lg">
         <div className="moba-panel-gold moba-clip-panel pointer-events-auto px-2.5 py-1.5 sm:px-4 sm:py-2">
           <div className="flex flex-wrap items-center justify-between gap-1">
             <div className="flex items-center gap-1.5 truncate">
@@ -1172,41 +1213,9 @@ export function MissionEngine({
       </div>
 
       {/* =========================================================
-          TOP-RIGHT: CAMERA MODE & SCOREBOARD (AAA ERGONOMIC POSITIONING)
+          TOP-RIGHT: SCOREBOARD, AUDIO & FULLSCREEN CONTROLS (AAA ERGONOMIC POSITIONING)
          ========================================================= */}
-      <div className="pointer-events-auto absolute top-2 right-2 z-20 flex items-start gap-1.5 sm:top-3 sm:right-3">
-        {/* Quick Camera Mode Switcher (Tactile 3D Action Button) */}
-        <motion.button
-          type="button"
-          whileHover={{ scale: 1.06, y: -1 }}
-          whileTap={{ scale: 0.92, y: 1 }}
-          onPointerDown={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            fireAction("camera");
-          }}
-          title="Mudar Ângulo da Câmera (3D GTA / Tática MOBA)"
-          className="flex h-8 sm:h-9 cursor-pointer items-center gap-1.5 rounded-xl border-2 border-amber-300 bg-gradient-to-b from-amber-300 via-amber-400 to-amber-600 px-2 sm:px-3 text-[10px] sm:text-xs font-black text-slate-950 shadow-[0_3px_0_#92400e,0_0_16px_rgba(245,158,11,0.55),inset_0_1px_1px_rgba(255,255,255,0.85)] hover:brightness-110 active:translate-y-0.5 active:shadow-[0_1px_0_#92400e] transition select-none uppercase tracking-tight"
-        >
-          <div className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-lg bg-slate-950/20 shadow-inner text-slate-950">
-            <Camera className="h-3.5 w-3.5 sm:h-4 sm:w-4 stroke-[2.5]" />
-          </div>
-          <div className="flex flex-col text-left leading-none">
-            <span className="text-[7px] sm:text-[7.5px] font-black tracking-widest text-amber-950">MUDAR</span>
-            <span className="text-[9.5px] sm:text-[11px] font-black tracking-tight text-slate-950">
-              {hudSnap.cameraMode === "gta" ? "CÂMERA 3D" : "CÂMERA MOBA"}
-            </span>
-          </div>
-          <span className="flex h-4 w-4 items-center justify-center rounded-md bg-slate-950/15 text-[9px] font-black text-slate-950">
-            ↻
-          </span>
-          {!isMobile && (
-            <kbd className="hidden md:inline-block rounded bg-slate-950/25 px-1 py-0.2 font-mono text-[8px] font-black text-slate-950">
-              C
-            </kbd>
-          )}
-        </motion.button>
-
+      <div className="pointer-events-auto absolute top-2 right-2 z-20 flex items-center gap-1.5 sm:top-3 sm:right-3">
         {/* Quick Audio Mute / Unmute Toggle */}
         <motion.button
           type="button"
@@ -1240,8 +1249,8 @@ export function MissionEngine({
           <Maximize2 className="h-3.5 w-3.5 text-cyan-300" />
         </motion.button>
 
-        {/* Toggle Keyboard Controls Help Bar (Desktop PC Only) */}
-        {!isMobile && (
+        {/* Toggle Keyboard Controls Help Bar (Desktop PC Only - Strictly Hidden on Mobile / Touch) */}
+        {!isMobile && !isMobileDevice && !isMobileLandscape && !isCompactMobile && (
           <motion.button
             type="button"
             whileHover={{ scale: 1.05 }}
@@ -1251,7 +1260,7 @@ export function MissionEngine({
               setKeyboardHelpVisible((prev) => !prev);
             }}
             title="Alternar Guia de Teclas do Teclado"
-            className={`hidden sm:flex h-7 sm:h-8 cursor-pointer items-center gap-1 rounded-xl border px-2 text-[9px] sm:text-[10px] font-black shadow-lg transition ${
+            className={`hidden lg:flex h-7 sm:h-8 cursor-pointer items-center gap-1 rounded-xl border px-2 text-[9px] sm:text-[10px] font-black shadow-lg transition ${
               keyboardHelpVisible
                 ? "border-amber-400 bg-amber-500/25 text-amber-200"
                 : "border-slate-700/80 bg-slate-950/90 text-slate-300 hover:border-amber-400 hover:text-white"
