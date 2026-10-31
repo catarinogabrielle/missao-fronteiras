@@ -2081,7 +2081,15 @@ export function MobaGtaWorld3D({
       }
     };
 
+    let zoomMultiplier = 1.0;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? 0.08 : -0.08;
+      zoomMultiplier = Math.max(0.62, Math.min(1.42, zoomMultiplier + delta));
+    };
+
     dom.addEventListener("pointerdown", onPointerDown);
+    dom.addEventListener("wheel", onWheel, { passive: false });
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", onPointerUp);
     window.addEventListener("pointercancel", onPointerCancel);
@@ -2748,12 +2756,12 @@ export function MobaGtaWorld3D({
 
       // --- GTA 3RD-PERSON STREET CAMERA vs TACTICAL MOBA CAMERA (LEAGUE OF LEGENDS FLUIDITY) ---
       if (cameraMode === "gta") {
-        const camDist = activeVehicle
+        const camDist = (activeVehicle
           ? nitroTimer > 0
             ? 16.5
             : 14.5
-          : 11.2;
-        const camHeight = activeVehicle ? 7.0 : 5.6;
+          : 11.2) * zoomMultiplier;
+        const camHeight = (activeVehicle ? 7.0 : 5.6) * zoomMultiplier;
         const targetCamX = heroPos.x + Math.sin(camYaw) * camDist;
         const targetCamZ = heroPos.z + Math.cos(camYaw) * camDist;
 
@@ -2767,8 +2775,8 @@ export function MobaGtaWorld3D({
         camera.lookAt(lookAheadX, 2.1, lookAheadZ);
       } else {
         // High-angle tactical isometric MOBA camera with exponential glide
-        const camHeight = activeVehicle ? 23.5 : 20.5;
-        const camBack = activeVehicle ? 20.0 : 17.0;
+        const camHeight = (activeVehicle ? 23.5 : 20.5) * zoomMultiplier;
+        const camBack = (activeVehicle ? 20.0 : 17.0) * zoomMultiplier;
         const targetCamX = heroPos.x;
         const targetCamZ = heroPos.z + camBack;
         const camLerp = 1 - Math.exp(-9.5 * dt);
@@ -2904,6 +2912,7 @@ export function MobaGtaWorld3D({
       heroRigRef.current = null;
       resizeObs?.disconnect();
       dom.removeEventListener("pointerdown", onPointerDown);
+      dom.removeEventListener("wheel", onWheel);
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);
       window.removeEventListener("pointercancel", onPointerCancel);

@@ -57,7 +57,7 @@ export function GameApp() {
     );
   }
 
-  const hideHeaderOnMobilePlay = isCompactMobile && Boolean(activeMission);
+  const isPlayingGame = Boolean(activeMission);
 
   return (
     <div className="bg-cyber-grid fixed inset-0 flex h-full h-dvh w-full flex-col overflow-hidden text-slate-100 select-none">
@@ -65,7 +65,7 @@ export function GameApp() {
         <OnboardingScreen onOpenLeaderPanel={() => setLeaderOpen(true)} />
       ) : (
         <>
-          {!hideHeaderOnMobilePlay && (
+          {!isPlayingGame && (
             <HeaderBar
               onOpenPassport={() => setPassportOpen(true)}
               onOpenLeaderPanel={() => setLeaderOpen(true)}

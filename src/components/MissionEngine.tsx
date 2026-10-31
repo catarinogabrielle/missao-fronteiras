@@ -37,6 +37,9 @@ import {
   ThumbsUp,
   RotateCw,
   Users,
+  Volume2,
+  VolumeX,
+  Maximize2,
   ChevronDown,
   ChevronUp,
   X,
@@ -167,6 +170,7 @@ export function MissionEngine({
     grantFieldLoot,
     completeMission,
     acceptSchoolChallenge,
+    toggleMute,
   } = useGame();
 
   const {
@@ -311,10 +315,19 @@ export function MissionEngine({
     worldCfg.bossName,
   ]);
 
-  // Close any open Conversation / Modal / GTA Mission Phone with Escape
+  // Close any open Conversation / Modal / GTA Mission Phone with Escape, or Exit to Hub
   useEffect(() => {
-    if (!activeEncounter && overlay === "none" && !missionPhoneOpen) return;
     const onKey = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      if (
+        activeEl &&
+        (activeEl.tagName === "INPUT" ||
+          activeEl.tagName === "TEXTAREA" ||
+          activeEl.tagName === "SELECT")
+      ) {
+        return;
+      }
+
       if (e.key === "Escape") {
         e.preventDefault();
         playSfx("click");
@@ -328,6 +341,8 @@ export function MissionEngine({
           overlay === "decoder"
         ) {
           setOverlay("none");
+        } else {
+          onExitToHub();
         }
       } else if (activeEncounter && (e.key === "Enter" || e.key === " ")) {
         e.preventDefault();
@@ -337,7 +352,7 @@ export function MissionEngine({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [activeEncounter, missionPhoneOpen, overlay, playSfx]);
+  }, [activeEncounter, missionPhoneOpen, onExitToHub, overlay, playSfx]);
 
   // Radio Tower Activated Callback
   const handleTowerActivated = useCallback(
@@ -968,13 +983,13 @@ export function MissionEngine({
                 playSfx("click");
                 onExitToHub();
               }}
-              title="Sair da Missão e Voltar ao Lobby"
+              title="Sair da Missão e Voltar ao Lobby [ESC]"
               className={`flex cursor-pointer items-center justify-center gap-1 rounded-xl border border-amber-400/70 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 font-black uppercase text-amber-300 shadow-[0_0_14px_rgba(245,158,11,0.25)] transition hover:border-amber-300 hover:text-white ${
                 isMobileLandscape ? "px-2 py-0.5 text-[9.5px]" : "px-2.5 py-1 text-xs"
               }`}
             >
               <ArrowLeft className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-amber-400" />
-              <span>LOBBY</span>
+              <span>LOBBY [ESC]</span>
             </motion.button>
 
             {/* Cultural Intelligence & Lore (Moved here with quest activities!) */}
@@ -1147,6 +1162,39 @@ export function MissionEngine({
         >
           <Camera className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-amber-300" />
           <span>{hudSnap.cameraMode === "gta" ? "CAM GTA [C]" : "CAM MOBA [C]"}</span>
+        </motion.button>
+
+        {/* Quick Audio Mute / Unmute Toggle */}
+        <motion.button
+          type="button"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.94 }}
+          onClick={() => {
+            toggleMute();
+          }}
+          title={state.muted ? "Ativar Áudio e SFX" : "Mutar Áudio"}
+          className="flex h-7 sm:h-8 w-7 sm:w-8 cursor-pointer items-center justify-center rounded-xl border border-slate-700/80 bg-slate-950/90 text-slate-200 shadow-lg transition hover:border-amber-400 hover:text-white"
+        >
+          {state.muted ? (
+            <VolumeX className="h-3.5 w-3.5 text-rose-400" />
+          ) : (
+            <Volume2 className="h-3.5 w-3.5 text-emerald-400" />
+          )}
+        </motion.button>
+
+        {/* Quick Fullscreen Toggle (Web / Desktop) */}
+        <motion.button
+          type="button"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.94 }}
+          onClick={() => {
+            playSfx("click");
+            toggleLandscapeFullscreen();
+          }}
+          title="Alternar Tela Cheia / Fullscreen"
+          className="hidden sm:flex h-7 sm:h-8 w-7 sm:w-8 cursor-pointer items-center justify-center rounded-xl border border-slate-700/80 bg-slate-950/90 text-slate-200 shadow-lg transition hover:border-cyan-300 hover:text-white"
+        >
+          <Maximize2 className="h-3.5 w-3.5 text-cyan-300" />
         </motion.button>
 
         {isCompactMobile ? (
@@ -1400,12 +1448,16 @@ export function MissionEngine({
                 </span>
               )}
             </div>
-            <div className="mt-0.5 text-[10px] font-semibold text-amber-200/90">
-              🎥 Câmera: {hudSnap.cameraMode === "gta" ? "GTA Rua 3D" : "Tática MOBA"} •
-              Clique no chão para mover estilo LoL
-            </div>
-            <div className="mt-0.5 font-mono text-[9px] text-slate-400">
-              WASD / Clique Mover • V Veículo • Shift Turbo • 5-8 Emotes • Espaço Atacar
+            <div className="mt-1 flex items-center gap-2 font-mono text-[10px] font-bold">
+              <span className="flex items-center gap-0.5 text-cyan-300">
+                💎 {state.wisdom}
+              </span>
+              <span className="flex items-center gap-0.5 text-amber-300">
+                🔥 {state.streak}
+              </span>
+              <span className="rounded bg-slate-900/90 px-1.5 py-0.5 text-[8.5px] text-slate-400 font-sans">
+                {hudSnap.cameraMode === "gta" ? "CAM GTA" : "CAM MOBA"}
+              </span>
             </div>
           </div>
         </div>
