@@ -103,6 +103,341 @@ export interface CharacterVisualConfig {
 }
 
 /**
+ * Generates an ultra-crisp, expressive, anti-aliased 512x512 procedural canvas
+ * face texture perfectly matching the official 2D illustrations (Lucas, Sofia, Davi, Ester).
+ * Conforms smoothly to the cranial curvature without bulging eyeballs, floating mouth rings,
+ * or z-fighting distortion.
+ */
+export function createHeroFaceCanvasTexture(
+  avatarKey: string,
+  skinColor: string,
+  eyeColorHex: string,
+  hairColor: number | string,
+  isFemale: boolean
+): THREE.CanvasTexture {
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    const fallback = new THREE.CanvasTexture(canvas);
+    return fallback;
+  }
+
+  ctx.clearRect(0, 0, 512, 512);
+
+  const isLucas = avatarKey === "lucas";
+  const isSofia = avatarKey === "sofia";
+  const isDavi = avatarKey === "davi";
+  const isEster = avatarKey === "ester";
+
+  // --- CHEEKS & BLUSH / FRECKLES ---
+  if (isSofia || isEster) {
+    // Soft, charming rosy-peach blush on cheeks
+    [-1, 1].forEach((dir) => {
+      const cx = 256 + dir * 106;
+      const cy = 296;
+      const grad = ctx.createRadialGradient(cx, cy, 4, cx, cy, 46);
+      const blushCol = isSofia ? "rgba(244, 63, 94, " : "rgba(249, 115, 22, ";
+      grad.addColorStop(0, blushCol + "0.36)");
+      grad.addColorStop(0.65, blushCol + "0.14)");
+      grad.addColorStop(1, blushCol + "0)");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 46, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
+  if (isLucas || isEster) {
+    // Sprinkled freckles across bridge of nose & upper cheeks
+    ctx.fillStyle = isLucas ? "rgba(120, 53, 15, 0.46)" : "rgba(113, 63, 18, 0.40)";
+    const freckleCoords = [
+      [220, 276, 2.4], [236, 272, 2.1], [252, 268, 2.4], [260, 268, 2.4], [276, 272, 2.1], [292, 276, 2.4],
+      [198, 285, 2.5], [212, 288, 2.3], [228, 282, 2.6], [284, 282, 2.6], [300, 288, 2.3], [314, 285, 2.5],
+      [205, 297, 2.2], [307, 297, 2.2]
+    ];
+    freckleCoords.forEach(([fx, fy, fr]) => {
+      ctx.beginPath();
+      ctx.arc(fx, fy, fr, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
+  // --- EYEBROWS ---
+  const browColor =
+    typeof hairColor === "number"
+      ? "#" + hairColor.toString(16).padStart(6, "0")
+      : hairColor;
+
+  ctx.strokeStyle = browColor;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.lineWidth = isFemale ? 6.5 : 8.5;
+
+  // Left Eyebrow
+  ctx.beginPath();
+  if (isLucas) {
+    ctx.moveTo(136, 166);
+    ctx.quadraticCurveTo(184, 142, 226, 158);
+  } else if (isSofia) {
+    ctx.moveTo(138, 168);
+    ctx.quadraticCurveTo(182, 146, 224, 162);
+  } else if (isDavi) {
+    ctx.moveTo(134, 168);
+    ctx.quadraticCurveTo(180, 146, 228, 160);
+  } else {
+    ctx.moveTo(136, 168);
+    ctx.quadraticCurveTo(184, 144, 226, 162);
+  }
+  ctx.stroke();
+
+  // Right Eyebrow
+  ctx.beginPath();
+  if (isLucas) {
+    ctx.moveTo(376, 166);
+    ctx.quadraticCurveTo(328, 142, 286, 158);
+  } else if (isSofia) {
+    ctx.moveTo(374, 168);
+    ctx.quadraticCurveTo(330, 146, 288, 162);
+  } else if (isDavi) {
+    ctx.moveTo(378, 168);
+    ctx.quadraticCurveTo(332, 146, 284, 160);
+  } else {
+    ctx.moveTo(376, 168);
+    ctx.quadraticCurveTo(328, 144, 286, 162);
+  }
+  ctx.stroke();
+
+  // --- EYES (PIXAR / ANIME AAA QUALITY) ---
+  const eyeWidth = isFemale ? 90 : 88;
+  const eyeHeight = isFemale ? 62 : 56;
+  const eyeY = 226;
+
+  [-1, 1].forEach((dir) => {
+    const eyeX = 256 + dir * 82;
+
+    ctx.save();
+
+    // 1. Sclera Almond Contour Path
+    ctx.beginPath();
+    ctx.moveTo(eyeX - dir * (eyeWidth * 0.5), eyeY + 4);
+    ctx.bezierCurveTo(
+      eyeX - dir * (eyeWidth * 0.25),
+      eyeY - eyeHeight * 0.56,
+      eyeX + dir * (eyeWidth * 0.25),
+      eyeY - eyeHeight * 0.52,
+      eyeX + dir * (eyeWidth * 0.5),
+      eyeY - 2
+    );
+    ctx.bezierCurveTo(
+      eyeX + dir * (eyeWidth * 0.25),
+      eyeY + eyeHeight * 0.44,
+      eyeX - dir * (eyeWidth * 0.25),
+      eyeY + eyeHeight * 0.46,
+      eyeX - dir * (eyeWidth * 0.5),
+      eyeY + 4
+    );
+    ctx.closePath();
+
+    ctx.fillStyle = "#fafafc";
+    ctx.fill();
+
+    // Clip iris & pupil to sclera!
+    ctx.clip();
+
+    // Top eyelid soft drop shadow
+    const topShadow = ctx.createLinearGradient(eyeX, eyeY - eyeHeight * 0.5, eyeX, eyeY);
+    topShadow.addColorStop(0, "rgba(15, 23, 42, 0.28)");
+    topShadow.addColorStop(1, "rgba(15, 23, 42, 0)");
+    ctx.fillStyle = topShadow;
+    ctx.fillRect(eyeX - eyeWidth, eyeY - eyeHeight, eyeWidth * 2, eyeHeight * 2);
+
+    // 2. Iris (Large vibrant anime circle)
+    const irisR = isFemale ? 31 : 29;
+    const irisX = eyeX;
+    const irisY = eyeY + 2;
+
+    const irisGrad = ctx.createRadialGradient(
+      irisX - dir * 4,
+      irisY + 4,
+      2,
+      irisX,
+      irisY,
+      irisR
+    );
+
+    if (isLucas) {
+      // Warm Amber / Golden Honey Iris
+      irisGrad.addColorStop(0, "#fbbf24");
+      irisGrad.addColorStop(0.35, "#d97706");
+      irisGrad.addColorStop(0.75, "#92400e");
+      irisGrad.addColorStop(1.0, "#451a03");
+    } else if (isSofia) {
+      // Deep Luminous Chocolate Brown with Amber Sparkle
+      irisGrad.addColorStop(0, "#d97706");
+      irisGrad.addColorStop(0.35, "#78350f");
+      irisGrad.addColorStop(0.8, "#451a03");
+      irisGrad.addColorStop(1.0, "#1c1917");
+    } else if (isDavi) {
+      // Rich Warm Hazel-Brown with Gold Glow
+      irisGrad.addColorStop(0, "#f59e0b");
+      irisGrad.addColorStop(0.4, "#92400e");
+      irisGrad.addColorStop(0.8, "#451a03");
+      irisGrad.addColorStop(1.0, "#090d16");
+    } else {
+      // Ester: Golden Hazel Amber
+      irisGrad.addColorStop(0, "#fde047");
+      irisGrad.addColorStop(0.35, "#b45309");
+      irisGrad.addColorStop(0.8, "#78350f");
+      irisGrad.addColorStop(1.0, "#291509");
+    }
+
+    ctx.fillStyle = irisGrad;
+    ctx.beginPath();
+    ctx.arc(irisX, irisY, irisR, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Dark Limbal Ring (crisp outer iris edge)
+    ctx.strokeStyle = "#090d16";
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // 3. Pupil (Deep black)
+    ctx.fillStyle = "#09090b";
+    ctx.beginPath();
+    ctx.arc(irisX, irisY + 2, irisR * 0.44, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 4. Pixar Double Catchlights
+    // Primary large highlight (top-left)
+    ctx.fillStyle = "rgba(255, 255, 255, 0.96)";
+    ctx.beginPath();
+    ctx.arc(irisX - dir * 8 - 4, irisY - 7, 7.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Secondary smaller highlight (bottom-right)
+    ctx.fillStyle = "rgba(255, 255, 255, 0.82)";
+    ctx.beginPath();
+    ctx.arc(irisX + dir * 8 + 3, irisY + 8, 3.8, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Minor twinkle star
+    ctx.fillStyle = "rgba(255, 255, 255, 0.65)";
+    ctx.beginPath();
+    ctx.arc(irisX - dir * 4, irisY + 11, 2.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+
+    // 5. Stylized Upper Eyeliner & Winged Lash
+    ctx.strokeStyle = "#18181b";
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.lineWidth = isFemale ? 6.2 : 5.0;
+
+    ctx.beginPath();
+    ctx.moveTo(eyeX - dir * (eyeWidth * 0.52), eyeY + 4);
+    ctx.bezierCurveTo(
+      eyeX - dir * (eyeWidth * 0.25),
+      eyeY - eyeHeight * 0.56,
+      eyeX + dir * (eyeWidth * 0.25),
+      eyeY - eyeHeight * 0.52,
+      eyeX + dir * (eyeWidth * 0.54),
+      eyeY - (isFemale ? 4 : 2)
+    );
+    if (isFemale) {
+      ctx.lineTo(eyeX + dir * (eyeWidth * 0.60), eyeY - 8);
+    }
+    ctx.stroke();
+
+    // Subtle lower lid lash contour line
+    ctx.strokeStyle = "rgba(68, 64, 60, 0.38)";
+    ctx.lineWidth = 2.0;
+    ctx.beginPath();
+    ctx.moveTo(eyeX - dir * (eyeWidth * 0.32), eyeY + eyeHeight * 0.42);
+    ctx.quadraticCurveTo(
+      eyeX,
+      eyeY + eyeHeight * 0.48,
+      eyeX + dir * (eyeWidth * 0.38),
+      eyeY + eyeHeight * 0.36
+    );
+    ctx.stroke();
+  });
+
+  // --- NOSE (CUTE STYLIZED BUTTON NOSE) ---
+  ctx.strokeStyle = "rgba(120, 53, 15, 0.35)";
+  ctx.lineWidth = 2.8;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.arc(256, 292, 7.5, 0.2 * Math.PI, 0.8 * Math.PI);
+  ctx.stroke();
+
+  ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
+  ctx.beginPath();
+  ctx.arc(256, 287, 3.2, 0, Math.PI * 2);
+  ctx.fill();
+
+  // --- MOUTH (WARM, CHEERFUL SMILE) ---
+  const mouthY = 372;
+  const mouthW = isFemale ? 76 : 82;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(256 - mouthW * 0.5, mouthY);
+  ctx.quadraticCurveTo(256, mouthY - 4, 256 + mouthW * 0.5, mouthY);
+  ctx.quadraticCurveTo(256, mouthY + 28, 256 - mouthW * 0.5, mouthY);
+  ctx.closePath();
+
+  ctx.fillStyle = isFemale ? "#9f1239" : "#881337";
+  ctx.fill();
+  ctx.clip();
+
+  // Top white teeth arc
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.rect(256 - mouthW * 0.42, mouthY - 4, mouthW * 0.84, 11);
+  ctx.fill();
+
+  // Soft pink tongue at bottom
+  ctx.fillStyle = isFemale ? "#fb7185" : "#f43f5e";
+  ctx.beginPath();
+  ctx.arc(256, mouthY + 26, 16, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+
+  // Upper lip contour line
+  ctx.strokeStyle = isFemale ? "#be123c" : "#881337";
+  ctx.lineWidth = 3.2;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(256 - mouthW * 0.52, mouthY + 1);
+  ctx.quadraticCurveTo(256, mouthY - 4, 256 + mouthW * 0.52, mouthY + 1);
+  ctx.stroke();
+
+  // Lower lip soft shadow / shine arc
+  ctx.strokeStyle = isFemale ? "rgba(190, 18, 60, 0.45)" : "rgba(136, 19, 55, 0.35)";
+  ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  ctx.arc(256, mouthY + 16, 18, 0.22 * Math.PI, 0.78 * Math.PI);
+  ctx.stroke();
+
+  // Smile corner dimples
+  [-1, 1].forEach((dir) => {
+    ctx.fillStyle = isFemale ? "rgba(190, 18, 60, 0.4)" : "rgba(136, 19, 55, 0.35)";
+    ctx.beginPath();
+    ctx.arc(256 + dir * (mouthW * 0.52), mouthY - 1, 2.0, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+/**
  * Builds an AAA GTA-proportioned (~2.22u tall, 7-head human anatomy)
  * articulated 3D character with sculpted oval head, 3D facial anatomy,
  * neck, jacket/armor, optional cape/wings/halo/crown/visor,
@@ -886,144 +1221,52 @@ export function buildStylizedHumanRig(
     headGroup.add(ear);
   });
 
-  // Cute stylized button nose (centered, clean, well-proportioned)
-  const nose = new THREE.Mesh(
-    new THREE.SphereGeometry(isFemale ? 0.020 : 0.024, 14, 12),
+  // --- ULTRA-CRISP HIGH-RESOLUTION PIXAR / ANIME PROCEDURAL FACE TEXTURE ---
+  const faceTex = createHeroFaceCanvasTexture(
+    avatarKey,
+    cfg.skin,
+    cfg.eye,
+    cfg.hair,
+    isFemale
+  );
+  const faceMat = new THREE.MeshStandardMaterial({
+    map: faceTex,
+    transparent: true,
+    alphaTest: 0.02,
+    roughness: 0.44,
+    metalness: 0.02,
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1,
+  });
+
+  const span = Math.PI * 0.58;
+  const phiStart = Math.PI / 2 - span / 2;
+  const faceRadius = (isFemale ? 0.208 : 0.216) * 1.004;
+  const facePatch = new THREE.Mesh(
+    new THREE.SphereGeometry(
+      faceRadius,
+      28,
+      20,
+      phiStart,
+      span,
+      Math.PI * 0.24,
+      Math.PI * 0.48
+    ),
+    faceMat
+  );
+  facePatch.scale.set(0.94, 1.08, 0.98);
+  headGroup.add(facePatch);
+
+  // Subtle 3D button nose tip for realistic 3D profile depth
+  const noseTip = new THREE.Mesh(
+    new THREE.SphereGeometry(isFemale ? 0.013 : 0.016, 12, 10),
     skinMat
   );
-  nose.scale.set(1.0, 0.85, 1.3);
-  nose.position.set(0, -0.010, isFemale ? 0.218 : 0.224);
-  headGroup.add(nose);
-
-  // High-Quality Stylized Pixar / Anime Eyes
-  const scleraMat = new THREE.MeshStandardMaterial({
-    color: 0xffffff,
-    roughness: 0.12,
-    metalness: 0.0,
-    emissive: 0xffffff,
-    emissiveIntensity: 0.20,
-  });
-  const irisMat = new THREE.MeshStandardMaterial({
-    color: cfg.eye,
-    emissive: cfg.eye,
-    emissiveIntensity: 0.40,
-    roughness: 0.2,
-  });
-  const pupilMat = new THREE.MeshBasicMaterial({ color: 0x07090e });
-  const eyelidMat = new THREE.MeshBasicMaterial({ color: 0x18181b });
-
-  [-0.076, 0.076].forEach((ex) => {
-    const eyeSocket = new THREE.Group();
-    eyeSocket.position.set(ex, 0.038, isFemale ? 0.206 : 0.212);
-    eyeSocket.rotation.y = ex < 0 ? -0.10 : 0.10;
-
-    // Sclera (White eye background, arched and clear)
-    const sclera = new THREE.Mesh(
-      new THREE.SphereGeometry(0.046, 16, 14),
-      scleraMat
-    );
-    sclera.scale.set(1.24, 0.95, 0.42);
-    eyeSocket.add(sclera);
-
-    // Eyelid line (subtle top contour for expressive character)
-    const upperEyelid = new THREE.Mesh(
-      new THREE.TorusGeometry(0.048, 0.0065, 8, 18, Math.PI * 0.74),
-      eyelidMat
-    );
-    upperEyelid.rotation.z = ex < 0 ? -0.08 : 0.08;
-    upperEyelid.position.set(0, 0.016, 0.022);
-    eyeSocket.add(upperEyelid);
-
-    // Large, vibrant colorful Iris (alive and expressive)
-    const iris = new THREE.Mesh(new THREE.CircleGeometry(0.029, 20), irisMat);
-    iris.position.z = 0.022;
-    eyeSocket.add(iris);
-
-    // Deep dark Pupil
-    const pupil = new THREE.Mesh(new THREE.CircleGeometry(0.0145, 16), pupilMat);
-    pupil.position.z = 0.024;
-    eyeSocket.add(pupil);
-
-    // Dual anime/Pixar catchlights (life in the eyes!)
-    const glintMain = new THREE.Mesh(
-      new THREE.CircleGeometry(0.0075, 12),
-      scleraMat
-    );
-    glintMain.position.set(-0.008, 0.010, 0.026);
-    eyeSocket.add(glintMain);
-
-    const glintSub = new THREE.Mesh(
-      new THREE.CircleGeometry(0.0038, 10),
-      scleraMat
-    );
-    glintSub.position.set(0.009, -0.008, 0.026);
-    eyeSocket.add(glintSub);
-
-    // Expressive eyebrow safely positioned ABOVE the eye
-    const brow = new THREE.Mesh(
-      new THREE.BoxGeometry(0.072, isFemale ? 0.014 : 0.017, 0.024),
-      hairMat
-    );
-    brow.position.set(0, 0.056, 0.022);
-    brow.rotation.z = ex < 0 ? 0.08 : -0.08;
-    eyeSocket.add(brow);
-
-    headGroup.add(eyeSocket);
-  });
-
-  // Cheerful, warm friendly smile
-  const smile = new THREE.Mesh(
-    new THREE.TorusGeometry(0.038, 0.0075, 8, 18, Math.PI * 0.76),
-    new THREE.MeshStandardMaterial({
-      color: isFemale ? 0xe11d48 : 0x991b1b,
-      emissive: isFemale ? 0xbe123c : 0x7f1d1d,
-      emissiveIntensity: 0.45,
-      roughness: 0.35,
-    })
-  );
-  smile.rotation.z = Math.PI * 1.12;
-  smile.position.set(0, -0.062, isFemale ? 0.208 : 0.218);
-  headGroup.add(smile);
-
-  // Soft Rosy Cheeks for Sofia
-  if (avatarKey === "sofia") {
-    [-0.130, 0.130].forEach((bx) => {
-      const blush = new THREE.Mesh(
-        new THREE.CircleGeometry(0.032, 16),
-        new THREE.MeshBasicMaterial({
-          color: 0xf43f5e,
-          transparent: true,
-          opacity: 0.42,
-        })
-      );
-      blush.position.set(bx, -0.036, 0.204);
-      headGroup.add(blush);
-    });
-  }
-
-  // Freckles for Lucas and Ester (matching official artworks!)
-  if (avatarKey === "lucas" || avatarKey === "ester") {
-    const freckleMat = new THREE.MeshBasicMaterial({
-      color: avatarKey === "lucas" ? 0x92400e : 0x78350f,
-      transparent: true,
-      opacity: 0.48,
-    });
-    [
-      [-0.065, -0.012, 0.210],
-      [-0.035, -0.006, 0.220],
-      [-0.018, -0.016, 0.224],
-      [0.018, -0.016, 0.224],
-      [0.035, -0.006, 0.220],
-      [0.065, -0.012, 0.210],
-    ].forEach(([fx, fy, fz]) => {
-      const freckle = new THREE.Mesh(
-        new THREE.CircleGeometry(0.0042, 8),
-        freckleMat
-      );
-      freckle.position.set(fx, fy, fz);
-      headGroup.add(freckle);
-    });
-  }
+  noseTip.scale.set(1.0, 0.8, 1.15);
+  noseTip.position.set(0, -0.010, isFemale ? 0.210 : 0.218);
+  headGroup.add(noseTip);
 
   // =========================================================================
   // SCULPTED AUTHENTIC HERO HAIR (NEVER BALD & NEVER COVERING FACE!)
@@ -1358,16 +1601,8 @@ export function buildStylizedHumanRig(
         headGroup.add(bang);
       });
     } else {
-      // When wearing cap: subtle side locks peeking out from under cap rim on far sides
-      [-0.145, 0.145].forEach((sx) => {
-        const peekLock = new THREE.Mesh(
-          new THREE.CapsuleGeometry(0.026, 0.08, 6, 8),
-          hairMat
-        );
-        peekLock.position.set(sx, 0.05, 0.14);
-        peekLock.rotation.z = sx < 0 ? -0.38 : 0.38;
-        headGroup.add(peekLock);
-      });
+      // When wearing cap: hair is neatly framed by sideburns and temple locks;
+      // face and brow are kept 100% clean with zero clipping artifacts.
     }
   }
 
@@ -1451,14 +1686,14 @@ export function buildStylizedHumanRig(
 
     // Sculpted Curved Baseball Cap Brim (extending forward nicely over brow, NEVER covering eyes!)
     const brimGroup = new THREE.Group();
-    brimGroup.position.set(0, 0.085, 0.16);
-    brimGroup.rotation.x = 0.14; // Gently pitched forward
+    brimGroup.position.set(0, 0.092, 0.165);
+    brimGroup.rotation.x = 0.08; // Gently pitched forward
 
     const brimPlate = new THREE.Mesh(
-      new THREE.BoxGeometry(0.24, 0.016, 0.14),
+      new THREE.BoxGeometry(0.23, 0.012, 0.13),
       visorMat
     );
-    brimPlate.position.set(0, 0, 0.07);
+    brimPlate.position.set(0, 0, 0.065);
     brimGroup.add(brimPlate);
 
     headGroup.add(brimGroup);
@@ -2477,22 +2712,27 @@ export function createPlayableChampion3D(
  */
 export function createShadowEnemyRig(
   name: string,
-  isBoss = false
+  tierOrIsBoss: "minor" | "elite" | "boss" | boolean = "minor",
+  enemyLevel = 1
 ): ArticulatedRig {
-  const scale = isBoss ? 2.35 : 1.22;
+  const isBoss = tierOrIsBoss === true || tierOrIsBoss === "boss";
+  const isElite = tierOrIsBoss === "elite";
+  const tier: "minor" | "elite" | "boss" = isBoss ? "boss" : isElite ? "elite" : "minor";
+  const scale = isBoss ? 2.65 : isElite ? 1.50 : 1.08;
   const root = new THREE.Group();
   const bodyGroup = new THREE.Group();
   bodyGroup.scale.setScalar(scale);
   root.add(bodyGroup);
 
   // Ground Dark Energy Aura
+  const auraColor = isBoss ? 0xf43f5e : isElite ? 0xd946ef : 0x8b5cf6;
   const aura = new THREE.Mesh(
     new THREE.RingGeometry(0.65 * scale, 0.98 * scale, 32),
     new THREE.MeshBasicMaterial({
-      color: isBoss ? 0xf43f5e : 0xa855f7,
+      color: auraColor,
       side: THREE.DoubleSide,
       transparent: true,
-      opacity: 0.85,
+      opacity: isBoss ? 0.92 : isElite ? 0.85 : 0.65,
     })
   );
   aura.rotation.x = -Math.PI / 2;
@@ -2500,10 +2740,11 @@ export function createShadowEnemyRig(
   root.add(aura);
 
   // Inner pulsing dark ring
+  const innerColor = isBoss ? 0x9f1239 : isElite ? 0x86198f : 0x5b21b6;
   const innerAura = new THREE.Mesh(
     new THREE.RingGeometry(0.25 * scale, 0.52 * scale, 24),
     new THREE.MeshBasicMaterial({
-      color: isBoss ? 0x9f1239 : 0x6b21a8,
+      color: innerColor,
       side: THREE.DoubleSide,
       transparent: true,
       opacity: 0.6,
@@ -2515,17 +2756,17 @@ export function createShadowEnemyRig(
 
   // Materials
   const armorMat = new THREE.MeshStandardMaterial({
-    color: isBoss ? 0x0a0512 : 0x0f0b1a,
-    emissive: isBoss ? 0x58081a : 0x2e1065,
-    emissiveIntensity: isBoss ? 0.65 : 0.45,
+    color: isBoss ? 0x0a0512 : isElite ? 0x140b24 : 0x0f0b1a,
+    emissive: isBoss ? 0x58081a : isElite ? 0x4a044e : 0x2e1065,
+    emissiveIntensity: isBoss ? 0.70 : isElite ? 0.55 : 0.35,
     roughness: 0.25,
     metalness: 0.82,
   });
 
   const energyMat = new THREE.MeshStandardMaterial({
-    color: isBoss ? 0xf43f5e : 0xc084fc,
-    emissive: isBoss ? 0xe11d48 : 0x9333ea,
-    emissiveIntensity: 1.85,
+    color: isBoss ? 0xf43f5e : isElite ? 0xf43f5e : 0xc084fc,
+    emissive: isBoss ? 0xe11d48 : isElite ? 0xbe185d : 0x9333ea,
+    emissiveIntensity: isBoss ? 2.0 : isElite ? 1.7 : 1.3,
     roughness: 0.1,
   });
 
@@ -2576,7 +2817,7 @@ export function createShadowEnemyRig(
 
   // Pulsing Abyssal Core in the chest
   const core = new THREE.Mesh(
-    new THREE.OctahedronGeometry(isBoss ? 0.20 : 0.13, 0),
+    new THREE.OctahedronGeometry(isBoss ? 0.20 : isElite ? 0.16 : 0.11, 0),
     energyMat
   );
   core.position.set(0, 1.42, 0.26);
@@ -2591,7 +2832,7 @@ export function createShadowEnemyRig(
     coreRing.position.set(0, 1.42, 0.24);
     bodyGroup.add(coreRing);
 
-    // Floating Orbiting Abyssal Shards around the Boss!
+    // 4 Floating Orbiting Abyssal Shards around the Boss!
     for (let i = 0; i < 4; i++) {
       const ang = (i / 4) * Math.PI * 2;
       const shard = new THREE.Mesh(
@@ -2626,13 +2867,47 @@ export function createShadowEnemyRig(
     bossCape.position.set(0, 1.05, -0.28);
     bossCape.rotation.x = 0.18;
     bodyGroup.add(bossCape);
+  } else if (isElite) {
+    // 2 Floating Orbiting Void Orbs for the Elite
+    for (let i = 0; i < 2; i++) {
+      const ang = (i / 2) * Math.PI * 2;
+      const orb = new THREE.Mesh(
+        new THREE.SphereGeometry(0.065, 8, 8),
+        energyMat
+      );
+      orb.position.set(Math.cos(ang) * 0.65, 1.4, Math.sin(ang) * 0.65);
+      bodyGroup.add(orb);
+    }
+
+    // Crimson-Violet Flowing Cape
+    const eliteCape = new THREE.Mesh(
+      new THREE.CylinderGeometry(
+        0.26,
+        0.52,
+        1.15,
+        12,
+        1,
+        true,
+        Math.PI * 0.7,
+        Math.PI * 0.6
+      ),
+      new THREE.MeshStandardMaterial({
+        color: 0x4c0519,
+        emissive: 0x701a75,
+        emissiveIntensity: 0.45,
+        side: THREE.DoubleSide,
+      })
+    );
+    eliteCape.position.set(0, 1.12, -0.24);
+    eliteCape.rotation.x = 0.17;
+    bodyGroup.add(eliteCape);
   } else {
-    // Minion Tattered Shadow Cape
+    // Minor Minion Tattered Shadow Cape
     const minionCape = new THREE.Mesh(
       new THREE.CylinderGeometry(
-        0.22,
-        0.44,
-        0.95,
+        0.20,
+        0.40,
+        0.90,
         10,
         1,
         true,
@@ -2642,7 +2917,7 @@ export function createShadowEnemyRig(
       new THREE.MeshStandardMaterial({
         color: 0x1e1b4b,
         emissive: 0x3b0764,
-        emissiveIntensity: 0.4,
+        emissiveIntensity: 0.35,
         side: THREE.DoubleSide,
       })
     );
@@ -2654,7 +2929,7 @@ export function createShadowEnemyRig(
   // Heavy Spiked Demon Pauldrons
   [-0.46, 0.46].forEach((sx) => {
     const pauldronBase = new THREE.Mesh(
-      new THREE.SphereGeometry(isBoss ? 0.24 : 0.18, 12, 10),
+      new THREE.SphereGeometry(isBoss ? 0.24 : isElite ? 0.20 : 0.16, 12, 10),
       armorMat
     );
     pauldronBase.position.set(sx, 1.68, 0);
@@ -2662,7 +2937,7 @@ export function createShadowEnemyRig(
 
     // Upward Spike
     const pauldronSpike = new THREE.Mesh(
-      new THREE.ConeGeometry(isBoss ? 0.12 : 0.08, isBoss ? 0.55 : 0.38, 8),
+      new THREE.ConeGeometry(isBoss ? 0.12 : isElite ? 0.09 : 0.065, isBoss ? 0.55 : isElite ? 0.42 : 0.30, 8),
       energyMat
     );
     pauldronSpike.position.set(sx * 1.12, 1.88, 0);
@@ -2685,7 +2960,7 @@ export function createShadowEnemyRig(
   [-0.08, 0.08].forEach((ex) => {
     const eye = new THREE.Mesh(
       new THREE.BoxGeometry(0.085, 0.032, 0.045),
-      new THREE.MeshBasicMaterial({ color: isBoss ? 0xff0040 : 0xe879f9 })
+      new THREE.MeshBasicMaterial({ color: isBoss ? 0xff0040 : isElite ? 0xff007f : 0xe879f9 })
     );
     eye.position.set(ex, 0.03, 0.23);
     eye.rotation.z = ex < 0 ? -0.24 : 0.24;
@@ -2705,15 +2980,27 @@ export function createShadowEnemyRig(
       horn.rotation.z = -hx * 1.4;
       headGroup.add(horn);
     });
-  } else {
-    // Dual Minion Spiked Horns
-    [-0.19, 0.19].forEach((hx) => {
+  } else if (isElite) {
+    // Dual Bladed Swept-back Horns
+    [-0.20, 0.20].forEach((hx) => {
       const horn = new THREE.Mesh(
-        new THREE.ConeGeometry(0.065, 0.42, 8),
+        new THREE.ConeGeometry(0.075, 0.50, 8),
         energyMat
       );
-      horn.position.set(hx, 0.30, -0.02);
-      horn.rotation.z = hx < 0 ? 0.40 : -0.40;
+      horn.position.set(hx, 0.32, -0.04);
+      horn.rotation.z = hx < 0 ? 0.48 : -0.48;
+      horn.rotation.x = -0.2;
+      headGroup.add(horn);
+    });
+  } else {
+    // Small Minion Horns
+    [-0.16, 0.16].forEach((hx) => {
+      const horn = new THREE.Mesh(
+        new THREE.ConeGeometry(0.055, 0.32, 8),
+        energyMat
+      );
+      horn.position.set(hx, 0.28, -0.02);
+      horn.rotation.z = hx < 0 ? 0.35 : -0.35;
       headGroup.add(horn);
     });
   }
@@ -2768,13 +3055,25 @@ export function createShadowEnemyRig(
         swordGroup.add(edgeRight);
 
         pivot.add(swordGroup);
+      } else if (isElite) {
+        // Elite Dual Void Blades
+        const bladeGroup = new THREE.Group();
+        bladeGroup.position.set(0, -0.52, 0.32);
+        bladeGroup.rotation.x = Math.PI * 0.42;
+
+        const eBlade = new THREE.Mesh(
+          new THREE.BoxGeometry(0.11, 1.25, 0.045),
+          energyMat
+        );
+        bladeGroup.add(eBlade);
+        pivot.add(bladeGroup);
       } else {
         // Minion Shadow Scythe / Blade
         const darkBlade = new THREE.Mesh(
-          new THREE.BoxGeometry(0.10, 1.15, 0.045),
+          new THREE.BoxGeometry(0.09, 0.95, 0.04),
           energyMat
         );
-        darkBlade.position.set(0, -0.58, 0.35);
+        darkBlade.position.set(0, -0.52, 0.32);
         darkBlade.rotation.x = Math.PI * 0.40;
         pivot.add(darkBlade);
       }
@@ -2782,7 +3081,7 @@ export function createShadowEnemyRig(
     bodyGroup.add(pivot);
     return pivot;
   };
-  const leftArmPivot = buildShadowArm(-0.46, false);
+  const leftArmPivot = buildShadowArm(-0.46, isElite); // Elite dual-wields!
   const rightArmPivot = buildShadowArm(0.46, true);
 
   // HP Bar Floating over Head
@@ -2796,18 +3095,23 @@ export function createShadowEnemyRig(
   const hpBarFill = new THREE.Mesh(
     new THREE.PlaneGeometry(1.52 * scale, 0.13 * scale),
     new THREE.MeshBasicMaterial({
-      color: isBoss ? 0xf43f5e : 0xc084fc,
+      color: isBoss ? 0xf43f5e : isElite ? 0xe11d48 : 0xa855f7,
       side: THREE.DoubleSide,
     })
   );
   hpBarFill.position.set(0, 2.62 * scale, 0.02);
   root.add(hpBarFill);
 
-  if (isBoss) {
-    const bossTag = createNameplateSprite(`👑 ${name}`, "#f43f5e");
-    bossTag.position.y = 3.12 * scale;
-    root.add(bossTag);
-  }
+  // Floating Overhead Level Badge & Nameplate for ALL enemies!
+  const tagLabel = isBoss
+    ? `👑 [Nv.${enemyLevel} ★ CHEFE] ${name}`
+    : isElite
+      ? `[Nv.${enemyLevel} ✦ ELITE] ${name}`
+      : `[Nv.${enemyLevel}] ${name}`;
+  const tagColor = isBoss ? "#fbbf24" : isElite ? "#f43f5e" : "#c084fc";
+  const enemyTag = createNameplateSprite(tagLabel, tagColor);
+  enemyTag.position.y = 3.05 * scale;
+  root.add(enemyTag);
 
   return {
     root,

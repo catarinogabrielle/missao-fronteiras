@@ -773,6 +773,7 @@ export function MissionEngine({
           avatarId={state.agent.avatarId}
           skinId={activeSkinId}
           agentName={state.agent.name}
+          playerLevel={level}
           dialogueCompleted={dialogueCompleted}
           helpedPersonIds={helpedPersonIds}
           activatedTowerIds={activatedTowerIds}

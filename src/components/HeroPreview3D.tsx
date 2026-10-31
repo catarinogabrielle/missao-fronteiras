@@ -56,6 +56,7 @@ export function HeroPreview3D({
   const burstRingRef = useRef<THREE.Mesh | null>(null);
   const burstAgeRef = useRef<number>(99);
   const accentRingMatRef = useRef<THREE.MeshBasicMaterial | null>(null);
+  const triggerSpin360Ref = useRef<() => void>(() => {});
 
   const skinMeta =
     SKIN_OPTIONS.find((s) => s.id === skinId) || SKIN_OPTIONS[0];
@@ -227,11 +228,17 @@ export function HeroPreview3D({
     heroHolder.add(initialRig.root);
     rigRef.current = initialRig;
 
-    // Drag to Rotate 360° Interaction
+    // Drag to Rotate 360° Interaction & Showcase Spin
     let isDragging = false;
     let prevX = 0;
     let rotVelocity = 0;
     let manualHoldUntil = 0;
+    let spinRemaining = 0;
+
+    triggerSpin360Ref.current = () => {
+      spinRemaining += Math.PI * 2;
+      manualHoldUntil = performance.now() + 3200;
+    };
 
     const dom = renderer.domElement;
     dom.style.cursor = "grab";
@@ -280,11 +287,20 @@ export function HeroPreview3D({
       idleClock += dt;
 
       if (!isDragging) {
-        if (Math.abs(rotVelocity) > 0.0005) {
+        if (spinRemaining > 0) {
+          const step = Math.min(spinRemaining, dt * 3.8);
+          heroHolder.rotation.y += step;
+          spinRemaining -= step;
+        } else if (Math.abs(rotVelocity) > 0.0005) {
           heroHolder.rotation.y += rotVelocity;
           rotVelocity *= 0.92;
         } else if (now > manualHoldUntil && emoteRef.current === "idle") {
-          heroHolder.rotation.y += dt * 0.42;
+          // Front-facing idle with subtle organic breathing sway (keeps character face visible!)
+          const breathingSway = Math.sin(idleClock * 1.5) * 0.08;
+          let cur = heroHolder.rotation.y % (Math.PI * 2);
+          if (cur > Math.PI) cur -= Math.PI * 2;
+          if (cur < -Math.PI) cur += Math.PI * 2;
+          heroHolder.rotation.y = cur + (breathingSway - cur) * Math.min(1, dt * 2.8);
         }
       }
 
@@ -398,20 +414,28 @@ export function HeroPreview3D({
       } ${heightClass}`}
     >
       {/* Top Rarity & Drag Hint Pill */}
-      <div className="pointer-events-none absolute top-1.5 right-2 left-2 z-10 flex items-center justify-between gap-2">
+      <div className="absolute top-1.5 right-2 left-2 z-10 flex items-center justify-between gap-2 pointer-events-none">
         {!borderless && (
           <span
-            className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-slate-950/80 px-2 py-0.5 text-[9px] font-black tracking-widest uppercase backdrop-blur"
+            className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-slate-950/80 px-2 py-0.5 text-[9px] font-black tracking-widest uppercase backdrop-blur pointer-events-auto"
             style={{ color: skinMeta.accentHex }}
           >
             {skinMeta.badgeEmoji} {skinMeta.rarity}
           </span>
         )}
 
-        <span className={`inline-flex items-center gap-1.5 rounded-full border border-cyan-500/40 bg-slate-950 px-2.5 py-0.5 font-mono text-[8.5px] font-black text-cyan-200 shadow-md ${borderless ? "ml-auto" : ""}`}>
-          <RotateCw className="h-2.5 w-2.5 text-cyan-400" />
-          GIRE 360°
-        </span>
+        <button
+          type="button"
+          onClick={() => {
+            playSfx("click");
+            triggerSpin360Ref.current?.();
+          }}
+          className={`pointer-events-auto cursor-pointer inline-flex items-center gap-1.5 rounded-full border border-cyan-500/50 bg-slate-950/90 hover:bg-cyan-950/60 active:scale-95 px-2.5 py-1 font-mono text-[8.5px] font-black text-cyan-200 shadow-md transition ${borderless ? "ml-auto" : ""}`}
+          title="Girar modelo 360°"
+        >
+          <RotateCw className="h-2.5 w-2.5 text-cyan-400 animate-spin-slow" />
+          <span>GIRE 360°</span>
+        </button>
       </div>
 
       {/* Live WebGL 3D Canvas */}

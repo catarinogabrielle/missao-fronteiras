@@ -161,6 +161,7 @@ interface MobaGtaWorld3DProps {
   avatarId: AvatarId;
   skinId: SkinId;
   agentName: string;
+  playerLevel?: number;
   dialogueCompleted: boolean;
   helpedPersonIds: string[];
   activatedTowerIds: string[];
@@ -182,6 +183,7 @@ export function MobaGtaWorld3D({
   avatarId,
   skinId,
   agentName,
+  playerLevel = 1,
   dialogueCompleted,
   helpedPersonIds,
   activatedTowerIds,
@@ -1398,88 +1400,91 @@ export function MobaGtaWorld3D({
       scene.add(lightPool);
     });
 
-    // 3. Authentic 3D Fire Hydrants (Hidrantes) - Safely on Sidewalk Curb, NEVER in the Street!
-    const hydrantCoords: [number, number][] = [
-      [-6.5, 26],   // North sidewalk curb, clear of Ave 18
-      [6.5, 46],    // North sidewalk curb, clear of Ave 54
-      [-6.5, -26],  // South sidewalk curb, clear of Ave -18
-      [6.5, -46],   // South sidewalk curb, clear of Ave -54
-      [6.5, 64],    // Spawn area sidewalk curb
-    ];
+    // 3. Authentic 3D Fire Hydrants (Hidrantes) - Safely on Outer Sidewalk, NEVER in the Street or Riverside!
+    // In Amazônia (river/forest setting), municipal fire hydrants do not spawn.
+    if (resolvedBiome !== "amazonia") {
+      const hydrantCoords: [number, number][] = [
+        [-14.5, 36],   // North sidewalk against building wall
+        [14.5, 46],    // North sidewalk against building wall
+        [-14.5, -36],  // South sidewalk against building wall
+        [14.5, -46],   // South sidewalk against building wall
+        [14.5, 68],    // Spawn area sidewalk border
+      ];
 
-    hydrantCoords.forEach(([hx, hz]) => {
-      const hydrant = new THREE.Group();
-      hydrant.position.set(hx, 0, hz);
+      hydrantCoords.forEach(([hx, hz]) => {
+        const hydrant = new THREE.Group();
+        hydrant.position.set(hx, 0.22, hz);
 
-      // Heavy Flanged Cast-Iron Base Ring
-      const hBase = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.24, 0.28, 0.12, 12),
-        new THREE.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.5 })
-      );
-      hBase.position.y = 0.06;
-      hydrant.add(hBase);
-
-      // Main Fire Hydrant Barrel
-      const hydrantBody = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.14, 0.17, 0.56, 12),
-        new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.35, metalness: 0.15 })
-      );
-      hydrantBody.position.y = 0.38;
-      hydrant.add(hydrantBody);
-
-      // Top Dome Bonnet
-      const hydrantCap = new THREE.Mesh(
-        new THREE.SphereGeometry(0.15, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.55),
-        new THREE.MeshStandardMaterial({ color: 0xb91c1c, roughness: 0.35 })
-      );
-      hydrantCap.position.y = 0.65;
-      hydrant.add(hydrantCap);
-
-      // Pentagon Operating Nut on Top
-      const topNut = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.045, 0.045, 0.08, 5),
-        new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.8, roughness: 0.3 })
-      );
-      topNut.position.y = 0.74;
-      hydrant.add(topNut);
-
-      // Dual Side Pumper Nozzles with Brass Caps
-      [-0.17, 0.17].forEach((nx) => {
-        const nozzle = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.06, 0.06, 0.12, 8),
-          new THREE.MeshStandardMaterial({ color: 0xb91c1c, roughness: 0.4 })
+        // Heavy Flanged Cast-Iron Base Ring
+        const hBase = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.24, 0.28, 0.12, 12),
+          new THREE.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.5 })
         );
-        nozzle.position.set(nx, 0.45, 0);
-        nozzle.rotation.z = Math.PI / 2;
-        hydrant.add(nozzle);
+        hBase.position.y = 0.06;
+        hydrant.add(hBase);
 
-        const cap = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.07, 0.07, 0.05, 8),
-          new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.85, roughness: 0.25 })
+        // Main Fire Hydrant Barrel
+        const hydrantBody = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.14, 0.17, 0.56, 12),
+          new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.35, metalness: 0.15 })
         );
-        cap.position.set(nx > 0 ? nx + 0.06 : nx - 0.06, 0.45, 0);
-        cap.rotation.z = Math.PI / 2;
-        hydrant.add(cap);
+        hydrantBody.position.y = 0.38;
+        hydrant.add(hydrantBody);
+
+        // Top Dome Bonnet
+        const hydrantCap = new THREE.Mesh(
+          new THREE.SphereGeometry(0.15, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.55),
+          new THREE.MeshStandardMaterial({ color: 0xb91c1c, roughness: 0.35 })
+        );
+        hydrantCap.position.y = 0.65;
+        hydrant.add(hydrantCap);
+
+        // Pentagon Operating Nut on Top
+        const topNut = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.045, 0.045, 0.08, 5),
+          new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.8, roughness: 0.3 })
+        );
+        topNut.position.y = 0.74;
+        hydrant.add(topNut);
+
+        // Dual Side Pumper Nozzles with Brass Caps
+        [-0.17, 0.17].forEach((nx) => {
+          const nozzle = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.06, 0.06, 0.12, 8),
+            new THREE.MeshStandardMaterial({ color: 0xb91c1c, roughness: 0.4 })
+          );
+          nozzle.position.set(nx, 0.45, 0);
+          nozzle.rotation.z = Math.PI / 2;
+          hydrant.add(nozzle);
+
+          const cap = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.07, 0.07, 0.05, 8),
+            new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.85, roughness: 0.25 })
+          );
+          cap.position.set(nx > 0 ? nx + 0.06 : nx - 0.06, 0.45, 0);
+          cap.rotation.z = Math.PI / 2;
+          hydrant.add(cap);
+        });
+
+        scene.add(hydrant);
       });
+    }
 
-      scene.add(hydrant);
-    });
-
-    // 4. Wooden Park Benches (Bancos de Parque) - In Central Plaza & on Sidewalks, NEVER in the Street!
+    // 4. Wooden Park Benches (Bancos de Parque) - In Central Plaza & Sidewalk Borders, NEVER in the Street!
     const benchConfigs: { x: number; z: number; rotY: number }[] = [
-      // Central Plaza Park Benches (surrounding the plaza fountain, facing inward)
-      { x: -7.5, z: 5.5, rotY: Math.PI * 0.70 },
-      { x: 7.5, z: 5.5, rotY: -Math.PI * 0.70 },
-      { x: -7.5, z: -5.5, rotY: Math.PI * 0.30 },
-      { x: 7.5, z: -5.5, rotY: -Math.PI * 0.30 },
-      // Sidewalk Blocks (Facing the boulevard from well inside the sidewalk paving, |x| >= 8.2)
-      { x: -8.2, z: 36, rotY: Math.PI / 2 },
-      { x: 8.2, z: 36, rotY: -Math.PI / 2 },
-      { x: -8.2, z: -36, rotY: Math.PI / 2 },
-      { x: 8.2, z: -36, rotY: -Math.PI / 2 },
+      // Central Plaza Fountain Park (surrounding the central fountain, facing inward)
+      { x: -6.8, z: -2.2, rotY: Math.PI * 0.62 },
+      { x: 6.8, z: -2.2, rotY: -Math.PI * 0.62 },
+      { x: -6.5, z: -8.2, rotY: Math.PI * 0.32 },
+      { x: 6.5, z: -8.2, rotY: -Math.PI * 0.32 },
+      // Sidewalk Resting Benches (Safely tucked against building storefronts at |x| = 14.5, far from roadway)
+      { x: -14.5, z: 44, rotY: Math.PI / 2 },
+      { x: 14.5, z: 44, rotY: -Math.PI / 2 },
+      { x: -14.5, z: -42, rotY: Math.PI / 2 },
+      { x: 14.5, z: -42, rotY: -Math.PI / 2 },
       // Spawn Park Area
-      { x: -7.8, z: 66, rotY: Math.PI / 2 },
-      { x: 7.8, z: 66, rotY: -Math.PI / 2 },
+      { x: -12.5, z: 66, rotY: Math.PI / 2 },
+      { x: 12.5, z: 66, rotY: -Math.PI / 2 },
     ];
 
     benchConfigs.forEach(({ x: bx, z: bz, rotY }) => {
@@ -1974,6 +1979,8 @@ export function MobaGtaWorld3D({
     interface LiveEnemy {
       id: string;
       name: string;
+      tier: "minor" | "elite" | "boss";
+      level: number;
       homeX: number;
       homeZ: number;
       x: number;
@@ -2006,16 +2013,34 @@ export function MobaGtaWorld3D({
     }
 
     const enemies: LiveEnemy[] = worldCfg.enemies.map((e, idx) => {
-      const rig = createShadowEnemyRig(e.name, Boolean(e.isBoss));
+      const tier: "minor" | "elite" | "boss" = e.tier || (e.isBoss ? "boss" : "minor");
+      const isBossEnemy = tier === "boss";
+      const isEliteEnemy = tier === "elite";
+
+      // AI DDA: Dynamic enemy level scaling based on playerLevel
+      const enemyLevel = isBossEnemy
+        ? Math.max(5, playerLevel + 4)
+        : isEliteEnemy
+          ? Math.max(3, playerLevel + 2)
+          : Math.max(1, playerLevel);
+
+      // Dynamic HP scaling based on difficulty tier and player level
+      const scaledHp = isBossEnemy
+        ? Math.round((460 + playerLevel * 60) * (playerLevel >= 3 ? 1.15 : 1.0))
+        : isEliteEnemy
+          ? Math.round(140 + playerLevel * 22)
+          : Math.round(65 + playerLevel * 10);
+
+      const rig = createShadowEnemyRig(e.name, tier, enemyLevel);
       rig.root.position.set(e.x, 0, e.z);
       scene.add(rig.root);
+
       const angleSeed = (idx * 1.37) % (Math.PI * 2);
-      const isBossEnemy = Boolean(e.isBoss);
-      // Red ground telegraph: "get out of the circle!" before every strike
+      // Red/Purple ground telegraph: "get out of the circle!" before every strike
       const telegraph = new THREE.Mesh(
-        new THREE.CircleGeometry(isBossEnemy ? 4.4 : 3.1, 28),
+        new THREE.CircleGeometry(isBossEnemy ? 4.8 : isEliteEnemy ? 3.4 : 2.5, 28),
         new THREE.MeshBasicMaterial({
-          color: isBossEnemy ? 0xf43f5e : 0xd946ef,
+          color: isBossEnemy ? 0xf43f5e : isEliteEnemy ? 0xe11d48 : 0xa855f7,
           transparent: true,
           opacity: 0,
           depthWrite: false,
@@ -2025,24 +2050,27 @@ export function MobaGtaWorld3D({
       telegraph.position.set(e.x, 0.09, e.z);
       telegraph.visible = false;
       scene.add(telegraph);
+
       return {
         id: e.id,
         name: e.name,
+        tier,
+        level: enemyLevel,
         homeX: e.x,
         homeZ: e.z,
         x: e.x,
         z: e.z,
-        hp: e.hp,
-        maxHp: e.hp,
-        isBoss: Boolean(e.isBoss),
-        points: e.points,
+        hp: scaledHp,
+        maxHp: scaledHp,
+        isBoss: isBossEnemy,
+        points: Math.round(e.points * (1 + (enemyLevel - 1) * 0.15)),
         dead: false,
         attackCd: 0,
         hitFlash: 0,
         rig,
         aggroTimer: 0,
         flankOffset: ((idx % 3) - 1) * 0.38,
-        chargeCd: 3.5,
+        chargeCd: isEliteEnemy ? 2.5 : 4.0,
         dashTimer: 0,
         dashDirX: 0,
         dashDirZ: 0,
@@ -2051,9 +2079,9 @@ export function MobaGtaWorld3D({
         patrolDirZ: Math.sin(angleSeed),
         enraged: false,
         windup: 0,
-        windupTotal: 0.6,
-        boltCd: 2.5 + (idx % 5) * 0.7,
-        isCaster: !isBossEnemy && idx % 2 === 1,
+        windupTotal: isBossEnemy ? 1.4 : isEliteEnemy ? 0.85 : 1.5,
+        boltCd: isEliteEnemy ? 2.0 : 3.5 + (idx % 5) * 0.7,
+        isCaster: isEliteEnemy || isBossEnemy,
         telegraph,
       };
     });
@@ -2183,6 +2211,8 @@ export function MobaGtaWorld3D({
       vx: number;
       vz: number;
       life: number;
+      damage: number;
+      label: string;
     }
     const shadowProjectiles: ShadowProjectile[] = [];
 
@@ -3321,10 +3351,11 @@ export function MobaGtaWorld3D({
             ) < 1.9
           ) {
             if (shieldTimer <= 0) {
-              hp = Math.max(0, hp - 12);
-              hurtFlash = 0.3;
+              const dmg = sp.damage || 14;
+              hp = Math.max(0, hp - dmg);
+              hurtFlash = 0.35;
               soundEngine.play("error");
-              emitPopup("💥 ESFERA SOMBRIA! -12 HP", "#a855f7");
+              emitPopup(`💥 ${sp.label || "ORBE SOMBRIO"}! -${dmg} HP`, "#f43f5e");
               if (hp <= 0) {
                 hp = maxHp;
                 heroPos.set(
@@ -3377,14 +3408,16 @@ export function MobaGtaWorld3D({
           const distHome = Math.hypot(en.x - en.homeX, en.z - en.homeZ);
 
           let enemyMoving = false;
-          // Aggro detection: Boss detects from 38u, minions from 22u
-          const aggroRadius = en.isBoss ? 38 : 22;
+          // Aggro detection: Boss 38m, Elite 28m, Minor 17m
+          const aggroRadius = en.isBoss ? 38 : en.tier === "elite" ? 28 : 17;
           if (distHero < aggroRadius) {
             const wasPassive = en.aggroTimer <= 0;
-            en.aggroTimer = Math.max(en.aggroTimer, en.isBoss ? 32.0 : 18.0);
+            en.aggroTimer = Math.max(en.aggroTimer, en.isBoss ? 32.0 : en.tier === "elite" ? 24.0 : 16.0);
             if (wasPassive && en.isBoss) {
-              emitPopup("👑 TITÃ DAS SOMBRAS: 'A LUZ NÃO PASSARÁ POR ESTA FRONTEIRA!'", "#f43f5e");
+              emitPopup(`👑 ${en.name}: 'A LUZ NÃO PASSARÁ POR ESTA FRONTEIRA!'`, "#f43f5e");
               soundEngine.play("error");
+            } else if (wasPassive && en.tier === "elite") {
+              emitPopup(`⚠️ ${en.name} ENTROU EM COMBATE!`, "#f43f5e");
             }
           }
 
@@ -3398,26 +3431,46 @@ export function MobaGtaWorld3D({
               en.dashTimer <= 0
             ) {
               en.dashTimer = 0.58;
-              en.chargeCd = en.enraged ? 5.0 : 7.2;
+              en.chargeCd = en.enraged ? 4.5 : 6.8;
               en.dashDirX = dx / distHero;
               en.dashDirZ = dz / distHero;
               soundEngine.play("dash");
               emitPopup("⚠️ INVESTIDA DO TITÃ DAS SOMBRAS!", "#f43f5e");
+            } else if (
+              en.tier === "elite" &&
+              en.chargeCd <= 0 &&
+              distHero >= 5.5 &&
+              distHero <= 15.0 &&
+              en.dashTimer <= 0
+            ) {
+              // Elite Shadow Rapid Ambush Dash!
+              en.dashTimer = 0.35;
+              en.chargeCd = Math.max(3.2, 4.8 - playerLevel * 0.15);
+              en.dashDirX = dx / distHero;
+              en.dashDirZ = dz / distHero;
+              soundEngine.play("dash");
+              emitPopup("⚡ SOMBRA DE ELITE AVANÇOU EM DASH!", "#f43f5e");
             }
 
             if (en.dashTimer > 0) {
               en.dashTimer -= dt;
-              en.x += en.dashDirX * 17.5 * dt;
-              en.z += en.dashDirZ * 17.5 * dt;
+              const dashSpd = en.isBoss ? 17.5 : 15.0;
+              en.x += en.dashDirX * dashSpd * dt;
+              en.z += en.dashDirZ * dashSpd * dt;
               en.rig.root.rotation.y = Math.atan2(en.dashDirX, en.dashDirZ);
               enemyMoving = true;
 
-              if (distHero < 3.2) {
+              if (distHero < (en.isBoss ? 3.2 : 2.4)) {
                 if (shieldTimer <= 0) {
-                  const chargeDmg = en.enraged ? 32 : 24;
-                  hp = Math.max(0, hp - chargeDmg);
+                  const chargeDmg = en.isBoss
+                    ? en.enraged ? 35 + playerLevel * 3.5 : 24 + playerLevel * 2.5
+                    : 16 + playerLevel * 2.0;
+                  const finalChargeDmg = Math.round(chargeDmg * (playerLevel === 1 ? 0.8 : 1.0));
+                  hp = Math.max(0, hp - finalChargeDmg);
+                  hurtFlash = 0.35;
                   soundEngine.play("error");
-                  emitPopup(`💥 IMPACTO DO TITÃ! -${chargeDmg} HP`, "#f43f5e");
+                  const chargeLabel = en.isBoss ? "IMPACTO DO TITÃ!" : "IMPACTO DA SOMBRA DE ELITE!";
+                  emitPopup(`💥 ${chargeLabel} -${finalChargeDmg} HP`, "#f43f5e");
                   if (hp <= 0) {
                     hp = maxHp;
                     heroPos.set(WORLD_LANDMARKS.spawn.x, 0, WORLD_LANDMARKS.spawn.z);
@@ -3428,16 +3481,20 @@ export function MobaGtaWorld3D({
                 }
               }
             } else {
-              // Active Pursuit & Wolfpack Flanking
+              // Active Pursuit & Tactical Flanking AI
               const baseAngle = Math.atan2(dx, dz);
               const chaseAngle = en.isBoss ? baseAngle : baseAngle + en.flankOffset;
               const chaseDirX = Math.sin(chaseAngle);
               const chaseDirZ = Math.cos(chaseAngle);
               en.rig.root.rotation.y = baseAngle;
 
-              const stopDist = en.isBoss ? 3.4 : 2.2;
+              const stopDist = en.isBoss ? 3.6 : en.tier === "elite" ? 2.5 : 2.2;
               if (distHero > stopDist && en.windup <= 0) {
-                const spd = en.isBoss ? (en.enraged ? 7.2 : 5.6) : 5.4;
+                const spd = en.isBoss
+                  ? (en.enraged ? 7.2 : 5.8)
+                  : en.tier === "elite"
+                    ? 5.4 + playerLevel * 0.12
+                    : 3.5 + playerLevel * 0.08;
                 en.x += chaseDirX * spd * dt;
                 en.z += chaseDirZ * spd * dt;
                 enemyMoving = true;
@@ -3450,6 +3507,9 @@ export function MobaGtaWorld3D({
                   en.telegraph.scale.set(0.15, 0.15, 0.15);
                   (en.telegraph.material as THREE.MeshBasicMaterial).opacity = 0.65;
                   en.rig.rightArmPivot.rotation.x = -1.9;
+                  if (en.tier === "elite") {
+                    en.rig.leftArmPivot.rotation.x = -1.9; // Dual-wielding elite raises both blades!
+                  }
                 } else if (en.windup > 0) {
                   en.windup -= dt;
                   const progress = 1 - Math.max(0, en.windup / en.windupTotal);
@@ -3457,22 +3517,37 @@ export function MobaGtaWorld3D({
                   en.telegraph.position.set(en.x, 0.08, en.z);
                   en.telegraph.scale.set(tgScale, tgScale, tgScale);
                   en.rig.rightArmPivot.rotation.x = -1.9 + progress * 0.4;
+                  if (en.tier === "elite") {
+                    en.rig.leftArmPivot.rotation.x = -1.9 + progress * 0.4;
+                  }
 
                   if (en.windup <= 0) {
                     en.telegraph.visible = false;
-                    en.attackCd = en.isBoss ? (en.enraged ? 1.2 : 1.7) : 1.85;
+                    en.attackCd = en.isBoss
+                      ? (en.enraged ? 1.2 : 1.7)
+                      : en.tier === "elite"
+                        ? Math.max(1.3, 1.8 - playerLevel * 0.08)
+                        : Math.max(2.4, 3.4 - playerLevel * 0.15);
                     en.rig.rightArmPivot.rotation.x = 0.9;
-                    if (distHero <= (en.isBoss ? 4.8 : 3.2)) {
+                    if (en.tier === "elite") en.rig.leftArmPivot.rotation.x = 0.9;
+
+                    if (distHero <= (en.isBoss ? 4.8 : en.tier === "elite" ? 3.4 : 2.8)) {
                       if (shieldTimer <= 0) {
-                        const dmgTaken = en.isBoss
-                          ? en.enraged
-                            ? 28
-                            : 20
-                          : 12;
+                        const rawDmg = en.isBoss
+                          ? en.enraged ? 32 + playerLevel * 3 : 22 + playerLevel * 2.2
+                          : en.tier === "elite"
+                            ? 18 + playerLevel * 2.2
+                            : 8 + playerLevel * 1.2;
+                        const dmgTaken = Math.round(rawDmg * (playerLevel === 1 ? 0.8 : 1.0));
                         hp = Math.max(0, hp - dmgTaken);
                         hurtFlash = 0.35;
                         soundEngine.play("error");
-                        emitPopup(`💥 GOLPE SOMBRIO! -${dmgTaken} HP`, "#f43f5e");
+                        const attackLabel = en.isBoss
+                          ? "GOLPE ESMAGADOR DO TITÃ!"
+                          : en.tier === "elite"
+                            ? "GOLPE DA SOMBRA DE ELITE!"
+                            : "GOLPE DA SOMBRA MENOR!";
+                        emitPopup(`💥 ${attackLabel} -${dmgTaken} HP`, en.tier === "minor" ? "#a855f7" : "#f43f5e");
                         if (hp <= 0) {
                           hp = maxHp;
                           heroPos.set(
@@ -3490,28 +3565,51 @@ export function MobaGtaWorld3D({
                 }
               }
 
-              // Ranged Caster Minion shadow bolts
-              if (
-                en.isCaster &&
-                !en.isBoss &&
-                distHero >= 5.5 &&
-                distHero <= 20.0
-              ) {
+              // Ranged Attacks: Boss fires triple spread barrage, Elite fires fast homing void bolts!
+              if (en.isBoss && distHero >= 7.0 && distHero <= 26.0) {
                 if (en.boltCd > 0) en.boltCd -= dt;
                 if (en.boltCd <= 0) {
-                  en.boltCd = 3.8;
+                  en.boltCd = en.enraged ? 3.0 : 4.4;
+                  soundEngine.play("dash");
+                  emitPopup("🔥 TITÃ DISPAROU BARRAGEM SOMBRIA!", "#f43f5e");
+                  const baseAng = Math.atan2(dx, dz);
+                  [-0.26, 0, 0.26].forEach((angOffset) => {
+                    const boltMesh = new THREE.Mesh(
+                      new THREE.SphereGeometry(0.55, 12, 12),
+                      new THREE.MeshBasicMaterial({ color: 0xf43f5e })
+                    );
+                    boltMesh.position.set(en.x, 2.2, en.z);
+                    scene.add(boltMesh);
+                    const bAngle = baseAng + angOffset;
+                    shadowProjectiles.push({
+                      mesh: boltMesh,
+                      vx: Math.sin(bAngle) * 20,
+                      vz: Math.cos(bAngle) * 20,
+                      life: 1.4,
+                      damage: Math.round((20 + playerLevel * 2.2) * (playerLevel === 1 ? 0.8 : 1.0)),
+                      label: "BARRAGEM DO TITÃ",
+                    });
+                  });
+                }
+              } else if (en.tier === "elite" && distHero >= 5.0 && distHero <= 22.0) {
+                if (en.boltCd > 0) en.boltCd -= dt;
+                if (en.boltCd <= 0) {
+                  en.boltCd = Math.max(1.8, 2.8 - playerLevel * 0.12);
+                  soundEngine.play("dash");
                   const boltMesh = new THREE.Mesh(
-                    new THREE.SphereGeometry(0.45, 12, 12),
-                    new THREE.MeshBasicMaterial({ color: 0xc084fc })
+                    new THREE.SphereGeometry(0.42, 10, 10),
+                    new THREE.MeshBasicMaterial({ color: 0xd946ef })
                   );
-                  boltMesh.position.set(en.x, 1.4, en.z);
+                  boltMesh.position.set(en.x, 1.5, en.z);
                   scene.add(boltMesh);
                   const bAngle = Math.atan2(dx, dz);
                   shadowProjectiles.push({
                     mesh: boltMesh,
-                    vx: Math.sin(bAngle) * 19,
-                    vz: Math.cos(bAngle) * 19,
-                    life: 1.2,
+                    vx: Math.sin(bAngle) * 20,
+                    vz: Math.cos(bAngle) * 20,
+                    life: 1.3,
+                    damage: Math.round((16 + playerLevel * 2.0) * (playerLevel === 1 ? 0.8 : 1.0)),
+                    label: "ORBE SOMBRIO DA ELITE",
                   });
                 }
               }

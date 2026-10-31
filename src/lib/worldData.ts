@@ -70,6 +70,8 @@ export interface EnemySpawn {
   hp: number;
   isBoss?: boolean;
   points: number;
+  tier?: "minor" | "elite" | "boss";
+  baseLevel?: number;
 }
 
 export interface OpenWorldConfig {
@@ -195,23 +197,32 @@ function generateEnemies(
     [8, -36],
   ];
 
-  const enemies: EnemySpawn[] = coords.map(([x, z], idx) => ({
-    id: `enemy-${idx}`,
-    name: minionName,
-    x,
-    z,
-    hp: 95,
-    points: 160,
-  }));
+  const eliteIndices = new Set([0, 2, 6, 12, 13]); // Rescue guards, bridge crossing, boss vestibule
+
+  const enemies: EnemySpawn[] = coords.map(([x, z], idx) => {
+    const isElite = eliteIndices.has(idx);
+    return {
+      id: `enemy-${idx}`,
+      name: isElite ? `${minionName} (Elite ✦)` : `${minionName} (Rastreador)`,
+      x,
+      z,
+      hp: isElite ? 165 : 75,
+      points: isElite ? 280 : 120,
+      tier: isElite ? ("elite" as const) : ("minor" as const),
+      baseLevel: isElite ? 3 : 1,
+    };
+  });
 
   enemies.push({
     id: "boss-main",
     name: bossName,
     x: 0,
     z: -42,
-    hp: 420,
+    hp: 520,
     isBoss: true,
-    points: 750,
+    points: 900,
+    tier: "boss" as const,
+    baseLevel: 5,
   });
 
   return enemies;
