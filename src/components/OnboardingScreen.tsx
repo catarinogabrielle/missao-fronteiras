@@ -308,6 +308,22 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
               <span>{state.wisdom} 💎</span>
             </div>
 
+            {/* Install PWA Button (Always Available on Mobile, Emerald Green Background) */}
+            <motion.button
+              type="button"
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
+              onClick={() => {
+                playSfx("click");
+                triggerInstall();
+              }}
+              title="Instalar Aplicativo (PWA) para jogar Offline"
+              className="flex items-center gap-1 rounded-xl border border-emerald-300 bg-gradient-to-b from-emerald-400 via-emerald-500 to-emerald-600 px-2 sm:px-2.5 py-1 text-xs font-black text-slate-950 shadow-[0_0_12px_rgba(16,185,129,0.5),inset_0_1px_1px_rgba(255,255,255,0.7)] hover:brightness-110 cursor-pointer transition uppercase"
+            >
+              <Download className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Instalar</span>
+            </motion.button>
+
             <motion.button
               type="button"
               whileHover={{ scale: 1.04 }}
@@ -784,18 +800,16 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          {!isStandalone && (
-            <MobaButton
-              variant="emerald"
-              size="sm"
-              shape="slant"
-              onClick={triggerInstall}
-              title="Instalar Jogo (PWA Offline)"
-            >
-              <Download className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Instalar App</span>
-            </MobaButton>
-          )}
+          <MobaButton
+            variant="emerald"
+            size="sm"
+            shape="rounded"
+            onClick={triggerInstall}
+            title="Instalar Jogo (PWA Offline)"
+          >
+            <Download className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Instalar App</span>
+          </MobaButton>
           <MobaButton
             variant={state.projectorMode ? "gold" : "obsidian"}
             size="sm"
