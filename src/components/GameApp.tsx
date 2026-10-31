@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { RotateCw, Smartphone } from "lucide-react";
 import { Mission } from "@/types/game";
+import { getDynamicMissionInstance } from "@/lib/dynamicMissions";
 import { useGame } from "@/context/GameContext";
 import { useMobileViewport } from "@/lib/useMobileViewport";
 import { OnboardingScreen } from "./OnboardingScreen";
@@ -13,7 +14,6 @@ import { PassportModal } from "./PassportModal";
 import { PocketBibleModal } from "./PocketBibleModal";
 import { PrayerRadarModal } from "./PrayerRadarModal";
 import { TribesQuizModal } from "./TribesQuizModal";
-import { LeaderPanelModal } from "./LeaderPanelModal";
 import { SkinWardrobeModal } from "./SkinWardrobeModal";
 import { ToastOverlay } from "./ToastOverlay";
 
@@ -33,7 +33,6 @@ export function GameApp() {
   );
   const [prayerRadarOpen, setPrayerRadarOpen] = useState(false);
   const [tribesQuizOpen, setTribesQuizOpen] = useState(false);
-  const [leaderOpen, setLeaderOpen] = useState(false);
   const [wardrobeOpen, setWardrobeOpen] = useState(false);
 
   const anyTopModalOpen =
@@ -41,7 +40,6 @@ export function GameApp() {
     bibleOpen ||
     prayerRadarOpen ||
     tribesQuizOpen ||
-    leaderOpen ||
     wardrobeOpen;
 
   if (!hydrated) {
@@ -62,13 +60,12 @@ export function GameApp() {
   return (
     <div className="bg-cyber-grid fixed inset-0 flex h-full h-dvh w-full flex-col overflow-hidden text-slate-100 select-none">
       {!state.agent ? (
-        <OnboardingScreen onOpenLeaderPanel={() => setLeaderOpen(true)} />
+        <OnboardingScreen />
       ) : (
         <>
           {!isPlayingGame && (
             <HeaderBar
               onOpenPassport={() => setPassportOpen(true)}
-              onOpenLeaderPanel={() => setLeaderOpen(true)}
               onOpenWardrobe={() => setWardrobeOpen(true)}
               onOpenBible={() => {
                 setBibleTab("gospel");
@@ -96,7 +93,7 @@ export function GameApp() {
             />
           ) : (
             <MissionHub
-              onSelectMission={(m) => setActiveMission(m)}
+              onSelectMission={(m) => setActiveMission(getDynamicMissionInstance(m))}
               onOpenPocketBible={(tab = "gospel") => {
                 setBibleTab(tab);
                 setBibleOpen(true);
@@ -105,7 +102,6 @@ export function GameApp() {
               onOpenTribesQuiz={() => setTribesQuizOpen(true)}
               onOpenPassport={() => setPassportOpen(true)}
               onOpenWardrobe={() => setWardrobeOpen(true)}
-              onOpenLeaderPanel={() => setLeaderOpen(true)}
               onSwitchUser={() => {
                 setActiveMission(null);
                 switchUser();
@@ -143,15 +139,6 @@ export function GameApp() {
       <SkinWardrobeModal
         open={wardrobeOpen}
         onClose={() => setWardrobeOpen(false)}
-      />
-
-      <LeaderPanelModal
-        open={leaderOpen}
-        onClose={() => setLeaderOpen(false)}
-        onLaunchMission={(m) => setActiveMission(m)}
-        onOpenTribesQuiz={() => setTribesQuizOpen(true)}
-        onOpenWardrobe={() => setWardrobeOpen(true)}
-        onAfterResetClass={() => setActiveMission(null)}
       />
 
       <ToastOverlay />

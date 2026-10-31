@@ -71,10 +71,7 @@ const INITIAL_STATE: GameState = {
   studiedGospelSteps: [],
   unlockedAchievements: [],
   unlockedSkins: [...DEFAULT_FREE_SKINS],
-  allSkinsUnlockedByLeader: false,
-  leaderPin: "1234",
   customMissions: [],
-  allUnlockedByLeader: false,
   muted: false,
   projectorMode: false,
 };
@@ -122,16 +119,11 @@ interface GameContextValue {
   spendWisdom: (amount: number) => boolean;
   addBonusXp: (amount: number, reason?: string) => void;
   grantFieldLoot: (xp: number, wisdom: number) => void;
-  grantLeaderReward: (xp: number, wisdom: number, reason: string) => void;
-  unlockAllAchievementsByLeader: () => void;
   toggleMute: () => void;
   toggleProjectorMode: () => void;
   addCustomMission: (mission: Mission) => void;
   updateCustomMission: (mission: Mission) => void;
   deleteCustomMission: (missionId: string) => void;
-  toggleAllUnlockedByLeader: () => void;
-  toggleAllSkinsUnlockedByLeader: () => void;
-  setLeaderPin: (newPin: string) => void;
   resetStudentProgress: () => void;
   switchUser: () => void;
   selectProfile: (profile: AgentProfile) => void;
@@ -243,7 +235,6 @@ function loadInitialGameState(): GameState {
         lastActiveAgent: resolvedLastActive,
         savedProfiles: mergedSavedProfiles,
         unlockedSkins: mergedSkins,
-        leaderPin: parsed.leaderPin || "1234",
         streak: updatedStreak,
         lastActiveDate: today,
       };
@@ -315,7 +306,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const isMissionUnlocked = useCallback(
     (mission: Mission) => {
-      if (state.allUnlockedByLeader || mission.isCustom || mission.order === 1) {
+      if (mission.isCustom || mission.order === 1) {
         return true;
       }
       const prevMission = CORE_MISSIONS.find(
@@ -324,17 +315,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (!prevMission) return true;
       return Boolean(state.missionProgress[prevMission.id]?.completed);
     },
-    [state.allUnlockedByLeader, state.missionProgress]
+    [state.missionProgress]
   );
 
   const isSkinUnlocked = useCallback(
     (skinId: SkinId) => {
-      if (state.allSkinsUnlockedByLeader) return true;
       const meta = SKIN_OPTIONS.find((s) => s.id === skinId);
       if (meta && meta.costWisdom === 0) return true;
       return state.unlockedSkins.includes(skinId);
     },
-    [state.allSkinsUnlockedByLeader, state.unlockedSkins]
+    [state.unlockedSkins]
   );
 
   const createAgent = useCallback(
@@ -504,7 +494,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
       const alreadyUnlocked =
         forceFree ||
-        state.allSkinsUnlockedByLeader ||
         meta.costWisdom === 0 ||
         state.unlockedSkins.includes(skinId);
 
@@ -579,7 +568,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     },
     [
       pushToast,
-      state.allSkinsUnlockedByLeader,
       state.unlockedSkins,
       state.wisdom,
     ]
@@ -836,39 +824,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     [pushToast]
   );
 
-  const grantLeaderReward = useCallback(
-    (xpAmount: number, wisdomAmount: number, reason: string) => {
-      soundEngine.play("levelUp");
-      setState((prev) => ({
-        ...prev,
-        xp: Math.max(0, prev.xp + xpAmount),
-        wisdom: Math.max(0, prev.wisdom + wisdomAmount),
-      }));
-      const parts: string[] = [];
-      if (xpAmount > 0) parts.push(`+${xpAmount} XP`);
-      if (wisdomAmount > 0) parts.push(`+${wisdomAmount} 💎`);
-      pushToast(
-        `Bônus do Líder: ${parts.join(" • ")}`,
-        reason,
-        "👑"
-      );
-    },
-    [pushToast]
-  );
-
-  const unlockAllAchievementsByLeader = useCallback(() => {
-    soundEngine.play("levelUp");
-    setState((prev) => ({
-      ...prev,
-      unlockedAchievements: ACHIEVEMENTS.map((a) => a.id),
-    }));
-    pushToast(
-      "Todas as Medalhas Liberadas!",
-      "Ativado pelo Painel do Líder para demonstração ou premiação.",
-      "🏅"
-    );
-  }, [pushToast]);
-
   const toggleMute = useCallback(() => {
     setState((prev) => {
       const nextMuted = !prev.muted;
@@ -933,52 +888,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     [pushToast]
   );
 
-  const toggleAllUnlockedByLeader = useCallback(() => {
-    soundEngine.play("click");
-    setState((prev) => {
-      const next = !prev.allUnlockedByLeader;
-      return {
-        ...prev,
-        allUnlockedByLeader: next,
-      };
-    });
-  }, []);
-
-  const toggleAllSkinsUnlockedByLeader = useCallback(() => {
-    soundEngine.play("levelUp");
-    setState((prev) => ({
-      ...prev,
-      allSkinsUnlockedByLeader: !prev.allSkinsUnlockedByLeader,
-    }));
-  }, []);
-
-  const setLeaderPin = useCallback(
-    (newPin: string) => {
-      const cleaned = newPin.trim();
-      if (cleaned.length < 4) return;
-      soundEngine.play("success");
-      setState((prev) => ({
-        ...prev,
-        leaderPin: cleaned,
-      }));
-      pushToast(
-        "PIN do Líder Atualizado!",
-        `Novo código de segurança configurado (${cleaned.length} dígitos).`,
-        "🔐"
-      );
-    },
-    [pushToast]
-  );
-
   const resetStudentProgress = useCallback(() => {
     soundEngine.play("click");
     setState((prev) => ({
       ...INITIAL_STATE,
       customMissions: prev.customMissions,
       projectorMode: prev.projectorMode,
-      allUnlockedByLeader: prev.allUnlockedByLeader,
-      allSkinsUnlockedByLeader: prev.allSkinsUnlockedByLeader,
-      leaderPin: prev.leaderPin,
       muted: prev.muted,
       lastActiveDate: getTodayIso(),
     }));
@@ -1011,16 +926,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     spendWisdom,
     addBonusXp,
     grantFieldLoot,
-    grantLeaderReward,
-    unlockAllAchievementsByLeader,
     toggleMute,
     toggleProjectorMode,
     addCustomMission,
     updateCustomMission,
     deleteCustomMission,
-    toggleAllUnlockedByLeader,
-    toggleAllSkinsUnlockedByLeader,
-    setLeaderPin,
     resetStudentProgress,
     switchUser,
     selectProfile,

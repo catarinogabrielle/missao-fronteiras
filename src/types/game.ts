@@ -209,10 +209,7 @@ export interface GameState {
   studiedGospelSteps: number[];
   unlockedAchievements: string[];
   unlockedSkins: SkinId[];
-  allSkinsUnlockedByLeader: boolean;
-  leaderPin: string;
   customMissions: Mission[];
-  allUnlockedByLeader: boolean;
   muted: boolean;
   projectorMode: boolean;
 }

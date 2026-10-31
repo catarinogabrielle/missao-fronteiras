@@ -34,9 +34,7 @@ import { MobaButton } from "./MobaButton";
 import { HeroPortrait } from "./GamePortrait";
 import { HeroPreview3D } from "./HeroPreview3D";
 
-interface OnboardingScreenProps {
-  onOpenLeaderPanel: () => void;
-}
+interface OnboardingScreenProps {}
 
 const CHAMPION_QUICK_LORE: Record<
   AvatarId,
@@ -204,7 +202,7 @@ const CHAMPION_TACTICAL_INTEL: Record<
   },
 };
 
-export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
+export function OnboardingScreen({}: OnboardingScreenProps = {}) {
   const {
     createAgent,
     selectProfile,
@@ -381,7 +379,7 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
             </span>
           </div>
 
-          {/* Right Controls: Gems, PWA Install, Leader Panel, Mute */}
+          {/* Right Controls: Gems, PWA Install, Mute */}
           <div className="flex items-center gap-1.5 shrink-0">
             <div className="inline-flex items-center gap-1 rounded-xl border border-cyan-400/40 bg-slate-900/90 px-2 py-0.5 text-xs font-black text-cyan-200">
               <Gem className="h-3 w-3 text-cyan-300" />
@@ -402,22 +400,6 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
             >
               <Download className="h-3.5 w-3.5" />
               <span className="text-[10px] font-black">Instalar</span>
-            </motion.button>
-
-            {/* Leader Panel Button */}
-            <motion.button
-              type="button"
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.96 }}
-              onClick={() => {
-                playSfx("click");
-                onOpenLeaderPanel();
-              }}
-              title="Painel do Líder"
-              className="flex items-center gap-1 rounded-xl border border-amber-300 bg-gradient-to-b from-amber-300 via-amber-400 to-amber-600 px-2.5 py-1 text-xs font-black text-slate-950 shadow-[0_0_12px_rgba(245,158,11,0.45),inset_0_1px_1px_rgba(255,255,255,0.7)] hover:brightness-110 cursor-pointer transition uppercase"
-            >
-              <ShieldCheck className="h-3.5 w-3.5" />
-              <span className="text-[10px] font-black">Líder</span>
             </motion.button>
 
             {/* Mute Button */}
@@ -758,17 +740,6 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
           >
             <Monitor className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Telão</span>
-          </MobaButton>
-
-          <MobaButton
-            variant="gold"
-            size="sm"
-            shape="slant"
-            onClick={onOpenLeaderPanel}
-            title="Central do Líder / Professor (PIN 1234)"
-          >
-            <ShieldCheck className="h-3.5 w-3.5" />
-            <span>Painel do Líder</span>
           </MobaButton>
 
           <MobaButton

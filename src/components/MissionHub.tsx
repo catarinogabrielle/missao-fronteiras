@@ -120,7 +120,6 @@ interface MissionHubProps {
   onOpenTribesQuiz: () => void;
   onOpenPassport: () => void;
   onOpenWardrobe: () => void;
-  onOpenLeaderPanel: () => void;
   onSwitchUser?: () => void;
 }
 
@@ -131,7 +130,6 @@ export function MissionHub({
   onOpenTribesQuiz,
   onOpenPassport,
   onOpenWardrobe,
-  onOpenLeaderPanel,
   onSwitchUser,
 }: MissionHubProps) {
   const {
@@ -911,23 +909,6 @@ export function MissionHub({
                 </span>
                 <span className="font-mono text-[10px] text-amber-300">
                   {completedIds.length}/{allMissions.length}
-                </span>
-              </MobaButton>
-
-              <MobaButton
-                variant="obsidian"
-                size="sm"
-                shape="slant"
-                sheen={false}
-                onClick={onOpenLeaderPanel}
-                className="w-full !justify-between"
-              >
-                <span className="inline-flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4 text-cyan-300" />
-                  Central do Líder
-                </span>
-                <span className="font-mono text-[10px] text-amber-300">
-                  MESTRE
                 </span>
               </MobaButton>
             </div>

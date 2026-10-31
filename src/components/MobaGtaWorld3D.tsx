@@ -1851,12 +1851,24 @@ export function MobaGtaWorld3D({
       attackCd: number;
       hitFlash: number;
       rig: ArticulatedRig;
+      // Dynamic Pursuit & Boss Attack AI
+      aggroTimer: number;
+      flankOffset: number;
+      chargeCd: number;
+      dashTimer: number;
+      dashDirX: number;
+      dashDirZ: number;
+      patrolTimer: number;
+      patrolDirX: number;
+      patrolDirZ: number;
+      enraged: boolean;
     }
 
-    const enemies: LiveEnemy[] = worldCfg.enemies.map((e) => {
+    const enemies: LiveEnemy[] = worldCfg.enemies.map((e, idx) => {
       const rig = createShadowEnemyRig(e.name, Boolean(e.isBoss));
       rig.root.position.set(e.x, 0, e.z);
       scene.add(rig.root);
+      const angleSeed = (idx * 1.37) % (Math.PI * 2);
       return {
         id: e.id,
         name: e.name,
@@ -1872,6 +1884,16 @@ export function MobaGtaWorld3D({
         attackCd: 0,
         hitFlash: 0,
         rig,
+        aggroTimer: 0,
+        flankOffset: ((idx % 3) - 1) * 0.38,
+        chargeCd: 3.5,
+        dashTimer: 0,
+        dashDirX: 0,
+        dashDirZ: 0,
+        patrolTimer: 1.5 + (idx % 4) * 0.8,
+        patrolDirX: Math.cos(angleSeed),
+        patrolDirZ: Math.sin(angleSeed),
+        enraged: false,
       };
     });
 
@@ -2033,6 +2055,26 @@ export function MobaGtaWorld3D({
       if (enemy.dead) return;
       enemy.hp = Math.max(0, enemy.hp - amount);
       enemy.hitFlash = 0.18;
+      // Aggro this enemy for relentless pursuit!
+      enemy.aggroTimer = enemy.isBoss ? 48.0 : 26.0;
+
+      // Pack Mentality: Alert all allies in the district to flank the player!
+      const alertRadius = enemy.isBoss ? 45 : 30;
+      enemies.forEach((other) => {
+        if (!other.dead && other.id !== enemy.id) {
+          const dOther = Math.hypot(other.x - enemy.x, other.z - enemy.z);
+          if (dOther < alertRadius) {
+            other.aggroTimer = Math.max(other.aggroTimer, other.isBoss ? 36.0 : 20.0);
+          }
+        }
+      });
+
+      // Boss Enrage at 50% HP!
+      if (enemy.isBoss && !enemy.enraged && enemy.hp <= enemy.maxHp * 0.5) {
+        enemy.enraged = true;
+        soundEngine.play("levelUp");
+        emitPopup("🔥 FÚRIA DO TITÃ: O CHEFÃO ENTROU EM FRENESI!", "#f43f5e");
+      }
 
       const dx = enemy.x - heroPos.x;
       const dz = enemy.z - heroPos.z;
@@ -2069,6 +2111,15 @@ export function MobaGtaWorld3D({
         ring.position.set(enemy.x, 0.25, enemy.z);
         scene.add(ring);
         vfxList.push({ mesh: ring, age: 0, duration: 0.55, maxScale: 3.6 });
+
+        // Civil NPC Rescue Praise Reaction!
+        streetPeopleObjs.forEach((sp) => {
+          if (Math.hypot(sp.data.x - enemy.x, sp.data.z - enemy.z) < 14) {
+            emitPopup(`🙌 ${sp.data.name}: "Glória a Deus! Fomos libertos!"`, "#34d399");
+            soundEngine.play("success");
+            onEarnRef.current(20, 5);
+          }
+        });
 
         if (enemy.isBoss) {
           soundEngine.play("levelUp");
@@ -2990,10 +3041,12 @@ export function MobaGtaWorld3D({
           }
         }
 
-        // Humanoid Shadow Enemy AI & Articulated Stride
+        // --- ENHANCED SHADOWS & DISTRICT BOSS PURSUIT & FLANKING AI ---
         enemies.forEach((en, eIdx) => {
           if (en.dead) return;
           if (en.attackCd > 0) en.attackCd -= dt;
+          if (en.chargeCd > 0) en.chargeCd -= dt;
+          if (en.aggroTimer > 0) en.aggroTimer -= dt;
 
           const dx = heroPos.x - en.x;
           const dz = heroPos.z - en.z;
@@ -3001,36 +3054,90 @@ export function MobaGtaWorld3D({
           const distHome = Math.hypot(en.x - en.homeX, en.z - en.homeZ);
 
           let enemyMoving = false;
-          const aggroRadius = en.isBoss ? 17 : 12.5;
-          if (distHero < aggroRadius && distHome < 26) {
-            en.rig.root.rotation.y = Math.atan2(dx, dz);
-            if (distHero > (en.isBoss ? 2.8 : 1.95)) {
-              const spd = en.isBoss ? 4.5 : 5.1;
-              en.x += (dx / distHero) * spd * dt;
-              en.z += (dz / distHero) * spd * dt;
+          // Aggro detection: Boss detects from 38u, minions from 22u
+          const aggroRadius = en.isBoss ? 38 : 22;
+          if (distHero < aggroRadius) {
+            const wasPassive = en.aggroTimer <= 0;
+            en.aggroTimer = Math.max(en.aggroTimer, en.isBoss ? 32.0 : 18.0);
+            if (wasPassive && en.isBoss) {
+              emitPopup("👑 TITÃ DAS SOMBRAS: 'A LUZ NÃO PASSARÁ POR ESTA FRONTEIRA!'", "#f43f5e");
+              soundEngine.play("error");
+            }
+          }
+
+          if (en.aggroTimer > 0) {
+            // Boss Dash / Rush Attack when player is at medium distance
+            if (
+              en.isBoss &&
+              en.chargeCd <= 0 &&
+              distHero >= 6.5 &&
+              distHero <= 19.0 &&
+              en.dashTimer <= 0
+            ) {
+              en.dashTimer = 0.58;
+              en.chargeCd = en.enraged ? 5.0 : 7.2;
+              en.dashDirX = dx / distHero;
+              en.dashDirZ = dz / distHero;
+              soundEngine.play("dash");
+              emitPopup("⚠️ INVESTIDA DO TITÃ DAS SOMBRAS!", "#f43f5e");
+            }
+
+            if (en.dashTimer > 0) {
+              en.dashTimer -= dt;
+              en.x += en.dashDirX * 17.5 * dt;
+              en.z += en.dashDirZ * 17.5 * dt;
+              en.rig.root.rotation.y = Math.atan2(en.dashDirX, en.dashDirZ);
               enemyMoving = true;
-            } else if (en.attackCd <= 0) {
-              en.attackCd = 1.45;
-              en.rig.rightArmPivot.rotation.x = -1.3;
-              if (shieldTimer <= 0) {
-                const dmgTaken = en.isBoss ? 18 : 10;
-                hp = Math.max(0, hp - dmgTaken);
-                soundEngine.play("error");
-                emitPopup(`-${dmgTaken} HP`, "#f43f5e");
-                if (hp <= 0) {
-                  hp = maxHp;
-                  heroPos.set(
-                    WORLD_LANDMARKS.spawn.x,
-                    0,
-                    WORLD_LANDMARKS.spawn.z
-                  );
-                  emitPopup("✨ RESTAURADO NA BASE IDE!", "#38bdf8");
+
+              if (distHero < 3.2) {
+                if (shieldTimer <= 0) {
+                  const chargeDmg = en.enraged ? 32 : 24;
+                  hp = Math.max(0, hp - chargeDmg);
+                  soundEngine.play("error");
+                  emitPopup(`💥 IMPACTO DO TITÃ! -${chargeDmg} HP`, "#f43f5e");
+                  if (hp <= 0) {
+                    hp = maxHp;
+                    heroPos.set(WORLD_LANDMARKS.spawn.x, 0, WORLD_LANDMARKS.spawn.z);
+                    emitPopup("✨ RESTAURADO NA BASE IDE!", "#38bdf8");
+                  }
+                } else {
+                  emitPopup("🛡️ INVESTIDA REPELIDA PELO ESCUDO!", "#fde047");
                 }
-              } else {
-                emitPopup("🛡️ BLOQUEADO!", "#fde047");
+              }
+            } else {
+              // Active Pursuit & Wolfpack Flanking
+              const baseAngle = Math.atan2(dx, dz);
+              const chaseAngle = en.isBoss ? baseAngle : baseAngle + en.flankOffset;
+              const chaseDirX = Math.sin(chaseAngle);
+              const chaseDirZ = Math.cos(chaseAngle);
+              en.rig.root.rotation.y = baseAngle;
+
+              const stopDist = en.isBoss ? 2.8 : 2.0;
+              if (distHero > stopDist) {
+                const spd = en.isBoss ? (en.enraged ? 7.2 : 5.6) : 5.4;
+                en.x += chaseDirX * spd * dt;
+                en.z += chaseDirZ * spd * dt;
+                enemyMoving = true;
+              } else if (en.attackCd <= 0) {
+                en.attackCd = en.isBoss ? (en.enraged ? 1.05 : 1.3) : 1.35;
+                en.rig.rightArmPivot.rotation.x = -1.45;
+                if (shieldTimer <= 0) {
+                  const dmgTaken = en.isBoss ? (en.enraged ? 24 : 18) : 10;
+                  hp = Math.max(0, hp - dmgTaken);
+                  soundEngine.play("error");
+                  emitPopup(`-${dmgTaken} HP`, "#f43f5e");
+                  if (hp <= 0) {
+                    hp = maxHp;
+                    heroPos.set(WORLD_LANDMARKS.spawn.x, 0, WORLD_LANDMARKS.spawn.z);
+                    emitPopup("✨ RESTAURADO NA BASE IDE!", "#38bdf8");
+                  }
+                } else {
+                  emitPopup("🛡️ BLOQUEADO PELO ESCUDO DA FÉ!", "#fde047");
+                }
               }
             }
-          } else if (distHome > 1.0) {
+          } else if (distHome > 1.8) {
+            // Calm return to spawn post
             const hx = en.homeX - en.x;
             const hz = en.homeZ - en.z;
             en.x += (hx / distHome) * 3.8 * dt;
@@ -3047,6 +3154,36 @@ export function MobaGtaWorld3D({
           }
           en.rig.rightArmPivot.rotation.x *= 0.9;
           en.rig.root.position.set(en.x, 0, en.z);
+        });
+
+        // --- INTELLIGENT CIVILIAN BOT AI (Panic when near shadows, relieved when safe) ---
+        streetPeopleObjs.forEach((sp) => {
+          let nearestThreat = 999;
+          for (const en of enemies) {
+            if (!en.dead) {
+              const d = Math.hypot(sp.data.x - en.x, sp.data.z - en.z);
+              if (d < nearestThreat) nearestThreat = d;
+            }
+          }
+
+          if (nearestThreat < 13.0) {
+            // Civilian Panics! Rings turn red, arms raise in distress
+            (sp.qRing.material as THREE.MeshBasicMaterial).color.setHex(0xf43f5e);
+            sp.rig.leftArmPivot.rotation.x = -2.1 + Math.sin(now * 0.012) * 0.3;
+            sp.rig.rightArmPivot.rotation.x = -2.1 - Math.sin(now * 0.012) * 0.3;
+            if (sp.rig.headGroup) {
+              sp.rig.headGroup.rotation.y = Math.sin(now * 0.01) * 0.45;
+            }
+          } else {
+            // Civilian is safe
+            const helped = helpedIdsRef.current.includes(sp.data.id);
+            (sp.qRing.material as THREE.MeshBasicMaterial).color.setHex(helped ? 0x10b981 : 0x38bdf8);
+            sp.rig.leftArmPivot.rotation.x = Math.sin(now * 0.003 + sp.data.x) * 0.08;
+            sp.rig.rightArmPivot.rotation.x = -Math.sin(now * 0.003 + sp.data.x) * 0.08;
+            if (sp.rig.headGroup) {
+              sp.rig.headGroup.rotation.y = 0;
+            }
+          }
         });
 
         // AAA District Shadow Boss Telegraphed Ground AoE Shockwave!
