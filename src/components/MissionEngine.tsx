@@ -1005,7 +1005,7 @@ export function MissionEngine({
               }`}
             >
               <Compass className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-cyan-400" />
-              <span>CULTURA</span>
+              <span>CULTURA [F]</span>
             </motion.button>
 
             {isMobileDevice && !isMobileLandscape && (
@@ -1146,7 +1146,7 @@ export function MissionEngine({
           className="flex h-7 sm:h-8 cursor-pointer items-center gap-1 rounded-xl border border-slate-700/80 bg-slate-950/90 px-2 sm:px-2.5 text-[9px] sm:text-[10px] font-black text-slate-200 shadow-lg transition hover:border-amber-400 hover:text-white"
         >
           <Camera className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-amber-300" />
-          <span>{hudSnap.cameraMode === "gta" ? "CAM GTA" : "CAM MOBA"}</span>
+          <span>{hudSnap.cameraMode === "gta" ? "CAM GTA [C]" : "CAM MOBA [C]"}</span>
         </motion.button>
 
         {isCompactMobile ? (
@@ -1330,23 +1330,49 @@ export function MissionEngine({
           }}
           className="relative flex touch-none items-center justify-center rounded-full border-3 border-amber-400/60 bg-slate-950/85 shadow-[0_0_35px_rgba(245,158,11,0.45)] backdrop-blur-md h-36 w-36 sm:h-40 sm:w-40"
         >
-          {/* Inner aesthetic guide ring & cardinal notches */}
+          {/* Inner aesthetic guide ring & cardinal notches with WASD keys */}
           <div className="pointer-events-none absolute inset-3 rounded-full border border-cyan-400/35 bg-radial from-slate-900/50 to-transparent" />
-          <span className="pointer-events-none absolute top-1.5 font-mono text-[9px] font-black text-amber-300/80">▲</span>
-          <span className="pointer-events-none absolute bottom-1.5 font-mono text-[9px] font-black text-amber-300/80">▼</span>
-          <span className="pointer-events-none absolute left-1.5 font-mono text-[9px] font-black text-amber-300/80">◄</span>
-          <span className="pointer-events-none absolute right-1.5 font-mono text-[9px] font-black text-amber-300/80">►</span>
+          
+          {/* CIMA [W] */}
+          <span className="pointer-events-none absolute top-1 flex flex-col items-center font-mono text-[9px] font-black text-amber-300">
+            <span className="rounded border border-amber-400/70 bg-slate-950/95 px-1 py-0.2 text-[8px] text-amber-200 shadow-sm">W</span>
+            <span className="leading-none text-[8px] text-amber-300">▲</span>
+          </span>
 
-          {/* Large Ergonomic Thumb Knob (Easy for wider fingers) */}
+          {/* BAIXO [S] */}
+          <span className="pointer-events-none absolute bottom-1 flex flex-col items-center font-mono text-[9px] font-black text-amber-300">
+            <span className="leading-none text-[8px] text-amber-300">▼</span>
+            <span className="rounded border border-amber-400/70 bg-slate-950/95 px-1 py-0.2 text-[8px] text-amber-200 shadow-sm">S</span>
+          </span>
+
+          {/* ESQUERDA [A] */}
+          <span className="pointer-events-none absolute left-1 flex items-center gap-0.5 font-mono text-[9px] font-black text-amber-300">
+            <span className="rounded border border-amber-400/70 bg-slate-950/95 px-1 py-0.2 text-[8px] text-amber-200 shadow-sm">A</span>
+            <span className="leading-none text-[8px] text-amber-300">◄</span>
+          </span>
+
+          {/* DIREITA [D] */}
+          <span className="pointer-events-none absolute right-1 flex items-center gap-0.5 font-mono text-[9px] font-black text-amber-300">
+            <span className="leading-none text-[8px] text-amber-300">►</span>
+            <span className="rounded border border-amber-400/70 bg-slate-950/95 px-1 py-0.2 text-[8px] text-amber-200 shadow-sm">D</span>
+          </span>
+
+          {/* Large Ergonomic Thumb Knob */}
           <div
             style={{
               transform: `translate(${joystickVec.x * 44}px, ${joystickVec.y * 44}px)`,
             }}
             className="pointer-events-none flex h-16 w-16 sm:h-18 sm:w-18 items-center justify-center rounded-full border-2 border-amber-200 bg-gradient-to-b from-amber-300 via-amber-500 to-orange-600 text-[10px] sm:text-[11px] font-black text-slate-950 shadow-[0_0_24px_rgba(251,191,36,0.85)] active:scale-95"
           >
-            <div className="flex h-11 w-11 items-center justify-center rounded-full border border-amber-950/40 bg-amber-400/30">
-              MOVER
+            <div className="flex flex-col items-center justify-center rounded-full border border-amber-950/40 bg-amber-400/30 h-11 w-11 sm:h-12 sm:w-12">
+              <span className="leading-none text-[9px] sm:text-[10px] font-black">MOVER</span>
+              <span className="text-[7.5px] font-extrabold text-amber-950 tracking-tighter mt-0.5">WASD</span>
             </div>
+          </div>
+
+          {/* Desktop Hotkey helper pill */}
+          <div className="hidden sm:flex pointer-events-none absolute -bottom-6 left-1/2 -translate-x-1/2 items-center gap-1 rounded border border-cyan-400/40 bg-slate-950/90 px-1.5 py-0.5 font-mono text-[8px] font-black text-cyan-300 whitespace-nowrap shadow-md">
+            <span>WASD / SETAS</span>
           </div>
         </div>
 
@@ -1447,7 +1473,7 @@ export function MissionEngine({
               }`}
             >
               <span>🎭</span>
-              <span>EMOTES</span>
+              <span>EMOTES [5-8]</span>
             </motion.button>
           </div>
 
@@ -1472,7 +1498,7 @@ export function MissionEngine({
                 <Gauge className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                 {hudSnap.nitroCooldown > 0
                   ? `${hudSnap.nitroCooldown.toFixed(1)}s`
-                  : "TURBO"}
+                  : "TURBO [SHIFT]"}
               </motion.button>
 
               <motion.button
@@ -1583,8 +1609,8 @@ export function MissionEngine({
                   {hudSnap.cooldowns.w.toFixed(1)}
                 </span>
               )}
-              <span className="absolute -right-1 -bottom-1 rounded-full border border-emerald-200 bg-slate-950 px-1 font-mono text-[8px] sm:text-[9px] font-black text-emerald-300">
-                2
+              <span className="absolute -right-1 -bottom-1 rounded-full border border-emerald-200 bg-slate-950 px-1 font-mono text-[7.5px] sm:text-[8.5px] font-black text-emerald-300">
+                W / 2
               </span>
             </div>
           </motion.button>
@@ -1643,8 +1669,8 @@ export function MissionEngine({
                   {Math.ceil(hudSnap.cooldowns.r)}s
                 </span>
               )}
-              <span className="absolute -right-1 -bottom-1 rounded border border-amber-200 bg-slate-950 px-1 font-mono text-[7px] sm:text-[8px] font-black text-amber-300">
-                ULT
+              <span className="absolute -right-1 -bottom-1 rounded-full border border-amber-200 bg-slate-950 px-1 font-mono text-[8px] sm:text-[9px] font-black text-amber-300">
+                R
               </span>
             </div>
           </motion.button>
@@ -1660,12 +1686,51 @@ export function MissionEngine({
             onPointerCancel={stopContinuousAttack}
             className="relative flex h-16 w-16 sm:h-20 sm:w-20 cursor-pointer flex-col items-center justify-center rounded-full border-3 border-amber-200 bg-gradient-to-b from-rose-500 via-red-600 to-rose-900 text-white shadow-[0_0_28px_rgba(244,63,94,0.65)]"
           >
+            {/* Keyboard Hotkey Badge */}
+            <span className="absolute -top-1 -right-1 rounded-full border-2 border-amber-300 bg-slate-950 px-1.5 py-0.5 font-mono text-[7.5px] sm:text-[8.5px] font-black text-amber-300 shadow-[0_0_10px_rgba(251,191,36,0.6)]">
+              ESPAÇO
+            </span>
             <Swords className="h-7 w-7 sm:h-8 sm:w-8 drop-shadow" />
             <span className="mt-0.5 font-mono text-[8px] sm:text-[9px] font-black tracking-wider text-amber-200 uppercase">
-              ATACAR
+              ATACAR [ESPAÇO]
             </span>
           </motion.button>
         </div>
+      </div>
+
+      {/* PC KEYBOARD SHORTCUTS HUD BAR (GTA / LOL / CS:GO STYLE) */}
+      <div className="hidden lg:flex pointer-events-none absolute bottom-2.5 left-1/2 -translate-x-1/2 z-20 items-center gap-2 rounded-full border border-amber-400/40 bg-slate-950/90 px-4 py-1 backdrop-blur-md text-[10px] font-mono font-bold text-slate-200 shadow-xl">
+        <span className="flex items-center gap-1">
+          <kbd className="rounded border border-amber-400/70 bg-amber-500/20 px-1 text-amber-300 font-black">W A S D</kbd> Mover
+        </span>
+        <span className="text-slate-600">•</span>
+        <span className="flex items-center gap-1">
+          <kbd className="rounded border border-rose-400/70 bg-rose-500/20 px-1.5 text-rose-300 font-black">ESPAÇO</kbd> Atacar
+        </span>
+        <span className="text-slate-600">•</span>
+        <span className="flex items-center gap-1">
+          <kbd className="rounded border border-cyan-400/70 bg-cyan-500/20 px-1 text-cyan-300 font-black">Q</kbd>
+          <kbd className="rounded border border-emerald-400/70 bg-emerald-500/20 px-1 text-emerald-300 font-black">W</kbd>
+          <kbd className="rounded border border-amber-400/70 bg-amber-500/20 px-1 text-amber-300 font-black">E</kbd>
+          <kbd className="rounded border border-orange-400/70 bg-orange-500/20 px-1 text-orange-300 font-black">R</kbd>
+          Skills
+        </span>
+        <span className="text-slate-600">•</span>
+        <span className="flex items-center gap-1">
+          <kbd className="rounded border border-emerald-400/70 bg-emerald-500/20 px-1 text-emerald-300 font-black">SHIFT</kbd> Dash/Nitro
+        </span>
+        <span className="text-slate-600">•</span>
+        <span className="flex items-center gap-1">
+          <kbd className="rounded border border-amber-400/70 bg-amber-500/20 px-1 text-amber-300 font-black">V</kbd> Veículo
+        </span>
+        <span className="text-slate-600">•</span>
+        <span className="flex items-center gap-1">
+          <kbd className="rounded border border-sky-400/70 bg-sky-500/20 px-1 text-sky-300 font-black">C</kbd> Câmera
+        </span>
+        <span className="text-slate-600">•</span>
+        <span className="flex items-center gap-1">
+          <kbd className="rounded border border-purple-400/70 bg-purple-500/20 px-1 text-purple-300 font-black">F</kbd> Interagir
+        </span>
       </div>
 
       {/* =========================================================

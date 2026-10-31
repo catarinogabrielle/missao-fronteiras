@@ -1912,6 +1912,10 @@ export function MobaGtaWorld3D({
         performAction("skillQ");
       } else if (k === "2") {
         performAction("skillW");
+      } else if (k === "w") {
+        if (cameraMode === "moba") {
+          performAction("skillW");
+        }
       } else if (k === "3" || k === "e") {
         performAction("skillE");
       } else if (k === "4" || k === "r") {
@@ -1927,7 +1931,11 @@ export function MobaGtaWorld3D({
       } else if (k === "v") {
         performAction("vehicle");
       } else if (k === "shift") {
-        performAction("nitro");
+        if (activeVehicle) {
+          performAction("nitro");
+        } else {
+          performAction("skillW");
+        }
       } else if (k === "c") {
         performAction("camera");
       } else if (k === "f" || k === "enter") {
