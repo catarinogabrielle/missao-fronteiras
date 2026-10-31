@@ -49,7 +49,7 @@ const MISSION_TACTICAL_OBJECTIVES: Record<
     ],
   },
   janela1040: {
-    role: "LÍDER DA CARAVANA & DIPLOMATA",
+    role: "GUIA DA CARAVANA & DIPLOMATA",
     quote: "As caravanas no deserto necessitam de água viva e mensagens de esperança.",
     tasks: [
       "Guie a caravana através das dunas evitando tempestades.",
@@ -108,7 +108,7 @@ const MISSION_TACTICAL_OBJECTIVES: Record<
     tasks: [
       "Sirva refeições quentes e organize oficinas de música para as crianças.",
       "Distribua materiais de acolhimento e Bíblias digitais nos centros de refúgio.",
-      "Lidere uma oração de cura de traumas e fraternidade internacional.",
+      "Faça uma oração de cura de traumas e fraternidade internacional.",
     ],
   },
 };
@@ -839,7 +839,7 @@ export function MissionHub({
             </div>
           </div>
 
-          {/* AAA Arsenal, Grimório & Central do Líder */}
+          {/* AAA Arsenal & Grimório */}
           <div className="moba-panel-cyan moba-clip-panel space-y-2 p-3.5">
             <div className="text-[11px] font-black tracking-[0.2em] text-cyan-300 uppercase">
               🎒 Arsenal & Comando

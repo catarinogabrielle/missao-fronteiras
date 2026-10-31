@@ -66,7 +66,7 @@ const CHAMPION_QUICK_LORE: Record<
   },
   ester: {
     title: "A Diplomata de Fé",
-    tagline: "Liderança, Sabedoria & Intercessão",
+    tagline: "Diplomacia, Sabedoria & Intercessão",
     specialty: "Estrategista destemida, constrói pontes diplomáticas com fé inabalável.",
     accentColor: "#c084fc",
   },
@@ -158,7 +158,7 @@ const CHAMPION_TACTICAL_INTEL: Record<
   }
 > = {
   lucas: {
-    bio: "Explorador intrépido dos rios e matas. Com mochila sempre pronta, lidera expedições ribeirinhas levando socorro prático e esperança.",
+    bio: "Explorador intrépido dos rios e matas. Com mochila sempre pronta, guia expedições ribeirinhas levando socorro prático e esperança.",
     verse: "Não temas, porque eu sou contigo; não te assombres, porque eu sou o teu Deus.",
     verseRef: "Isaías 41:10",
     squadSynergy: ["VANGUARDA", "RESGATE", "SERVIÇO", "EXPLORAÇÃO"],
@@ -194,7 +194,7 @@ const CHAMPION_TACTICAL_INTEL: Record<
     bio: "Diplomata destemida e guardiã da Janela 10/40. Intercede com fé inabalável em governos, capitais e regiões de alta perseguição religiosa.",
     verse: "Quem sabe se não foi para um momento como este que você chegou à realeza?",
     verseRef: "Ester 4:14",
-    squadSynergy: ["DIPLOMACIA", "INTERCESSÃO", "LIDERANÇA", "PROTEÇÃO"],
+    squadSynergy: ["DIPLOMACIA", "INTERCESSÃO", "CORAGEM", "PROTEÇÃO"],
     tips: [
       "Oração Fervente (Q) move montanhas espirituais e dissipa perigos invisíveis.",
       "Voz de Justiça (W) estabelece pontes com autoridades para obter autorizações.",

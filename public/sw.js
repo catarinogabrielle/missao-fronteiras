@@ -1,4 +1,4 @@
-const CACHE_NAME = "missao-fronteiras-offline-v6";
+const CACHE_NAME = "missao-fronteiras-offline-v7";
 
 const PRECACHE_ASSETS = [
   "/",

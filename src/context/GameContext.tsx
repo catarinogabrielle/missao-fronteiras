@@ -139,7 +139,7 @@ const LEVEL_TITLES = [
   "Tradutor da Graça",
   "Embaixador Transcultural",
   "Pioneiro das Nações",
-  "Líder Global Ide",
+  "Embaixador Global Ide",
 ];
 
 function getTodayIso(): string {

@@ -723,7 +723,7 @@ export function getOpenWorldConfig(
           {
             id: "j10-p3",
             name: "Amira",
-            role: "Líder do Clube de Robótica",
+            role: "Monitora do Clube de Robótica",
             x: -32,
             z: 18,
             skin: "#e5a975",
@@ -1089,7 +1089,7 @@ export function getOpenWorldConfig(
           {
             id: "moz-p6",
             name: "Amina (12a)",
-            role: "Líder do Coral Infantil",
+            role: "Coordenadora do Coral Infantil",
             x: 11,
             z: -8,
             skin: "#7c4722",
@@ -1825,7 +1825,7 @@ export function getOpenWorldConfig(
           {
             id: "moz-p6",
             name: "Amina (12a)",
-            role: "Líder do Coral Infantil",
+            role: "Coordenadora do Coral Infantil",
             x: 11,
             z: -8,
             skin: "#7c4722",

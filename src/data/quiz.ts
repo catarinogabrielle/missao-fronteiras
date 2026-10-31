@@ -17,7 +17,7 @@ export const TRIBES_QUIZ_QUESTIONS: TribeQuizQuestion[] = [
     options: [
       "Ficar apenas em Jerusalém construindo um grande templo",
       "Ir por todo o mundo, pregar o Evangelho e fazer discípulos de todas as nações",
-      "Guardar o Evangelho em segredo apenas para os líderes",
+      "Guardar o Evangelho em segredo e não compartilhar com ninguém",
       "Viajar apenas para cidades onde falassem hebraico",
     ],
     correctIndex: 1,

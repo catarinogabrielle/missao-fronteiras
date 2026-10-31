@@ -16,7 +16,7 @@ Jogo web 3D educacional e gamificado em **Next.js (App Router) + Three.js + Type
   2. 🕌 **Janela 10/40 (Norte da África)** — Tariq (15 anos) • *Efésios 2:8*
   3. 🌸 **Metrópole Digital (Tóquio, Japão)** — Hina (14 anos) • *Mateus 11:28*
   4. 🌍 **Savana & Vilas (Nampula, Moçambique)** — Samora (11 anos) • *Romanos 10:14*
-- **Pontes de Empatia, Decodificador da Palavra & Cards Lendários 100%:** Diálogos com cobertura de oração, tradução bíblica cronometrada, Passaporte Missionário, Bíblia de Bolso (*O Evangelho em 4 Passos*), Radar de Intercessão, **Desafio de Tribos** (Quiz Multiplayer Local) e **Painel do Líder** (PIN `1234` + Modo Telão).
+- **Pontes de Empatia, Decodificador da Palavra & Cards Lendários 100%:** Diálogos com cobertura de oração, tradução bíblica cronometrada, Passaporte Missionário, Bíblia de Bolso (*O Evangelho em 4 Passos*), Radar de Intercessão, **Desafio de Tribos** (Quiz Multiplayer Local) e **Modo Telão**.
 
 ## 🚀 Como Rodar Localmente
 

@@ -139,6 +139,11 @@ export function PwaProvider({ children }: { children: React.ReactNode }) {
     navigator.serviceWorker
       .register("/sw.js", { scope: "/" })
       .then(async (registration) => {
+        try {
+          await registration.update();
+        } catch {
+          // ignore
+        }
         const readyReg = await navigator.serviceWorker.ready;
         await warmLoadedResources(readyReg || registration);
         setOfflineReady(true);

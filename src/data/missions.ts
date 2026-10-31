@@ -547,8 +547,8 @@ export const CORE_MISSIONS: Mission[] = [
       id: "samora",
       name: "Samora",
       age: 11,
-      role: "Pequeno Líder Comunitário da Vila",
-      bio: "Um menino cheio de alegria e líder entre os amigos da vila, que sonha em ler histórias na língua materna do seu povo (Macua).",
+      role: "Jovem Guia Comunitário da Vila",
+      bio: "Um menino cheio de alegria e muito querido entre os amigos da vila, que sonha em ler histórias na língua materna do seu povo (Macua).",
       avatarKey: "samora",
     },
     briefing: {
@@ -558,7 +558,7 @@ export const CORE_MISSIONS: Mission[] = [
         "Na cultura local, a comunidade aprende cantando, trabalhando em equipe e ouvindo histórias ao redor da árvore central (Ubuntu). Quando uma pessoa ouve a Bíblia na língua do seu próprio coração, tudo muda!",
       dos: [
         "Celebrar a beleza do idioma local (Macua) e aprender saudações com humildade.",
-        "Envolver a comunidade, os líderes da vila e as crianças através de música e oralidade.",
+        "Envolver a comunidade, os anciãos da vila e as crianças através de música e oralidade.",
         "Encorajar os próprios moradores locais a serem multiplicadores do Evangelho.",
       ],
       donts: [
@@ -812,7 +812,7 @@ export const CORE_MISSIONS: Mission[] = [
         npcSpeech:
           "Eu quero aprender mais dessa Palavra de Deus pra ensinar meu avô e meus primos aqui na vila!",
         prayerHint:
-          "Encoraje Mateus a ser o primeiro jovem líder e discipulador da comunidade dele.",
+          "Encoraje Mateus a ser o primeiro jovem discipulador e guia espiritual da comunidade dele.",
         prayerVerse: "2 Timóteo 2:2 — Transmita a pessoas fiéis que sejam capazes de ensinar outros.",
         options: [
           {
@@ -1011,7 +1011,7 @@ export const CORE_MISSIONS: Mission[] = [
           {
             id: "and-t3-hasty",
             tone: "hasty",
-            text: "É sim, mas você tem que aprender espanhol ou inglês se quiser ser líder.",
+            text: "É sim, mas você tem que aprender espanhol ou inglês se quiser avançar nos estudos.",
             trustDelta: -10,
             xpReward: 5,
             feedback: "Deus fala perfeitamente em Quechua! Nunca menospreze a língua materna de nenhum povo.",
@@ -1516,7 +1516,7 @@ export const PRAYER_CARDS: PrayerCard[] = [
       "Em Moçambique e em toda a África, tradutores nacionais e missionários trabalham juntos para traduzir o Novo Testamento e a Bíblia em áudio para centenas de línguas maternas!",
     prayerPoints: [
       "Ore pelos tradutores bíblicos locais que dedicam anos para escolher cada palavra com fidelidade.",
-      "Ore pelas crianças e líderes jovens das vilas para multiplicarem o Evangelho com alegria.",
+      "Ore pelas crianças e jovens servos das vilas para multiplicarem o Evangelho com alegria.",
     ],
     wisdomReward: 20,
   },
