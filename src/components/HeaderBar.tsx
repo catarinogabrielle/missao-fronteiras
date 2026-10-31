@@ -76,17 +76,17 @@ export function HeaderBar({
      ----------------------------------------------------------- */
   if (isMobileLandscape) {
     return (
-      <header className="sticky top-0 z-40 h-10 sm:h-11 w-full max-w-full shrink-0 border-b border-amber-500/30 bg-gradient-to-r from-slate-950/95 via-[#071326]/95 to-slate-950/95 shadow-[0_4px_20px_rgba(0,0,0,0.7)] backdrop-blur-md px-2 sm:px-3 overflow-hidden">
-        <div className="flex h-full w-full items-center justify-between gap-1.5 sm:gap-2">
+      <header className="sticky top-0 z-40 h-11 sm:h-12 w-full max-w-full shrink-0 border-b border-amber-500/30 bg-gradient-to-r from-slate-950/95 via-[#071326]/95 to-slate-950/95 shadow-[0_4px_20px_rgba(0,0,0,0.7)] backdrop-blur-md px-3 sm:px-4 md:px-5 overflow-hidden">
+        <div className="flex h-full w-full items-center justify-between gap-2 sm:gap-3">
           {/* Top-Left: Game Emblem & Title */}
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/icons/icon-192.png"
               alt="Logo"
-              className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg border border-amber-400/70 shadow-[0_0_10px_rgba(245,158,11,0.45)]"
+              className="h-7 w-7 sm:h-8 sm:w-8 rounded-xl border border-amber-400/70 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
             />
-            <span className="font-black text-[11px] sm:text-xs tracking-wider uppercase bg-gradient-to-r from-amber-200 via-white to-cyan-300 bg-clip-text text-transparent truncate max-w-[130px] sm:max-w-none">
+            <span className="font-black text-xs sm:text-sm tracking-wider uppercase bg-gradient-to-r from-amber-200 via-white to-cyan-300 bg-clip-text text-transparent truncate max-w-[140px] sm:max-w-none">
               Missão Fronteiras
             </span>
           </div>

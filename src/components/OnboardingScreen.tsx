@@ -351,7 +351,7 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
     const quickLore = CHAMPION_QUICK_LORE[selectedAvatar];
 
     return (
-      <div className="fixed inset-0 flex h-full h-dvh w-full flex-col justify-between overflow-hidden bg-slate-950 p-2 select-none touch-manipulation">
+      <div className="fixed inset-0 flex h-full h-dvh w-full flex-col justify-between overflow-hidden bg-slate-950 p-2.5 sm:p-3.5 md:p-4 gap-2.5 sm:gap-3 select-none touch-manipulation">
         {/* Subtle Background Splash of Highlighted Champion Arena with Vignette */}
         <AnimatePresence mode="wait">
           <motion.img
@@ -367,32 +367,34 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
         </AnimatePresence>
         <div className="pointer-events-none fixed inset-0 bg-radial from-transparent via-slate-950/70 to-slate-950/95" />
 
-        {/* 1. TOP NAVBAR (Sleek AAA Game Bar) */}
-        <header className="relative z-20 flex h-10 shrink-0 items-center justify-between border-b border-amber-500/30 px-3 bg-slate-950/90 backdrop-blur-md rounded-xl overflow-hidden max-w-full">
+        {/* 1. TOP NAVBAR (Sleek AAA Game Bar with Breathing Space) */}
+        <header className="relative z-20 flex h-11 sm:h-12 shrink-0 items-center justify-between border border-amber-500/30 px-3 sm:px-4 bg-slate-950/85 backdrop-blur-xl rounded-2xl shadow-lg max-w-full">
           {/* Logo & Game Title */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/icons/icon-192.png"
               alt="Logo"
-              className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg border border-amber-400/70 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
+              className="h-7 w-7 sm:h-8 sm:w-8 rounded-xl border border-amber-400/70 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
             />
-            <span className="font-black text-xs sm:text-sm tracking-wider text-white uppercase bg-gradient-to-r from-amber-200 via-white to-cyan-300 bg-clip-text text-transparent truncate">
-              Missão Fronteiras
-            </span>
-            <span className="hidden sm:inline-flex items-center rounded-full border border-amber-400/40 bg-amber-500/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-amber-300">
-              Seleção de Campeão
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="font-black text-xs sm:text-sm tracking-wider text-white uppercase bg-gradient-to-r from-amber-200 via-white to-cyan-300 bg-clip-text text-transparent truncate">
+                Missão Fronteiras
+              </span>
+              <span className="hidden sm:inline-flex items-center rounded-full border border-amber-400/40 bg-amber-500/15 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-amber-300">
+                Seleção de Campeão
+              </span>
+            </div>
           </div>
 
           {/* Right Controls: Gems, PWA Install, Mute */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            <div className="inline-flex items-center gap-1 rounded-xl border border-cyan-400/40 bg-slate-900/90 px-2 py-0.5 text-xs font-black text-cyan-200">
-              <Gem className="h-3 w-3 text-cyan-300" />
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-400/40 bg-slate-900/90 px-2.5 py-1 text-xs font-black text-cyan-200 shadow-sm">
+              <Gem className="h-3.5 w-3.5 text-cyan-300" />
               <span>{state.wisdom} 💎</span>
             </div>
 
-            {/* Install PWA Button (Always Available on Mobile, Emerald Green) */}
+            {/* Install PWA Button (Emerald Green) */}
             <motion.button
               type="button"
               whileHover={{ scale: 1.04 }}
@@ -402,7 +404,7 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
                 triggerInstall();
               }}
               title="Instalar Aplicativo (PWA)"
-              className="flex items-center gap-1 rounded-xl border border-emerald-300 bg-gradient-to-b from-emerald-400 via-emerald-500 to-emerald-600 px-2.5 py-1 text-xs font-black text-slate-950 shadow-[0_0_12px_rgba(16,185,129,0.5),inset_0_1px_1px_rgba(255,255,255,0.7)] hover:brightness-110 cursor-pointer transition uppercase"
+              className="flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-gradient-to-b from-emerald-400 via-emerald-500 to-emerald-600 px-3 py-1 text-xs font-black text-slate-950 shadow-[0_0_12px_rgba(16,185,129,0.5),inset_0_1px_1px_rgba(255,255,255,0.7)] hover:brightness-110 cursor-pointer transition uppercase"
             >
               <Download className="h-3.5 w-3.5" />
               <span className="text-[10px] font-black">Instalar</span>
@@ -413,22 +415,22 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
               type="button"
               onClick={toggleMute}
               title={state.muted ? "Ativar Som" : "Silenciar"}
-              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-slate-300 hover:text-white"
+              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-slate-300 hover:text-white hover:border-slate-500 transition shadow-sm"
             >
               {state.muted ? (
-                <VolumeX className="h-3.5 w-3.5 text-rose-400" />
+                <VolumeX className="h-4 w-4 text-rose-400" />
               ) : (
-                <Volume2 className="h-3.5 w-3.5 text-emerald-400" />
+                <Volume2 className="h-4 w-4 text-emerald-400" />
               )}
             </button>
           </div>
         </header>
 
-        {/* 2. MAIN 2-ZONE ARENA (100% NO SCROLL) */}
-        <div className="relative z-10 flex flex-1 min-h-0 gap-2 mt-1.5 overflow-hidden">
+        {/* 2. MAIN 2-ZONE ARENA (Balanced Spacing & No Cramped Corners) */}
+        <div className="relative z-10 flex flex-1 min-h-0 gap-3 sm:gap-4 overflow-hidden">
           
-          {/* ZONE 1: HERO SPOTLIGHT + 3D STAGE + BOTTOM 4 CHAMPION CARDS (~65% width) */}
-          <section className="relative flex flex-1 flex-col justify-between min-h-0 rounded-2xl border border-cyan-500/25 bg-gradient-to-b from-slate-950/75 via-[#06101e]/85 to-slate-950/90 backdrop-blur-md p-2 overflow-hidden shadow-2xl">
+          {/* ZONE 1: HERO SPOTLIGHT + 3D STAGE + BOTTOM 4 CHAMPION CARDS (~60-65% width) */}
+          <section className="relative flex flex-1 flex-col justify-between min-h-0 rounded-2xl sm:rounded-3xl border border-cyan-500/25 bg-gradient-to-b from-slate-950/80 via-[#06101e]/90 to-slate-950/95 backdrop-blur-xl p-3 sm:p-4 overflow-hidden shadow-2xl">
             
             {/* Top Overlay: Hero Identity & Specialty Lore */}
             <div className="relative z-10 flex items-start justify-between">
@@ -439,15 +441,15 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
                   </h1>
                   <span
                     style={{ borderColor: quickLore.accentColor, color: quickLore.accentColor }}
-                    className="rounded-full border bg-slate-950/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider shadow"
+                    className="rounded-full border bg-slate-950/70 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider shadow"
                   >
                     {activeStats.category}
                   </span>
                 </div>
-                <div className="text-[11px] font-bold text-amber-300 tracking-wide">
+                <div className="text-xs font-bold text-amber-300 tracking-wide mt-0.5">
                   {quickLore.title}
                 </div>
-                <p className="text-[10px] text-slate-300 max-w-sm sm:max-w-md line-clamp-1 mt-0.5 drop-shadow">
+                <p className="text-[11px] text-slate-300 max-w-sm sm:max-w-md line-clamp-2 mt-1 leading-snug drop-shadow">
                   {quickLore.specialty}
                 </p>
               </div>
@@ -459,7 +461,7 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
                   playSfx("click");
                   setViewMode(viewMode === "3d" ? "art" : "3d");
                 }}
-                className="flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900/90 px-3 py-1 text-[10px] font-black text-slate-300 hover:text-white hover:border-cyan-400 cursor-pointer shadow-md transition"
+                className="flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900/90 px-3.5 py-1.5 text-[10px] font-black text-slate-300 hover:text-white hover:border-cyan-400 cursor-pointer shadow-md transition"
                 title="Alternar entre Boneco 3D e Ilustração Oficial"
               >
                 {viewMode === "3d" ? (
@@ -477,9 +479,9 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
             </div>
 
             {/* Center: Live 3D Model Stage or 2D Art */}
-            <div className="relative flex-1 min-h-0 flex items-center justify-center my-0.5">
+            <div className="relative flex-1 min-h-0 flex items-center justify-center my-1">
               {viewMode === "3d" ? (
-                <div className="relative h-full w-full max-w-md flex items-center justify-center">
+                <div className="relative h-full w-full max-w-lg flex items-center justify-center">
                   <HeroPreview3D
                     avatarId={selectedAvatar}
                     skinId={previewSkin}
@@ -490,10 +492,10 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
                   />
                 </div>
               ) : (
-                <div className="relative h-full max-h-[170px] aspect-square rounded-2xl border-2 border-amber-400/60 overflow-hidden shadow-[0_0_25px_rgba(245,158,11,0.35)]">
+                <div className="relative h-full max-h-[220px] aspect-square rounded-2xl border-2 border-amber-400/60 overflow-hidden shadow-[0_0_25px_rgba(245,158,11,0.35)]">
                   <HeroPortrait
                     avatarId={selectedAvatar}
-                    size={170}
+                    size={220}
                     shape="card"
                     active
                   />
@@ -502,8 +504,8 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
             </div>
 
             {/* Bottom: 4 Horizontal Champion Selection Cards */}
-            <div className="relative z-10 shrink-0 border-t border-cyan-500/20 pt-1.5">
-              <div className="grid grid-cols-4 gap-1 sm:gap-1.5">
+            <div className="relative z-10 shrink-0 border-t border-cyan-500/20 pt-2.5">
+              <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
                 {AVATAR_OPTIONS.map((av) => {
                   const isSelected = av.id === selectedAvatar;
                   const stats = CHAMPION_STATS[av.id];
@@ -513,31 +515,31 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
                       key={av.id}
                       type="button"
                       onClick={() => handleSelectAvatar(av.id)}
-                      className={`relative flex items-center gap-1.5 sm:gap-2 rounded-xl border p-1 sm:p-1.5 text-left transition cursor-pointer min-h-[46px] ${
+                      className={`relative flex items-center gap-2 sm:gap-2.5 rounded-xl sm:rounded-2xl border p-1.5 sm:p-2 text-left transition cursor-pointer min-h-[52px] sm:min-h-[58px] ${
                         isSelected
-                          ? "border-amber-300 bg-gradient-to-r from-amber-500/30 to-amber-600/15 shadow-[0_0_16px_rgba(245,158,11,0.55)] ring-1.5 ring-amber-300"
+                          ? "border-amber-300 bg-gradient-to-r from-amber-500/30 to-amber-600/15 shadow-[0_0_16px_rgba(245,158,11,0.55)] ring-2 ring-amber-300"
                           : "border-slate-800 bg-slate-900/80 hover:border-slate-600 opacity-80 hover:opacity-100"
                       }`}
                     >
                       <HeroPortrait
                         avatarId={av.id}
-                        size={28}
+                        size={34}
                         shape="hex"
                         active={isSelected}
                       />
                       <div className="min-w-0 flex-1 leading-tight">
-                        <div className="text-[10px] sm:text-xs font-black text-white uppercase tracking-tight">
+                        <div className="text-xs sm:text-sm font-black text-white uppercase tracking-tight truncate">
                           {av.name}
                         </div>
                         <div
                           style={{ color: lore.accentColor }}
-                          className="text-[8px] font-black uppercase tracking-wider mt-0.5"
+                          className="text-[9px] font-black uppercase tracking-wider mt-0.5 truncate"
                         >
                           {stats.category}
                         </div>
                       </div>
                       {isSelected && (
-                        <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_8px_#fbbf24]" />
+                        <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_#fbbf24]" />
                       )}
                     </button>
                   );
@@ -546,31 +548,31 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
             </div>
           </section>
 
-          {/* ZONE 2: AGENT SETUP & INSTANT JOGAR TERMINAL (~35% width, w-72 sm:w-80) */}
-          <section className="relative flex w-72 sm:w-80 shrink-0 flex-col justify-between min-h-0 rounded-2xl border border-amber-500/35 bg-slate-950/90 backdrop-blur-xl p-2.5 shadow-2xl overflow-hidden">
+          {/* ZONE 2: AGENT SETUP & INSTANT JOGAR TERMINAL (Comfortable Width w-80 sm:w-88 md:w-96) */}
+          <section className="relative flex w-80 sm:w-88 md:w-96 shrink-0 flex-col justify-between min-h-0 rounded-2xl sm:rounded-3xl border border-amber-500/35 bg-slate-950/90 backdrop-blur-xl p-3.5 sm:p-4 shadow-2xl overflow-hidden gap-2">
             
             {/* Top: Identity / Saved Profiles & Nickname */}
-            <div className="shrink-0 space-y-1.5">
+            <div className="shrink-0 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-amber-300">
-                  <Users className="h-3 w-3 text-cyan-400" />
+                <span className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-amber-300">
+                  <Users className="h-3.5 w-3.5 text-cyan-400" />
                   <span>Identidade do Agente</span>
                 </span>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5">
                   <button
                     type="button"
                     onClick={() => {
                       playSfx("click");
                       setStoryOpen(true);
                     }}
-                    className="flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-500/20 px-2 py-0.5 text-[8px] font-black text-amber-300 hover:bg-amber-500/30 transition cursor-pointer"
+                    className="flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-500/20 px-2.5 py-0.5 text-[9px] font-black text-amber-300 hover:bg-amber-500/30 transition cursor-pointer"
                     title="Ver História & Tutorial"
                   >
-                    <Film className="h-2.5 w-2.5" />
+                    <Film className="h-3 w-3" />
                     <span>História</span>
                   </button>
                   {state.savedProfiles && state.savedProfiles.length > 0 && (
-                    <span className="rounded-full bg-cyan-500/15 border border-cyan-400/35 px-1.5 py-0.2 font-mono text-[8px] font-black text-cyan-300">
+                    <span className="rounded-full bg-cyan-500/15 border border-cyan-400/35 px-2 py-0.5 font-mono text-[8.5px] font-black text-cyan-300">
                       {state.savedProfiles.length} CONTA{state.savedProfiles.length > 1 ? "S" : ""}
                     </span>
                   )}
@@ -580,10 +582,10 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
               {/* Saved Profiles Horizontal Cards if returning player */}
               {state.savedProfiles && state.savedProfiles.length > 0 && (
                 <div className="space-y-1">
-                  <div className="flex items-center justify-between text-[8px] font-extrabold uppercase tracking-wider text-slate-400">
+                  <div className="flex items-center justify-between text-[9px] font-extrabold uppercase tracking-wider text-slate-400">
                     <span>Perfis Salvos:</span>
                   </div>
-                  <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+                  <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
                     {state.savedProfiles.map((prof) => {
                       const isCurrentActive =
                         prof.avatarId === selectedAvatar && prof.name === name;
@@ -603,19 +605,19 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
                               playSfx("click");
                               handleSelectSavedProfile(prof, false);
                             }}
-                            className="flex items-center gap-1.5 p-1 pr-1.5 cursor-pointer"
+                            className="flex items-center gap-1.5 p-1.5 pr-2 cursor-pointer"
                           >
                             <HeroPortrait
                               avatarId={prof.avatarId}
-                              size={22}
+                              size={24}
                               shape="hex"
                               active={isCurrentActive}
                             />
                             <div className="text-left leading-none">
-                              <div className="text-[9.5px] font-black text-white uppercase truncate max-w-[70px]">
+                              <div className="text-[10px] font-black text-white uppercase truncate max-w-[85px]">
                                 {prof.name}
                               </div>
-                              <div className="text-[7.5px] font-bold text-amber-300 uppercase mt-0.5 flex items-center gap-1">
+                              <div className="text-[8px] font-bold text-amber-300 uppercase mt-0.5 flex items-center gap-1">
                                 <span>{champ?.name || prof.avatarId}</span>
                                 {isCurrentActive && (
                                   <span className="text-emerald-400 font-black">✓</span>
@@ -632,7 +634,7 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
                             title={`Excluir conta ${prof.name}`}
                             className="p-1 mr-1 text-slate-500 hover:text-rose-400 hover:bg-rose-500/20 rounded transition cursor-pointer"
                           >
-                            <Trash2 className="h-2.5 w-2.5" />
+                            <Trash2 className="h-3 w-3" />
                           </button>
                         </div>
                       );
@@ -644,7 +646,7 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
                         playSfx("click");
                         setName(`Agente_${activeChampion.name}`);
                       }}
-                      className="shrink-0 flex items-center gap-1 rounded-xl border border-dashed border-slate-700 bg-slate-900/50 px-2 py-1.5 text-[8.5px] font-black text-slate-400 hover:text-white hover:border-amber-400 transition cursor-pointer"
+                      className="shrink-0 flex items-center gap-1 rounded-xl border border-dashed border-slate-700 bg-slate-900/50 px-2.5 py-1.5 text-[9px] font-black text-slate-400 hover:text-white hover:border-amber-400 transition cursor-pointer"
                       title="Criar novo perfil para este campeão"
                     >
                       <UserPlus className="h-3 w-3 text-amber-300" />
@@ -655,8 +657,8 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
               )}
 
               {/* Editable Nickname Input */}
-              <div className="space-y-0.5">
-                <div className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">
+              <div className="space-y-1">
+                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
                   Apelido no Jogo:
                 </div>
                 <input
@@ -666,19 +668,19 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder={`Ex: Agente ${activeChampion.name}`}
-                  className="w-full rounded-xl border border-slate-700 bg-slate-900/90 px-2.5 py-1 text-xs font-black text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400 transition"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-900/90 px-3 py-1.5 text-xs sm:text-sm font-black text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400 transition"
                 />
               </div>
             </div>
 
-            {/* Middle: Dom Espiritual Selection (2x2 Grid) */}
-            <div className="flex-1 min-h-0 flex flex-col justify-center my-1.5">
-              <div className="text-[9.5px] font-black uppercase tracking-wider text-cyan-300 mb-1 flex items-center justify-between">
+            {/* Middle: Dom Espiritual Selection (2x2 Grid with Clean Typography) */}
+            <div className="flex-1 min-h-0 flex flex-col justify-center my-1 space-y-1.5">
+              <div className="text-[10px] font-black uppercase tracking-wider text-cyan-300 flex items-center justify-between">
                 <span>Dom Espiritual (Bônus)</span>
-                <span className="text-[8.5px] font-normal text-slate-400">{activeGift.name}</span>
+                <span className="text-[9px] font-bold text-amber-300">{activeGift.name}</span>
               </div>
               
-              <div className="grid grid-cols-2 gap-1.5">
+              <div className="grid grid-cols-2 gap-2">
                 {GIFT_OPTIONS.map((gift) => {
                   const isSelected = gift.id === selectedGift;
                   return (
@@ -689,21 +691,27 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
                         playSfx("click");
                         setSelectedGift(gift.id);
                       }}
-                      className={`flex items-center gap-1.5 rounded-xl border p-1.5 text-left transition cursor-pointer ${
+                      className={`flex items-center gap-2 rounded-xl border p-2 text-left transition cursor-pointer ${
                         isSelected
-                          ? "border-cyan-300 bg-cyan-500/20 text-white shadow-[0_0_12px_rgba(34,211,238,0.4)] ring-1 ring-cyan-300"
+                          ? "border-cyan-300 bg-cyan-500/20 text-white shadow-[0_0_12px_rgba(34,211,238,0.4)] ring-1.5 ring-cyan-300"
                           : "border-slate-800 bg-slate-900/70 text-slate-300 hover:border-slate-600"
                       }`}
                     >
-                      <div className={`p-1 rounded-lg border ${gift.colorClass} shrink-0`}>
+                      <div className={`p-1.5 rounded-lg border ${gift.colorClass} shrink-0`}>
                         {renderGiftIcon(gift.iconName)}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-[10px] font-black">
-                          {gift.name.split(" ")[0]}
+                        <div className="truncate text-[11px] font-black text-white">
+                          {gift.name}
                         </div>
-                        <div className="truncate text-[8px] text-slate-400">
-                          {gift.tagline.split(" ")[0]} {gift.tagline.split(" ")[1] || ""}
+                        <div className="truncate text-[8.5px] text-slate-400">
+                          {gift.id === "acolhedor"
+                            ? "Hospitalidade"
+                            : gift.id === "comunicador"
+                            ? "Comunicação"
+                            : gift.id === "tradutor"
+                            ? "Culturas & Línguas"
+                            : "Oração & Fé"}
                         </div>
                       </div>
                     </button>
@@ -712,7 +720,7 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
               </div>
 
               {/* Selected Gift One-Liner Description */}
-              <div className="mt-1 rounded-lg border border-cyan-500/20 bg-slate-900/60 px-2 py-1 text-[8.5px] text-cyan-200 leading-tight">
+              <div className="rounded-xl border border-cyan-500/20 bg-slate-900/70 px-2.5 py-1.5 text-[9.5px] text-cyan-200 leading-snug">
                 <span className="font-bold text-amber-300">Bônus: </span>
                 {activeGift.bonusDescription}
               </div>
@@ -725,17 +733,17 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => handleConfirm()}
-                className="group relative w-full cursor-pointer overflow-hidden rounded-xl border-2 border-amber-300 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 py-2.5 px-3 text-slate-950 font-black shadow-[0_0_24px_rgba(245,158,11,0.6)] hover:shadow-[0_0_36px_rgba(245,158,11,0.85)] hover:brightness-105 transition-all"
+                className="group relative w-full cursor-pointer overflow-hidden rounded-xl sm:rounded-2xl border-2 border-amber-300 bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 py-3 px-4 text-slate-950 font-black shadow-[0_0_24px_rgba(245,158,11,0.65)] hover:shadow-[0_0_36px_rgba(245,158,11,0.85)] hover:brightness-105 transition-all"
               >
                 {/* Sheen animation */}
                 <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover:translate-x-full transition-transform duration-1000" />
                 <div className="relative flex items-center justify-center gap-2">
                   <Sparkles className="h-5 w-5 text-slate-950 animate-pulse" />
                   <div className="flex flex-col items-center">
-                    <span className="text-sm font-black tracking-wider uppercase">
+                    <span className="text-sm sm:text-base font-black tracking-wider uppercase">
                       ⚔️ JOGAR AGORA
                     </span>
-                    <span className="text-[9px] font-extrabold text-amber-950 uppercase tracking-widest truncate max-w-[200px]">
+                    <span className="text-[9.5px] font-extrabold text-amber-950 uppercase tracking-widest truncate max-w-[240px]">
                       ENTRAR COMO {name || activeChampion.name}
                     </span>
                   </div>

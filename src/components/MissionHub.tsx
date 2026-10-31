@@ -205,7 +205,7 @@ export function MissionHub({
       MISSION_TACTICAL_OBJECTIVES.amazonia;
 
     return (
-      <div className="relative flex-1 min-h-0 w-full flex items-center justify-between overflow-hidden bg-slate-950 p-2 select-none touch-manipulation">
+      <div className="relative flex-1 min-h-0 w-full flex items-center justify-between overflow-hidden bg-slate-950 p-2.5 sm:p-3.5 md:p-4 gap-2.5 sm:gap-3.5 select-none touch-manipulation">
         {/* Fullscreen Atmospheric Arena Splash with Vignette */}
         <AnimatePresence mode="wait">
           <motion.img
@@ -221,12 +221,13 @@ export function MissionHub({
         </AnimatePresence>
         <div className="pointer-events-none fixed inset-0 bg-radial from-transparent via-slate-950/50 to-slate-950/90" />
 
-        {/* 1. LEFT HUD DOCK (Modes & Summoner Profile - Echoes of Arena Style) */}
-        <aside className="relative z-20 flex w-44 sm:w-48 shrink-0 flex-col justify-between h-full py-0.5 overflow-hidden">
+        {/* 1. LEFT HUD DOCK (Modes & Summoner Profile - Spacious Floating Glass Card) */}
+        <aside className="relative z-20 flex w-48 sm:w-52 md:w-56 shrink-0 flex-col justify-between h-full rounded-2xl sm:rounded-3xl border border-cyan-500/20 bg-slate-950/80 backdrop-blur-xl p-2.5 sm:p-3 shadow-2xl overflow-hidden">
           {/* Quick Access Modes */}
-          <div className="space-y-1">
-            <div className="text-[9.5px] font-black tracking-widest text-cyan-400 uppercase px-1">
-              Modos de Jogo
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-1.5 px-1 text-[9.5px] font-black tracking-widest text-cyan-400 uppercase">
+              <Compass className="h-3 w-3 text-cyan-400" />
+              <span>Modos de Jogo</span>
             </div>
 
             {/* Active Mode (Glowing, 2-line title to never truncate) */}
@@ -237,7 +238,7 @@ export function MissionHub({
                 setCitySelectorOpen(true);
               }}
               title="Clique para alternar entre as 8 cidades e missões"
-              className="w-full flex h-10 items-center gap-2 rounded-xl border-2 border-amber-400/70 bg-gradient-to-r from-amber-500/25 via-slate-900/95 to-slate-900/95 px-2 text-left shadow-[0_0_15px_rgba(245,158,11,0.3)] hover:border-amber-300 cursor-pointer transition"
+              className="w-full flex h-11 items-center gap-2 rounded-xl border-2 border-amber-400/70 bg-gradient-to-r from-amber-500/25 via-slate-900/95 to-slate-900/95 px-2.5 text-left shadow-[0_0_15px_rgba(245,158,11,0.3)] hover:border-amber-300 cursor-pointer transition"
             >
               <Swords className="h-4 w-4 text-amber-300 shrink-0" />
               <div className="min-w-0 flex-1">
@@ -246,7 +247,7 @@ export function MissionHub({
                 </div>
                 <div className="text-[8.5px] font-bold text-amber-300 uppercase truncate flex items-center justify-between">
                   <span>Fase {selectedMission.order}</span>
-                  <span className="text-cyan-400">8 CIDADES ▾</span>
+                  <span className="text-cyan-400 font-mono">8 CIDADES ▾</span>
                 </div>
               </div>
             </button>
@@ -256,13 +257,13 @@ export function MissionHub({
               whileHover={{ scale: 1.02, x: 2 }}
               whileTap={{ scale: 0.96 }}
               onClick={onOpenTribesQuiz}
-              className="w-full flex h-8 sm:h-8.5 items-center justify-between rounded-xl border border-fuchsia-500/35 bg-slate-900/85 px-2 text-left text-slate-200 hover:border-fuchsia-400 shadow-md cursor-pointer transition"
+              className="w-full flex h-8 sm:h-8.5 items-center justify-between rounded-xl border border-fuchsia-500/35 bg-slate-900/85 px-2.5 text-left text-slate-200 hover:border-fuchsia-400 shadow-md cursor-pointer transition"
             >
               <span className="flex items-center gap-1.5 text-xs font-black uppercase">
                 <Swords className="h-3.5 w-3.5 text-fuchsia-400 shrink-0" />
                 <span>Arena Tribos</span>
               </span>
-              <span className="rounded bg-fuchsia-500/20 px-1 py-0.2 text-[8.5px] font-mono font-black text-fuchsia-300">
+              <span className="rounded bg-fuchsia-500/20 px-1.5 py-0.2 text-[8.5px] font-mono font-black text-fuchsia-300">
                 4v4
               </span>
             </motion.button>
@@ -272,13 +273,13 @@ export function MissionHub({
               whileHover={{ scale: 1.02, x: 2 }}
               whileTap={{ scale: 0.96 }}
               onClick={onOpenPrayerRadar}
-              className="w-full flex h-8 sm:h-8.5 items-center justify-between rounded-xl border border-amber-500/35 bg-slate-900/85 px-2 text-left text-slate-200 hover:border-amber-400 shadow-md cursor-pointer transition"
+              className="w-full flex h-8 sm:h-8.5 items-center justify-between rounded-xl border border-amber-500/35 bg-slate-900/85 px-2.5 text-left text-slate-200 hover:border-amber-400 shadow-md cursor-pointer transition"
             >
               <span className="flex items-center gap-1.5 text-xs font-black uppercase">
                 <Radio className="h-3.5 w-3.5 text-amber-400 shrink-0" />
                 <span>Radar Oração</span>
               </span>
-              <span className="rounded bg-amber-500/20 px-1 py-0.2 text-[8.5px] font-mono font-black text-amber-300">
+              <span className="rounded bg-amber-500/20 px-1.5 py-0.2 text-[8.5px] font-mono font-black text-amber-300">
                 {state.prayedMissionIds.length}/4
               </span>
             </motion.button>
@@ -288,13 +289,13 @@ export function MissionHub({
               whileHover={{ scale: 1.02, x: 2 }}
               whileTap={{ scale: 0.96 }}
               onClick={() => onOpenPocketBible("gospel")}
-              className="w-full flex h-8 sm:h-8.5 items-center justify-between rounded-xl border border-emerald-500/35 bg-slate-900/85 px-2 text-left text-slate-200 hover:border-emerald-400 shadow-md cursor-pointer transition"
+              className="w-full flex h-8 sm:h-8.5 items-center justify-between rounded-xl border border-emerald-500/35 bg-slate-900/85 px-2.5 text-left text-slate-200 hover:border-emerald-400 shadow-md cursor-pointer transition"
             >
               <span className="flex items-center gap-1.5 text-xs font-black uppercase">
                 <BookOpen className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
                 <span>Grimório</span>
               </span>
-              <span className="rounded bg-emerald-500/20 px-1 py-0.2 text-[8.5px] font-mono font-black text-emerald-300">
+              <span className="rounded bg-emerald-500/20 px-1.5 py-0.2 text-[8.5px] font-mono font-black text-emerald-300">
                 {state.studiedGospelSteps.length}/4
               </span>
             </motion.button>
@@ -304,19 +305,19 @@ export function MissionHub({
               whileHover={{ scale: 1.02, x: 2 }}
               whileTap={{ scale: 0.96 }}
               onClick={onOpenPassport}
-              className="w-full flex h-8 sm:h-8.5 items-center justify-between rounded-xl border border-cyan-500/35 bg-slate-900/85 px-2 text-left text-slate-200 hover:border-cyan-400 shadow-md cursor-pointer transition"
+              className="w-full flex h-8 sm:h-8.5 items-center justify-between rounded-xl border border-cyan-500/35 bg-slate-900/85 px-2.5 text-left text-slate-200 hover:border-cyan-400 shadow-md cursor-pointer transition"
             >
               <span className="flex items-center gap-1.5 text-xs font-black uppercase">
                 <Trophy className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
                 <span>Passaporte</span>
               </span>
-              <span className="rounded bg-cyan-500/20 px-1 py-0.2 text-[8.5px] font-mono font-black text-cyan-300">
+              <span className="rounded bg-cyan-500/20 px-1.5 py-0.2 text-[8.5px] font-mono font-black text-cyan-300">
                 {completedIds.length}/{allMissions.length}
               </span>
             </motion.button>
           </div>
 
-          {/* Bottom-Left: Summoner Profile Card (Echoes of Arena Style, Compact, Never Cuts Off XP) */}
+          {/* Bottom-Left: Summoner Profile Card (Spacious, Never Cuts Off XP) */}
           <motion.button
             type="button"
             whileHover={{ scale: 1.02 }}
@@ -327,12 +328,12 @@ export function MissionHub({
               else onOpenWardrobe();
             }}
             title="Perfil de Invocador • Clique para alternar agente"
-            className="flex w-full cursor-pointer items-center gap-2 rounded-xl border border-amber-500/40 bg-slate-900/95 p-1.5 text-left shadow-lg hover:border-amber-300 transition shrink-0"
+            className="flex w-full cursor-pointer items-center gap-2 rounded-xl border border-amber-500/40 bg-slate-900/95 p-2 text-left shadow-lg hover:border-amber-300 transition shrink-0"
           >
             <div className="relative shrink-0">
               <HeroPortrait
                 avatarId={state.agent.avatarId}
-                size={32}
+                size={34}
                 shape="hex"
                 active
               />
@@ -345,7 +346,7 @@ export function MissionHub({
                 <span className="truncate text-xs font-black uppercase text-white">
                   {state.agent.name}
                 </span>
-                <span className="text-[8px] text-amber-300 font-bold">▾</span>
+                <span className="text-[8.5px] text-amber-300 font-bold">▾</span>
               </div>
               <div className="text-[8.5px] font-bold text-cyan-300 truncate leading-none mt-0.5">
                 {levelTitle}
@@ -361,17 +362,17 @@ export function MissionHub({
           </motion.button>
         </aside>
 
-        {/* 2. CENTER STAGE (3D Champion Showcase + 4 Cities Visual Map Grid) */}
-        <main className="relative z-10 flex flex-1 min-w-0 h-full flex-col justify-between items-center px-1 py-0.5 overflow-hidden">
+        {/* 2. CENTER STAGE (3D Champion Showcase + 8 Cities Visual Map Horizontal Strip) */}
+        <main className="relative z-10 flex flex-1 min-w-0 h-full flex-col justify-between items-center px-1.5 sm:px-3 overflow-hidden">
           {/* Top Champion Codename Banner */}
-          <div className="rounded-full border border-amber-400/40 bg-slate-950/85 px-3 py-0.5 backdrop-blur-md shadow-lg flex items-center gap-1.5 shrink-0">
+          <div className="rounded-full border border-amber-400/40 bg-slate-950/85 px-3.5 py-1 backdrop-blur-md shadow-lg flex items-center gap-2 shrink-0">
             <span className="text-xs font-black text-white uppercase tracking-wider truncate max-w-[140px] sm:max-w-none">
               {state.agent.name}
             </span>
-            <span className="text-[9px] font-bold text-amber-300 uppercase">
+            <span className="text-[9.5px] font-bold text-amber-300 uppercase">
               • {heroMeta?.codename || "EXPLORADOR"}
             </span>
-            <span className="rounded-full bg-cyan-500/20 px-1.5 py-0.2 text-[8px] font-black text-cyan-300 uppercase">
+            <span className="rounded-full bg-cyan-500/20 px-2 py-0.5 text-[8px] font-black text-cyan-300 uppercase">
               {heroMeta?.styleTag || "VANGUARDA"}
             </span>
           </div>
@@ -390,7 +391,7 @@ export function MissionHub({
           </div>
 
           {/* 8 Cities Visual Map Horizontal Strip with real photos */}
-          <div className="flex items-center gap-1.5 w-full shrink-0 pt-0.5 overflow-x-auto pb-0.5 snap-x no-scrollbar">
+          <div className="flex items-center gap-2 w-full shrink-0 pt-0.5 overflow-x-auto pb-0.5 snap-x no-scrollbar">
             {allMissions.map((m) => {
               const isSelected = m.id === selectedMission.id;
               const unlocked = unlockedIds.includes(m.id);
@@ -409,7 +410,7 @@ export function MissionHub({
                       setSelectedId(m.id);
                     }
                   }}
-                  className={`group relative h-13 sm:h-14 w-28 sm:w-32 shrink-0 snap-start overflow-hidden rounded-xl border-2 text-left transition cursor-pointer select-none ${
+                  className={`group relative h-13 sm:h-14 w-28 sm:w-32 shrink-0 snap-start overflow-hidden rounded-xl sm:rounded-2xl border-2 text-left transition cursor-pointer select-none ${
                     isSelected
                       ? "border-amber-300 ring-2 ring-amber-300 shadow-[0_0_16px_rgba(245,158,11,0.55)]"
                       : unlocked
@@ -429,7 +430,7 @@ export function MissionHub({
                   <div className="absolute top-1 right-1 left-1 flex items-center justify-between pointer-events-none">
                     <span className="text-xs">{m.emoji}</span>
                     <span
-                      className={`rounded px-1 py-0.2 font-mono text-[7.5px] font-black uppercase ${
+                      className={`rounded px-1.5 py-0.2 font-mono text-[7.5px] font-black uppercase ${
                         done
                           ? "bg-emerald-500/90 text-white"
                           : unlocked
@@ -464,9 +465,9 @@ export function MissionHub({
         </main>
 
         {/* 3. RIGHT HUD DOCK (Tactical Intel, 1-Tap Champion Switcher & AAA JOGAR Button) */}
-        <aside className="relative z-20 flex w-52 sm:w-56 shrink-0 flex-col justify-between h-full py-0.5 gap-1 overflow-hidden">
+        <aside className="relative z-20 flex w-56 sm:w-60 md:w-64 shrink-0 flex-col justify-between h-full rounded-2xl sm:rounded-3xl border border-amber-500/25 bg-slate-950/80 backdrop-blur-xl p-2.5 sm:p-3 shadow-2xl gap-2 overflow-hidden">
           {/* Top: Active City Tactical Intel Card */}
-          <div className="flex-1 min-h-0 flex flex-col justify-between rounded-2xl border-2 border-amber-400/50 bg-slate-900/95 p-2 shadow-xl">
+          <div className="flex-1 min-h-0 flex flex-col justify-between rounded-xl sm:rounded-2xl border border-amber-400/40 bg-slate-900/90 p-2 sm:p-2.5 shadow-lg">
             {/* City Title & Phase */}
             <div className="flex items-center justify-between border-b border-amber-500/25 pb-1">
               <div className="min-w-0 flex-1">
@@ -493,7 +494,7 @@ export function MissionHub({
             <div className="my-1 flex items-center gap-2 rounded-xl bg-slate-950/80 p-1.5 border border-slate-800">
               <NpcPortrait
                 avatarKey={selectedMission.npc.avatarKey}
-                size={34}
+                size={36}
                 shape="hex"
               />
               <div className="min-w-0 flex-1">
@@ -517,7 +518,7 @@ export function MissionHub({
 
           {/* Middle: 1-Tap Instant Champion Switcher */}
           <div className="rounded-xl border border-slate-800 bg-slate-900/90 p-1.5 shrink-0">
-            <div className="flex items-center justify-between mb-1 px-0.5">
+            <div className="flex items-center justify-between mb-1 px-1">
               <span className="text-[8.5px] font-black tracking-widest text-cyan-400 uppercase">
                 HERÓIS DA BASE IDE
               </span>
@@ -565,7 +566,7 @@ export function MissionHub({
           </div>
 
           {/* Bottom: AAA MOBA JOGAR Button & Wardrobe Shortcut */}
-          <div className="shrink-0 space-y-1">
+          <div className="shrink-0 space-y-1.5">
             {selectedUnlocked ? (
               <motion.button
                 type="button"
@@ -575,13 +576,13 @@ export function MissionHub({
                   playSfx("ult");
                   onSelectMission(selectedMission);
                 }}
-                className="w-full py-2.5 sm:py-3 flex flex-col items-center justify-center rounded-2xl border-2 border-amber-300 bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 text-slate-950 font-black shadow-[0_0_25px_rgba(245,158,11,0.6)] cursor-pointer transition"
+                className="w-full py-3 sm:py-3.5 flex flex-col items-center justify-center rounded-xl sm:rounded-2xl border-2 border-amber-300 bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 text-slate-950 font-black shadow-[0_0_24px_rgba(245,158,11,0.65)] hover:shadow-[0_0_36px_rgba(245,158,11,0.85)] hover:brightness-105 cursor-pointer transition"
               >
                 <div className="flex items-center justify-center gap-2 text-base sm:text-lg font-black tracking-widest uppercase">
-                  <Swords className="h-4.5 w-4.5 fill-slate-950 text-slate-950 shrink-0" />
+                  <Swords className="h-5 w-5 fill-slate-950 text-slate-950 shrink-0" />
                   <span>JOGAR</span>
                 </div>
-                <div className="text-[9px] font-extrabold uppercase tracking-wider text-amber-950/90 truncate max-w-[95%]">
+                <div className="text-[9.5px] font-extrabold uppercase tracking-wider text-amber-950/90 truncate max-w-[95%]">
                   ENTRAR NA CIDADE • FASE {selectedMission.order}
                 </div>
               </motion.button>
@@ -589,7 +590,7 @@ export function MissionHub({
               <button
                 type="button"
                 disabled
-                className="w-full py-2.5 flex items-center justify-center gap-1.5 rounded-2xl border border-slate-800 bg-slate-900/60 text-slate-500 text-[10px] font-black uppercase cursor-not-allowed"
+                className="w-full py-3 flex items-center justify-center gap-1.5 rounded-xl sm:rounded-2xl border border-slate-800 bg-slate-900/60 text-slate-500 text-[10px] font-black uppercase cursor-not-allowed"
               >
                 <Lock className="h-3.5 w-3.5" />
                 <span>Bloqueado • Fase {selectedMission.order - 1}</span>
@@ -597,7 +598,7 @@ export function MissionHub({
             )}
 
             {/* Quick Actions: Trocar Cidade (8) & Skins 3D */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <button
                 type="button"
                 onClick={() => {
