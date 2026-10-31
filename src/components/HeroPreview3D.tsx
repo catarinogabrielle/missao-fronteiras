@@ -394,14 +394,16 @@ export function HeroPreview3D({
     >
       {/* Top Rarity & Drag Hint Pill */}
       <div className="pointer-events-none absolute top-1.5 right-2 left-2 z-10 flex items-center justify-between gap-2">
-        <span
-          className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-slate-950/80 px-2 py-0.5 text-[9px] font-black tracking-widest uppercase backdrop-blur"
-          style={{ color: skinMeta.accentHex }}
-        >
-          {skinMeta.badgeEmoji} {skinMeta.rarity}
-        </span>
+        {!borderless && (
+          <span
+            className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-slate-950/80 px-2 py-0.5 text-[9px] font-black tracking-widest uppercase backdrop-blur"
+            style={{ color: skinMeta.accentHex }}
+          >
+            {skinMeta.badgeEmoji} {skinMeta.rarity}
+          </span>
+        )}
 
-        <span className="inline-flex items-center gap-1 rounded-full border border-slate-700/80 bg-slate-950/75 px-1.5 py-0.5 font-mono text-[8px] font-bold text-slate-300 backdrop-blur">
+        <span className={`inline-flex items-center gap-1 rounded-full border border-slate-700/80 bg-slate-950/75 px-2 py-0.5 font-mono text-[8px] font-bold text-slate-300 backdrop-blur shadow-sm ${borderless ? "ml-auto" : ""}`}>
           <RotateCw className="h-2 w-2 text-cyan-300" />
           GIRE 360°
         </span>

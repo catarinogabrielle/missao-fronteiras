@@ -422,10 +422,6 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
                     showEmoteBar
                     borderless
                   />
-                  {/* Subtle 360 Hint */}
-                  <div className="pointer-events-none absolute top-1 right-2 rounded-full border border-cyan-500/20 bg-slate-950/60 px-2 py-0.5 text-[8.5px] font-extrabold text-cyan-300 tracking-wider">
-                    🔄 GIRE 360°
-                  </div>
                 </div>
               ) : (
                 <div className="relative h-full max-h-[170px] aspect-square rounded-2xl border-2 border-amber-400/60 overflow-hidden shadow-[0_0_25px_rgba(245,158,11,0.35)]">
