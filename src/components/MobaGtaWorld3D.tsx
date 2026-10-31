@@ -302,6 +302,54 @@ export function MobaGtaWorld3D({
             treeColor: 0xf472b6,
             awningColors: [0x06b6d4, 0xf43f5e, 0x8b5cf6],
           };
+        case "sertao":
+          return {
+            fog: 0x431407,
+            sun: 0xfef08a,
+            accent: 0xd97706,
+            bldgBase1: "#9a3412",
+            bldgBase2: "#78350f",
+            bldgWin: "#fde047",
+            modern: false,
+            treeColor: 0x15803d,
+            awningColors: [0xd97706, 0x16a34a, 0xe11d48],
+          };
+        case "andes":
+          return {
+            fog: 0x0f172a,
+            sun: 0xe0f2fe,
+            accent: 0x0284c7,
+            bldgBase1: "#475569",
+            bldgBase2: "#334155",
+            bldgWin: "#fed7aa",
+            modern: false,
+            treeColor: 0x166534,
+            awningColors: [0xef4444, 0xf59e0b, 0x0284c7],
+          };
+        case "himalaia":
+          return {
+            fog: 0x082f49,
+            sun: 0xf8fafc,
+            accent: 0x38bdf8,
+            bldgBase1: "#64748b",
+            bldgBase2: "#475569",
+            bldgWin: "#fef08a",
+            modern: false,
+            treeColor: 0x0f766e,
+            awningColors: [0xef4444, 0x38bdf8, 0xfacc15],
+          };
+        case "europa":
+          return {
+            fog: 0x1e1b4b,
+            sun: 0xfef3c7,
+            accent: 0x8b5cf6,
+            bldgBase1: "#334155",
+            bldgBase2: "#1e293b",
+            bldgWin: "#fef08a",
+            modern: false,
+            treeColor: 0x047857,
+            awningColors: [0x3b82f6, 0x10b981, 0xf59e0b],
+          };
         default:
           return {
             fog: 0x3b1d2a,
@@ -906,57 +954,437 @@ export function MobaGtaWorld3D({
       treePositions.push([Math.cos(a) * 90, Math.sin(a) * 90]);
     }
 
-    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5c3a21, roughness: 0.85 });
-    const leafMat = new THREE.MeshStandardMaterial({ color: palette.treeColor, roughness: 0.65 });
+    // =========================================================================
+    // BIOME-SPECIFIC REALISTIC 3D TREES, VEGETATION & PROPS
+    // =========================================================================
+    const woodDarkMat = new THREE.MeshStandardMaterial({ color: 0x3e2723, roughness: 0.9 });
+    const woodPalmMat = new THREE.MeshStandardMaterial({ color: 0x785338, roughness: 0.85 });
+    const sakuraTrunkMat = new THREE.MeshStandardMaterial({ color: 0x271c19, roughness: 0.88 });
+    const cactusMat = new THREE.MeshStandardMaterial({ color: 0x166534, roughness: 0.55 });
+    const snowMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.35 });
+    const ironMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.85, roughness: 0.25 });
+    const curbMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.7 });
 
-    treePositions.forEach(([tx, tz]) => {
+    const leafAmazon1 = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.65 });
+    const leafAmazon2 = new THREE.MeshStandardMaterial({ color: 0x14532d, roughness: 0.65 });
+    const leafPalm = new THREE.MeshStandardMaterial({ color: 0x16a34a, roughness: 0.6 });
+    const leafSakura1 = new THREE.MeshStandardMaterial({ color: 0xf472b6, roughness: 0.7 });
+    const leafSakura2 = new THREE.MeshStandardMaterial({ color: 0xfbcfe8, roughness: 0.75 });
+    const leafAcacia = new THREE.MeshStandardMaterial({ color: 0x65a30d, roughness: 0.7 });
+    const leafPine = new THREE.MeshStandardMaterial({ color: 0x0f766e, roughness: 0.65 });
+    const leafEuro = new THREE.MeshStandardMaterial({ color: 0x047857, roughness: 0.65 });
+
+    treePositions.forEach(([tx, tz], tIdx) => {
       if (mission.id === "amazonia" && Math.abs(tz - 27) < 6) return;
       const tGrp = new THREE.Group();
       tGrp.position.set(tx, 0, tz);
 
-      const trunk = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.24, 0.38, 3.0, 10),
-        trunkMat
-      );
-      trunk.position.y = 1.5;
-      trunk.castShadow = true;
-      tGrp.add(trunk);
+      if (resolvedBiome === "amazonia") {
+        if (tIdx % 3 === 0) {
+          // Amazonian Açaí/Pupunha Palm: Slender curved trunk with arching fronds
+          const palmTrunk = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.18, 0.26, 5.5, 8),
+            woodPalmMat
+          );
+          palmTrunk.position.set(0, 2.75, 0);
+          palmTrunk.rotation.z = (tIdx % 2 === 0 ? 0.08 : -0.08);
+          palmTrunk.castShadow = true;
+          tGrp.add(palmTrunk);
 
-      // Multi-sphere lush organic tree canopy
-      [
-        [0, 3.6, 0, 1.55],
-        [-0.75, 3.2, 0.4, 1.15],
-        [0.75, 3.25, -0.35, 1.15],
-        [0, 4.35, 0.1, 1.2],
-      ].forEach(([cx, cy, cz, cr]) => {
-        const crown = new THREE.Mesh(
-          new THREE.SphereGeometry(cr, 12, 10),
-          leafMat
+          // 8 Drooping Palm Fronds
+          for (let f = 0; f < 8; f++) {
+            const fAngle = (f / 8) * Math.PI * 2;
+            const frond = new THREE.Mesh(
+              new THREE.BoxGeometry(0.24, 0.04, 2.4),
+              leafPalm
+            );
+            frond.position.set(Math.sin(fAngle) * 0.9, 5.2, Math.cos(fAngle) * 0.9);
+            frond.rotation.y = fAngle;
+            frond.rotation.x = 0.42;
+            frond.castShadow = true;
+            tGrp.add(frond);
+          }
+        } else {
+          // Rainforest Giant with Buttress Roots (Sapopemba)
+          const mainTrunk = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.35, 0.62, 4.2, 10),
+            woodDarkMat
+          );
+          mainTrunk.position.y = 2.1;
+          mainTrunk.castShadow = true;
+          tGrp.add(mainTrunk);
+
+          // 3 Triangular Buttress Flairs (Sapopemba)
+          for (let b = 0; b < 3; b++) {
+            const bAngle = (b / 3) * Math.PI * 2;
+            const buttress = new THREE.Mesh(
+              new THREE.ConeGeometry(0.42, 1.8, 4),
+              woodDarkMat
+            );
+            buttress.position.set(Math.sin(bAngle) * 0.55, 0.9, Math.cos(bAngle) * 0.55);
+            buttress.rotation.y = bAngle;
+            buttress.scale.set(0.35, 1, 1.4);
+            tGrp.add(buttress);
+          }
+
+          // Layered Organic Jungle Canopy (5 volume clumps)
+          [
+            [0, 4.4, 0, 1.8, leafAmazon1],
+            [-0.85, 3.8, 0.5, 1.35, leafAmazon2],
+            [0.85, 3.9, -0.4, 1.4, leafAmazon1],
+            [0, 5.2, 0.2, 1.4, leafAmazon2],
+            [0.4, 3.5, 0.8, 1.1, leafAmazon1],
+          ].forEach(([cx, cy, cz, cr, mat]) => {
+            const crown = new THREE.Mesh(
+              new THREE.SphereGeometry(cr as number, 12, 10),
+              mat as THREE.Material
+            );
+            crown.position.set(cx as number, cy as number, cz as number);
+            crown.castShadow = true;
+            tGrp.add(crown);
+          });
+        }
+      } else if (resolvedBiome === "toquio") {
+        // Japanese Cherry Blossom Tree (Sakura)
+        const sakuraTrunk = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.24, 0.42, 3.2, 8),
+          sakuraTrunkMat
         );
-        crown.position.set(cx, cy, cz);
-        crown.castShadow = true;
-        tGrp.add(crown);
-      });
+        sakuraTrunk.position.y = 1.6;
+        sakuraTrunk.rotation.z = (tIdx % 2 === 0 ? 0.12 : -0.1);
+        sakuraTrunk.castShadow = true;
+        tGrp.add(sakuraTrunk);
+
+        // Twisted Outstretched Boughs
+        [-0.7, 0.7].forEach((bx) => {
+          const branch = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.12, 0.18, 1.8, 6),
+            sakuraTrunkMat
+          );
+          branch.position.set(bx * 0.7, 2.7, 0);
+          branch.rotation.z = bx < 0 ? 0.55 : -0.55;
+          tGrp.add(branch);
+        });
+
+        // Pillowy Pink & White Blossom Clouds
+        [
+          [0, 3.8, 0, 1.65, leafSakura1],
+          [-1.1, 3.4, 0.3, 1.25, leafSakura2],
+          [1.1, 3.5, -0.3, 1.3, leafSakura1],
+          [0, 4.6, 0.1, 1.3, leafSakura2],
+          [-0.4, 3.2, 0.9, 1.05, leafSakura1],
+          [0.4, 3.3, -0.8, 1.05, leafSakura2],
+        ].forEach(([cx, cy, cz, cr, mat]) => {
+          const cloud = new THREE.Mesh(
+            new THREE.SphereGeometry(cr as number, 12, 10),
+            mat as THREE.Material
+          );
+          cloud.position.set(cx as number, cy as number, cz as number);
+          cloud.castShadow = true;
+          tGrp.add(cloud);
+        });
+      } else if (resolvedBiome === "janela1040") {
+        // Imperial Date Palm with Hanging Dates
+        const palmTrunk = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.22, 0.34, 4.8, 10),
+          woodPalmMat
+        );
+        palmTrunk.position.y = 2.4;
+        palmTrunk.castShadow = true;
+        tGrp.add(palmTrunk);
+
+        // Arching Palm Fronds
+        for (let f = 0; f < 9; f++) {
+          const fAngle = (f / 9) * Math.PI * 2;
+          const frond = new THREE.Mesh(
+            new THREE.BoxGeometry(0.28, 0.05, 2.6),
+            leafPalm
+          );
+          frond.position.set(Math.sin(fAngle) * 0.95, 4.7, Math.cos(fAngle) * 0.95);
+          frond.rotation.y = fAngle;
+          frond.rotation.x = 0.44;
+          frond.castShadow = true;
+          tGrp.add(frond);
+        }
+
+        // Hanging Date Fruit Clusters
+        [-0.3, 0.3].forEach((dx) => {
+          const dates = new THREE.Mesh(
+            new THREE.SphereGeometry(0.24, 8, 8),
+            new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.4 })
+          );
+          dates.position.set(dx, 4.3, 0);
+          tGrp.add(dates);
+        });
+
+        // Desert Boulders at base
+        const rock = new THREE.Mesh(
+          new THREE.DodecahedronGeometry(0.55, 0),
+          new THREE.MeshStandardMaterial({ color: 0xc4935a, roughness: 0.9 })
+        );
+        rock.position.set(0.65, 0.35, 0.45);
+        tGrp.add(rock);
+      } else if (resolvedBiome === "sertao") {
+        if (tIdx % 2 === 0) {
+          // Iconic Tall Ribbed Mandacaru Cactus
+          const cactusTrunk = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.28, 0.32, 4.2, 10),
+            cactusMat
+          );
+          cactusTrunk.position.y = 2.1;
+          cactusTrunk.castShadow = true;
+          tGrp.add(cactusTrunk);
+
+          // Left Arm branching up
+          const armLeftH = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.2, 0.85, 8), cactusMat);
+          armLeftH.position.set(-0.55, 2.3, 0);
+          armLeftH.rotation.z = Math.PI / 2;
+          tGrp.add(armLeftH);
+          const armLeftV = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 1.6, 8), cactusMat);
+          armLeftV.position.set(-0.95, 3.0, 0);
+          tGrp.add(armLeftV);
+
+          // Right Arm branching up
+          const armRightH = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.2, 0.75, 8), cactusMat);
+          armRightH.position.set(0.5, 2.7, 0);
+          armRightH.rotation.z = Math.PI / 2;
+          tGrp.add(armRightH);
+          const armRightV = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 1.4, 8), cactusMat);
+          armRightV.position.set(0.85, 3.3, 0);
+          tGrp.add(armRightV);
+
+          // White Cactus Flower on top
+          const flower = new THREE.Mesh(
+            new THREE.OctahedronGeometry(0.18, 0),
+            new THREE.MeshStandardMaterial({ color: 0xfffbeb, emissive: 0xfef08a, emissiveIntensity: 0.4 })
+          );
+          flower.position.set(0, 4.3, 0);
+          tGrp.add(flower);
+        } else {
+          // Juazeiro Shade Tree
+          const juaTrunk = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.45, 2.6, 8), woodDarkMat);
+          juaTrunk.position.y = 1.3;
+          tGrp.add(juaTrunk);
+          const juaCrown = new THREE.Mesh(new THREE.SphereGeometry(1.65, 12, 10), leafAmazon1);
+          juaCrown.position.set(0, 2.9, 0);
+          juaCrown.scale.set(1.2, 0.85, 1.2);
+          juaCrown.castShadow = true;
+          tGrp.add(juaCrown);
+        }
+      } else if (resolvedBiome === "andes" || resolvedBiome === "himalaia") {
+        // Alpine Tiered Pine Conifer with Snow Dusting
+        const pineTrunk = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.18, 0.36, 5.2, 8),
+          woodDarkMat
+        );
+        pineTrunk.position.y = 2.6;
+        pineTrunk.castShadow = true;
+        tGrp.add(pineTrunk);
+
+        // 4 Stacked Conifer Needle Tiers
+        [
+          [0, 2.2, 1.85, 1.6],
+          [0, 3.4, 1.5, 1.5],
+          [0, 4.5, 1.15, 1.4],
+          [0, 5.5, 0.75, 1.2],
+        ].forEach(([cx, cy, cr, ch]) => {
+          const tier = new THREE.Mesh(
+            new THREE.ConeGeometry(cr, ch, 10),
+            leafPine
+          );
+          tier.position.set(cx, cy, 0);
+          tier.castShadow = true;
+          tGrp.add(tier);
+
+          // Snow cap on top edge
+          const snowCap = new THREE.Mesh(
+            new THREE.ConeGeometry(cr * 0.72, ch * 0.38, 8),
+            snowMat
+          );
+          snowCap.position.set(cx, cy + ch * 0.35, 0);
+          tGrp.add(snowCap);
+        });
+      } else {
+        // African Umbrella Acacia (Moçambique) or European Boulevard Tree
+        if (resolvedBiome === "europa") {
+          // European Boulevard Tree with Iron Tree Grate
+          const grate = new THREE.Mesh(
+            new THREE.BoxGeometry(1.8, 0.05, 1.8),
+            ironMat
+          );
+          grate.position.y = 0.02;
+          tGrp.add(grate);
+
+          const euroTrunk = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.36, 3.6, 10), woodDarkMat);
+          euroTrunk.position.y = 1.8;
+          euroTrunk.castShadow = true;
+          tGrp.add(euroTrunk);
+
+          const euroCrown = new THREE.Mesh(new THREE.SphereGeometry(1.75, 14, 12), leafEuro);
+          euroCrown.position.set(0, 4.1, 0);
+          euroCrown.scale.set(1.1, 1.2, 1.1);
+          euroCrown.castShadow = true;
+          tGrp.add(euroCrown);
+        } else {
+          // African Umbrella Acacia: Sweeping horizontal flat-topped crown
+          const acaciaTrunk = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.22, 0.42, 3.8, 8),
+            woodDarkMat
+          );
+          acaciaTrunk.position.y = 1.9;
+          acaciaTrunk.rotation.z = (tIdx % 2 === 0 ? 0.08 : -0.08);
+          acaciaTrunk.castShadow = true;
+          tGrp.add(acaciaTrunk);
+
+          // Wide horizontal flat foliage disk
+          const umbrellaDisc = new THREE.Mesh(
+            new THREE.CylinderGeometry(2.4, 2.1, 0.55, 14),
+            leafAcacia
+          );
+          umbrellaDisc.position.set(0, 4.0, 0);
+          umbrellaDisc.castShadow = true;
+          tGrp.add(umbrellaDisc);
+
+          const topTuft = new THREE.Mesh(
+            new THREE.CylinderGeometry(1.5, 1.8, 0.45, 12),
+            leafAcacia
+          );
+          topTuft.position.set(0, 4.4, 0);
+          tGrp.add(topTuft);
+        }
+      }
+
       scene.add(tGrp);
     });
 
-    // Streetlamps along Grand Boulevard
-    [-64, -32, 32, 64].forEach((lz) => {
-      [-6.5, 6.5].forEach((lx) => {
+    // =========================================================================
+    // REALISTIC STREET FURNITURE: CURBS, STREETLAMPS, BENCHES, HYDRANTS & STALLS
+    // =========================================================================
+    // 1. Sidewalk Concrete Curbs along the Boulevard
+    [-5.9, 5.9].forEach((cx) => {
+      const curb = new THREE.Mesh(
+        new THREE.BoxGeometry(0.28, 0.16, 180),
+        curbMat
+      );
+      curb.position.set(cx, 0.08, 0);
+      scene.add(curb);
+    });
+
+    // 2. Realistic Arched Swan-Neck Streetlamps with Warm Light Pools
+    const lampLightPoolTex = (() => {
+      const c = document.createElement("canvas");
+      c.width = 128;
+      c.height = 128;
+      const ctx = c.getContext("2d")!;
+      const rad = ctx.createRadialGradient(64, 64, 4, 64, 64, 60);
+      rad.addColorStop(0, "rgba(254, 240, 138, 0.45)");
+      rad.addColorStop(0.5, "rgba(251, 191, 36, 0.18)");
+      rad.addColorStop(1, "rgba(251, 191, 36, 0)");
+      ctx.fillStyle = rad;
+      ctx.fillRect(0, 0, 128, 128);
+      const t = new THREE.CanvasTexture(c);
+      return t;
+    })();
+
+    [-64, -32, 0, 32, 64].forEach((lz) => {
+      [-6.6, 6.6].forEach((lx) => {
+        const lampPost = new THREE.Group();
+        lampPost.position.set(lx, 0, lz);
+
+        // Vertical Post
         const pole = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.09, 0.13, 5.0, 8),
+          new THREE.CylinderGeometry(0.08, 0.12, 5.2, 8),
           trafficPoleMat
         );
-        pole.position.set(lx, 2.5, lz);
-        scene.add(pole);
+        pole.position.y = 2.6;
+        lampPost.add(pole);
 
-        const lamp = new THREE.Mesh(
-          new THREE.SphereGeometry(0.26, 10, 10),
-          new THREE.MeshBasicMaterial({ color: 0xfef08a })
+        // Curved Overhang Arm reaching toward street
+        const armDir = lx < 0 ? 1 : -1;
+        const arm = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.05, 0.05, 1.1, 6),
+          trafficPoleMat
         );
-        lamp.position.set(lx, 5.1, lz);
-        scene.add(lamp);
+        arm.position.set(armDir * 0.45, 5.1, 0);
+        arm.rotation.z = armDir * 0.55;
+        lampPost.add(arm);
+
+        // Bell Lamp Fixture
+        const fixture = new THREE.Mesh(
+          new THREE.ConeGeometry(0.26, 0.35, 10),
+          trafficPoleMat
+        );
+        fixture.position.set(armDir * 0.85, 5.15, 0);
+        fixture.rotation.x = Math.PI;
+        lampPost.add(fixture);
+
+        // Warm Glowing LED Bulb
+        const bulb = new THREE.Mesh(
+          new THREE.SphereGeometry(0.18, 10, 8),
+          new THREE.MeshBasicMaterial({ color: 0xfef9c3 })
+        );
+        bulb.position.set(armDir * 0.85, 4.95, 0);
+        lampPost.add(bulb);
+
+        scene.add(lampPost);
+
+        // Ground Light Pool on Asphalt
+        const lightPool = new THREE.Mesh(
+          new THREE.PlaneGeometry(9.5, 9.5),
+          new THREE.MeshBasicMaterial({
+            map: lampLightPoolTex,
+            transparent: true,
+            opacity: 0.75,
+            depthWrite: false,
+          })
+        );
+        lightPool.rotation.x = -Math.PI / 2;
+        lightPool.position.set(lx + armDir * 1.5, 0.04, lz);
+        scene.add(lightPool);
       });
+    });
+
+    // 3. Street Fire Hydrants & Park Benches
+    [-48, 16, 48].forEach((pz, pIdx) => {
+      // Red Fire Hydrant
+      const hydrant = new THREE.Group();
+      hydrant.position.set(pIdx % 2 === 0 ? -6.8 : 6.8, 0, pz);
+      const hydrantBody = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.14, 0.16, 0.65, 10),
+        new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.35 })
+      );
+      hydrantBody.position.y = 0.32;
+      hydrant.add(hydrantBody);
+      const hydrantCap = new THREE.Mesh(
+        new THREE.SphereGeometry(0.14, 8, 8),
+        new THREE.MeshStandardMaterial({ color: 0xdc2626 })
+      );
+      hydrantCap.position.y = 0.65;
+      hydrant.add(hydrantCap);
+      scene.add(hydrant);
+
+      // Wooden Park Bench
+      const bench = new THREE.Group();
+      bench.position.set(pIdx % 2 === 0 ? -7.8 : 7.8, 0, pz + 6);
+      bench.rotation.y = pIdx % 2 === 0 ? Math.PI / 2 : -Math.PI / 2;
+      const seat = new THREE.Mesh(
+        new THREE.BoxGeometry(1.6, 0.08, 0.45),
+        new THREE.MeshStandardMaterial({ color: 0x854d0e, roughness: 0.7 })
+      );
+      seat.position.y = 0.45;
+      bench.add(seat);
+      const backrest = new THREE.Mesh(
+        new THREE.BoxGeometry(1.6, 0.35, 0.06),
+        new THREE.MeshStandardMaterial({ color: 0x854d0e, roughness: 0.7 })
+      );
+      backrest.position.set(0, 0.75, -0.2);
+      bench.add(backrest);
+      [-0.7, 0.7].forEach((legX) => {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.45, 0.45), ironMat);
+        leg.position.set(legX, 0.22, 0);
+        bench.add(leg);
+      });
+      scene.add(bench);
     });
 
     // --- 3 RADIO BROADCAST TOWERS (NEW IN-MAP GTA SIDE MISSIONS!) ---
@@ -1236,6 +1664,41 @@ export function MobaGtaWorld3D({
         secondary: 0x7c3aed,
         pants: 0x1e293b,
         hair: 0x0f172a,
+      },
+      mateus: {
+        skin: "#c68652",
+        eye: "#d97706",
+        shirt: 0x16a34a,
+        secondary: 0xf59e0b,
+        pants: 0x1e293b,
+        hair: 0x1e293b,
+        hatType: "straw" as const,
+      },
+      yara: {
+        skin: "#c2410c",
+        eye: "#0284c7",
+        shirt: 0xef4444,
+        secondary: 0x38bdf8,
+        pants: 0x1e1b4b,
+        hair: 0x17153b,
+        gender: "female" as const,
+      },
+      tenzin: {
+        skin: "#b45309",
+        eye: "#10b981",
+        shirt: 0x0284c7,
+        secondary: 0xf59e0b,
+        pants: 0x1e293b,
+        hair: 0x0f172a,
+      },
+      amira: {
+        skin: "#d49a6a",
+        eye: "#8b5cf6",
+        shirt: 0x8b5cf6,
+        secondary: 0x06b6d4,
+        pants: 0x1e293b,
+        hair: 0x17153b,
+        gender: "female" as const,
       },
       custom: {
         skin: "#e5a975",

@@ -27,6 +27,30 @@ export function createSkyDomeTexture(missionId: string): THREE.CanvasTexture {
     grad.addColorStop(0.45, "#0f172a");
     grad.addColorStop(0.78, "#311042");
     grad.addColorStop(1, "#0891b2");
+  } else if (missionId === "sertao") {
+    // Sertão: Fiery sunset over semi-arid sertão
+    grad.addColorStop(0, "#431407");
+    grad.addColorStop(0.4, "#9a3412");
+    grad.addColorStop(0.75, "#ea580c");
+    grad.addColorStop(1, "#fef08a");
+  } else if (missionId === "andes") {
+    // Andes: Crisp highland azure twilight over cordillera peaks
+    grad.addColorStop(0, "#0f172a");
+    grad.addColorStop(0.45, "#1e3a8a");
+    grad.addColorStop(0.78, "#38bdf8");
+    grad.addColorStop(1, "#e0f2fe");
+  } else if (missionId === "himalaia") {
+    // Himalayas: Alpine crystalline sky with glacial radiance
+    grad.addColorStop(0, "#082f49");
+    grad.addColorStop(0.42, "#0369a1");
+    grad.addColorStop(0.8, "#bae6fd");
+    grad.addColorStop(1, "#f8fafc");
+  } else if (missionId === "europa") {
+    // Europa: Atmospheric European golden hour over urban spires
+    grad.addColorStop(0, "#1e1b4b");
+    grad.addColorStop(0.45, "#3b0764");
+    grad.addColorStop(0.75, "#d97706");
+    grad.addColorStop(1, "#fed7aa");
   } else {
     // Moçambique warm golden savanna sunset
     grad.addColorStop(0, "#1e1638");
@@ -167,6 +191,42 @@ export function createTerrainTexture(
     for (let i = 0; i < 900; i++) {
       ctx.fillStyle = i % 2 === 0 ? "#1b3d36" : "#112622";
       ctx.fillRect((i * 83) % 512, (i * 149) % 512, 6, 6);
+    }
+  } else if (missionId === "sertao") {
+    // Sertão & Caatinga: Red clay earth, cracked terracotta soil & dry scrub
+    ctx.fillStyle = "#9a3412";
+    ctx.fillRect(0, 0, 512, 512);
+    for (let i = 0; i < 1100; i++) {
+      ctx.fillStyle =
+        i % 4 === 0 ? "#b45309" : i % 4 === 1 ? "#7c2d12" : i % 4 === 2 ? "#c2410c" : "#854d0e";
+      ctx.fillRect((i * 71) % 512, (i * 139) % 512, 4 + (i % 8), 3 + (i % 6));
+    }
+  } else if (missionId === "andes") {
+    // Andes Mountains: High altitude weathered slate, stony crags & tussock grass
+    ctx.fillStyle = "#334155";
+    ctx.fillRect(0, 0, 512, 512);
+    for (let i = 0; i < 1000; i++) {
+      ctx.fillStyle =
+        i % 3 === 0 ? "#475569" : i % 3 === 1 ? "#1e293b" : "#3f6212";
+      ctx.fillRect((i * 89) % 512, (i * 127) % 512, 6 + (i % 7), 5 + (i % 5));
+    }
+  } else if (missionId === "himalaia") {
+    // Himalayas: Snow-covered crags, crystalline ice & alpine gravel
+    ctx.fillStyle = "#cbd5e1";
+    ctx.fillRect(0, 0, 512, 512);
+    for (let i = 0; i < 1200; i++) {
+      ctx.fillStyle =
+        i % 3 === 0 ? "#f8fafc" : i % 3 === 1 ? "#94a3b8" : "#e2e8f0";
+      ctx.fillRect((i * 73) % 512, (i * 109) % 512, 5 + (i % 9), 4 + (i % 7));
+    }
+  } else if (missionId === "europa") {
+    // European Urban Plaza: Elegant cobblestone paving & dark slate
+    ctx.fillStyle = "#1e293b";
+    ctx.fillRect(0, 0, 512, 512);
+    for (let i = 0; i < 1400; i++) {
+      ctx.fillStyle =
+        i % 3 === 0 ? "#334155" : i % 3 === 1 ? "#0f172a" : "#475569";
+      ctx.fillRect((i * 67) % 512, (i * 131) % 512, 7 + (i % 5), 4 + (i % 4));
     }
   } else {
     // Mozambique savanna grass + warm red earth

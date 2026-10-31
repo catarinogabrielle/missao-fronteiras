@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { AvatarId } from "@/types/game";
+import { AvatarId, NpcAvatarKey } from "@/types/game";
 
 interface AgentAvatarProps {
   avatarId: AvatarId;
@@ -217,7 +217,7 @@ export function AgentAvatarSvg({
 }
 
 interface NpcAvatarProps {
-  avatarKey: "caua" | "tariq" | "hina" | "samora" | "custom";
+  avatarKey: NpcAvatarKey;
   size?: number;
   className?: string;
 }

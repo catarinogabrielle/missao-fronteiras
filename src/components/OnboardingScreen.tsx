@@ -462,19 +462,19 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
                         shape="hex"
                         active={isSelected}
                       />
-                      <div className="min-w-0 flex-1 leading-none">
-                        <div className="text-[10px] sm:text-xs font-black text-white uppercase whitespace-nowrap">
+                      <div className="min-w-0 flex-1 leading-tight">
+                        <div className="text-[10px] sm:text-xs font-black text-white uppercase tracking-tight">
                           {av.name}
                         </div>
                         <div
                           style={{ color: lore.accentColor }}
-                          className="text-[8px] font-black uppercase tracking-wider mt-0.5 whitespace-nowrap"
+                          className="text-[8px] font-black uppercase tracking-wider mt-0.5"
                         >
                           {stats.category}
                         </div>
                       </div>
                       {isSelected && (
-                        <span className="h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_8px_#fbbf24] shrink-0 mr-0.5" />
+                        <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_8px_#fbbf24]" />
                       )}
                     </button>
                   );

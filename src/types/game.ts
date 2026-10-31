@@ -25,7 +25,15 @@ export type HeroEmoteType =
   | "dance"
   | "kneel_pray";
 
-export type BiomeId = "amazonia" | "janela1040" | "toquio" | "mocambique";
+export type BiomeId =
+  | "amazonia"
+  | "janela1040"
+  | "toquio"
+  | "mocambique"
+  | "sertao"
+  | "andes"
+  | "himalaia"
+  | "europa";
 
 export interface SkinOption {
   id: SkinId;
@@ -99,6 +107,17 @@ export interface CollectibleCardInfo {
   accentTo: string;
 }
 
+export type NpcAvatarKey =
+  | "caua"
+  | "tariq"
+  | "hina"
+  | "samora"
+  | "mateus"
+  | "yara"
+  | "tenzin"
+  | "amira"
+  | "custom";
+
 export interface Mission {
   id: string;
   order: number;
@@ -112,7 +131,7 @@ export interface Mission {
   emoji: string;
   stampCode: string;
   difficulty: "Iniciante" | "Intermediário" | "Avançado" | "Especial";
-  accentColor: "emerald" | "amber" | "cyan" | "violet";
+  accentColor: "emerald" | "amber" | "cyan" | "violet" | "rose" | "sky" | "orange";
   spiritualChallenge: string;
   shortDescription: string;
   npc: {
@@ -121,7 +140,7 @@ export interface Mission {
     age: number;
     role: string;
     bio: string;
-    avatarKey: "caua" | "tariq" | "hina" | "samora" | "custom";
+    avatarKey: NpcAvatarKey;
   };
   briefing: {
     context: string;

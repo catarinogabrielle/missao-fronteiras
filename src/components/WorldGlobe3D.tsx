@@ -45,6 +45,9 @@ const ACCENT_HEX: Record<Mission["accentColor"], number> = {
   amber: 0xf59e0b,
   cyan: 0x06b6d4,
   violet: 0xa855f7,
+  rose: 0xf43f5e,
+  sky: 0x0ea5e9,
+  orange: 0xf97316,
 };
 
 export function WorldGlobe3D({

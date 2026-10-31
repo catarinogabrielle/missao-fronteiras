@@ -1336,93 +1336,90 @@ export function MissionEngine({
       </AnimatePresence>
 
       {/* =========================================================
-          BOTTOM-LEFT: VIRTUAL ANALOG JOYSTICK + CHAMPION CREST
+          BOTTOM-LEFT: VIRTUAL ANALOG JOYSTICK (MOBILE ONLY) + CHAMPION CREST
          ========================================================= */}
       <div className="pointer-events-auto absolute bottom-2.5 left-2.5 z-20 flex items-end gap-2.5 sm:bottom-4 sm:left-4">
-        <div
-          ref={joystickPadRef}
-          onPointerDown={(e) => {
-            if (joystickPointerIdRef.current !== null) return;
-            e.preventDefault();
-            e.stopPropagation();
-            joystickPointerIdRef.current = e.pointerId;
-            try {
-              e.currentTarget.setPointerCapture(e.pointerId);
-            } catch {}
-            joystickDraggingRef.current = true;
-            updateJoystickFromPointer(e.clientX, e.clientY);
-          }}
-          onPointerMove={(e) => {
-            if (!joystickDraggingRef.current || e.pointerId !== joystickPointerIdRef.current) return;
-            e.preventDefault();
-            e.stopPropagation();
-            updateJoystickFromPointer(e.clientX, e.clientY);
-          }}
-          onPointerUp={(e) => {
-            if (e.pointerId !== joystickPointerIdRef.current) return;
-            try {
-              e.currentTarget.releasePointerCapture(e.pointerId);
-            } catch {}
-            joystickPointerIdRef.current = null;
-            joystickDraggingRef.current = false;
-            setJoystickVec({ x: 0, y: 0 });
-          }}
-          onPointerCancel={(e) => {
-            if (e.pointerId !== joystickPointerIdRef.current) return;
-            try {
-              e.currentTarget.releasePointerCapture(e.pointerId);
-            } catch {}
-            joystickPointerIdRef.current = null;
-            joystickDraggingRef.current = false;
-            setJoystickVec({ x: 0, y: 0 });
-          }}
-          className="relative flex touch-none items-center justify-center rounded-full border-3 border-amber-400/60 bg-slate-950/85 shadow-[0_0_35px_rgba(245,158,11,0.45)] backdrop-blur-md h-36 w-36 sm:h-40 sm:w-40"
-        >
-          {/* Inner aesthetic guide ring & cardinal notches with WASD keys */}
-          <div className="pointer-events-none absolute inset-3 rounded-full border border-cyan-400/35 bg-radial from-slate-900/50 to-transparent" />
-          
-          {/* CIMA [W] */}
-          <span className="pointer-events-none absolute top-1 flex flex-col items-center font-mono text-[9px] font-black text-amber-300">
-            <span className="rounded border border-amber-400/70 bg-slate-950/95 px-1 py-0.2 text-[8px] text-amber-200 shadow-sm">W</span>
-            <span className="leading-none text-[8px] text-amber-300">▲</span>
-          </span>
-
-          {/* BAIXO [S] */}
-          <span className="pointer-events-none absolute bottom-1 flex flex-col items-center font-mono text-[9px] font-black text-amber-300">
-            <span className="leading-none text-[8px] text-amber-300">▼</span>
-            <span className="rounded border border-amber-400/70 bg-slate-950/95 px-1 py-0.2 text-[8px] text-amber-200 shadow-sm">S</span>
-          </span>
-
-          {/* ESQUERDA [A] */}
-          <span className="pointer-events-none absolute left-1 flex items-center gap-0.5 font-mono text-[9px] font-black text-amber-300">
-            <span className="rounded border border-amber-400/70 bg-slate-950/95 px-1 py-0.2 text-[8px] text-amber-200 shadow-sm">A</span>
-            <span className="leading-none text-[8px] text-amber-300">◄</span>
-          </span>
-
-          {/* DIREITA [D] */}
-          <span className="pointer-events-none absolute right-1 flex items-center gap-0.5 font-mono text-[9px] font-black text-amber-300">
-            <span className="leading-none text-[8px] text-amber-300">►</span>
-            <span className="rounded border border-amber-400/70 bg-slate-950/95 px-1 py-0.2 text-[8px] text-amber-200 shadow-sm">D</span>
-          </span>
-
-          {/* Large Ergonomic Thumb Knob */}
+        {(isMobileDevice || isCompactMobile) && (
           <div
-            style={{
-              transform: `translate(${joystickVec.x * 44}px, ${joystickVec.y * 44}px)`,
+            ref={joystickPadRef}
+            onPointerDown={(e) => {
+              if (joystickPointerIdRef.current !== null) return;
+              e.preventDefault();
+              e.stopPropagation();
+              joystickPointerIdRef.current = e.pointerId;
+              try {
+                e.currentTarget.setPointerCapture(e.pointerId);
+              } catch {}
+              joystickDraggingRef.current = true;
+              updateJoystickFromPointer(e.clientX, e.clientY);
             }}
-            className="pointer-events-none flex h-16 w-16 sm:h-18 sm:w-18 items-center justify-center rounded-full border-2 border-amber-200 bg-gradient-to-b from-amber-300 via-amber-500 to-orange-600 text-[10px] sm:text-[11px] font-black text-slate-950 shadow-[0_0_24px_rgba(251,191,36,0.85)] active:scale-95"
+            onPointerMove={(e) => {
+              if (!joystickDraggingRef.current || e.pointerId !== joystickPointerIdRef.current) return;
+              e.preventDefault();
+              e.stopPropagation();
+              updateJoystickFromPointer(e.clientX, e.clientY);
+            }}
+            onPointerUp={(e) => {
+              if (e.pointerId !== joystickPointerIdRef.current) return;
+              try {
+                e.currentTarget.releasePointerCapture(e.pointerId);
+              } catch {}
+              joystickPointerIdRef.current = null;
+              joystickDraggingRef.current = false;
+              setJoystickVec({ x: 0, y: 0 });
+            }}
+            onPointerCancel={(e) => {
+              if (e.pointerId !== joystickPointerIdRef.current) return;
+              try {
+                e.currentTarget.releasePointerCapture(e.pointerId);
+              } catch {}
+              joystickPointerIdRef.current = null;
+              joystickDraggingRef.current = false;
+              setJoystickVec({ x: 0, y: 0 });
+            }}
+            className="relative flex touch-none items-center justify-center rounded-full border-3 border-amber-400/60 bg-slate-950/85 shadow-[0_0_35px_rgba(245,158,11,0.45)] backdrop-blur-md h-36 w-36 sm:h-40 sm:w-40"
           >
-            <div className="flex flex-col items-center justify-center rounded-full border border-amber-950/40 bg-amber-400/30 h-11 w-11 sm:h-12 sm:w-12">
-              <span className="leading-none text-[9px] sm:text-[10px] font-black">MOVER</span>
-              <span className="text-[7.5px] font-extrabold text-amber-950 tracking-tighter mt-0.5">WASD</span>
+            {/* Inner aesthetic guide ring & cardinal notches with WASD keys */}
+            <div className="pointer-events-none absolute inset-3 rounded-full border border-cyan-400/35 bg-radial from-slate-900/50 to-transparent" />
+            
+            {/* CIMA [W] */}
+            <span className="pointer-events-none absolute top-1 flex flex-col items-center font-mono text-[9px] font-black text-amber-300">
+              <span className="rounded border border-amber-400/70 bg-slate-950/95 px-1 py-0.2 text-[8px] text-amber-200 shadow-sm">W</span>
+              <span className="leading-none text-[8px] text-amber-300">▲</span>
+            </span>
+
+            {/* BAIXO [S] */}
+            <span className="pointer-events-none absolute bottom-1 flex flex-col items-center font-mono text-[9px] font-black text-amber-300">
+              <span className="leading-none text-[8px] text-amber-300">▼</span>
+              <span className="rounded border border-amber-400/70 bg-slate-950/95 px-1 py-0.2 text-[8px] text-amber-200 shadow-sm">S</span>
+            </span>
+
+            {/* ESQUERDA [A] */}
+            <span className="pointer-events-none absolute left-1 flex items-center gap-0.5 font-mono text-[9px] font-black text-amber-300">
+              <span className="rounded border border-amber-400/70 bg-slate-950/95 px-1 py-0.2 text-[8px] text-amber-200 shadow-sm">A</span>
+              <span className="leading-none text-[8px] text-amber-300">◄</span>
+            </span>
+
+            {/* DIREITA [D] */}
+            <span className="pointer-events-none absolute right-1 flex items-center gap-0.5 font-mono text-[9px] font-black text-amber-300">
+              <span className="leading-none text-[8px] text-amber-300">►</span>
+              <span className="rounded border border-amber-400/70 bg-slate-950/95 px-1 py-0.2 text-[8px] text-amber-200 shadow-sm">D</span>
+            </span>
+
+            {/* Large Ergonomic Thumb Knob */}
+            <div
+              style={{
+                transform: `translate(${joystickVec.x * 44}px, ${joystickVec.y * 44}px)`,
+              }}
+              className="pointer-events-none flex h-16 w-16 sm:h-18 sm:w-18 items-center justify-center rounded-full border-2 border-amber-200 bg-gradient-to-b from-amber-300 via-amber-500 to-orange-600 text-[10px] sm:text-[11px] font-black text-slate-950 shadow-[0_0_24px_rgba(251,191,36,0.85)] active:scale-95"
+            >
+              <div className="flex flex-col items-center justify-center rounded-full border border-amber-950/40 bg-amber-400/30 h-11 w-11 sm:h-12 sm:w-12">
+                <span className="leading-none text-[9px] sm:text-[10px] font-black">MOVER</span>
+                <span className="text-[7.5px] font-extrabold text-amber-950 tracking-tighter mt-0.5">WASD</span>
+              </div>
             </div>
           </div>
-
-          {/* Desktop Hotkey helper pill */}
-          <div className="hidden sm:flex pointer-events-none absolute -bottom-6 left-1/2 -translate-x-1/2 items-center gap-1 rounded border border-cyan-400/40 bg-slate-950/90 px-1.5 py-0.5 font-mono text-[8px] font-black text-cyan-300 whitespace-nowrap shadow-md">
-            <span>WASD / SETAS</span>
-          </div>
-        </div>
+        )}
 
         <div className="moba-panel-gold hidden items-center gap-2.5 rounded-2xl p-2 pr-3.5 lg:flex">
           <div className="relative">

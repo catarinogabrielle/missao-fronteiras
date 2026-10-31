@@ -2,19 +2,32 @@
 
 import React from "react";
 
-interface PassportStampProps {
+export interface PassportStampProps {
   missionId: string;
   stampCode: string;
   title: string;
-  accentColor: "emerald" | "amber" | "cyan" | "violet";
+  accentColor:
+    | "emerald"
+    | "amber"
+    | "cyan"
+    | "violet"
+    | "rose"
+    | "sky"
+    | "orange";
   size?: number;
 }
 
-const COLOR_MAP = {
+const COLOR_MAP: Record<
+  "emerald" | "amber" | "cyan" | "violet" | "rose" | "sky" | "orange",
+  { stroke: string; fill: string; text: string }
+> = {
   emerald: { stroke: "#10B981", fill: "rgba(16, 185, 129, 0.12)", text: "#6EE7B7" },
   amber: { stroke: "#F59E0B", fill: "rgba(245, 158, 11, 0.12)", text: "#FCD34D" },
   cyan: { stroke: "#06B6D4", fill: "rgba(6, 182, 212, 0.12)", text: "#67E8F9" },
   violet: { stroke: "#A855F7", fill: "rgba(168, 85, 247, 0.12)", text: "#D8B4FE" },
+  rose: { stroke: "#F43F5E", fill: "rgba(244, 63, 94, 0.12)", text: "#FDA4AF" },
+  sky: { stroke: "#0EA5E9", fill: "rgba(14, 165, 233, 0.12)", text: "#7DD3FC" },
+  orange: { stroke: "#F97316", fill: "rgba(249, 115, 22, 0.12)", text: "#FDBA74" },
 };
 
 export function PassportStampSvg({

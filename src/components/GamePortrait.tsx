@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { AvatarId } from "@/types/game";
+import { AvatarId, NpcAvatarKey } from "@/types/game";
 import { HERO_PORTRAITS, NPC_PORTRAITS } from "@/lib/assets";
 import { AgentAvatarSvg, NpcAvatarSvg } from "./AvatarSvg";
 
@@ -59,7 +59,7 @@ export function HeroPortrait({
 }
 
 interface NpcPortraitProps {
-  avatarKey: "caua" | "tariq" | "hina" | "samora" | "custom";
+  avatarKey: NpcAvatarKey;
   size?: number;
   shape?: "circle" | "hex" | "card";
   className?: string;

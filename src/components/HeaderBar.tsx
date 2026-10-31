@@ -339,7 +339,7 @@ export function HeaderBar({
           {/* Streak Flames */}
           <div
             title="Chamas de Fervor"
-            className="moba-clip-slant inline-flex items-center gap-2 border border-orange-500/50 bg-slate-900/95 px-5 py-1.5 text-xs font-black text-orange-300 shadow-sm"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-orange-500/60 bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 px-3.5 py-1.5 text-xs font-black text-orange-400 shadow-[0_0_12px_rgba(249,115,22,0.25)]"
           >
             <Flame className="h-3.5 w-3.5 fill-orange-400 text-orange-400" />
             <span>{state.streak}</span>
@@ -353,7 +353,7 @@ export function HeaderBar({
               onOpenWardrobe();
             }}
             title="Cristais de Sabedoria • Clique para abrir Skins 3D"
-            className="moba-clip-slant inline-flex cursor-pointer items-center gap-2 border border-cyan-400/50 bg-slate-900/95 px-5 py-1.5 text-xs font-black text-cyan-200 shadow-sm transition hover:border-amber-300 hover:text-white"
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-cyan-400/60 bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 px-3.5 py-1.5 text-xs font-black text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.25)] transition hover:border-cyan-300 hover:text-white hover:scale-105"
           >
             <Gem className="h-3.5 w-3.5 text-cyan-300" />
             <span>{state.wisdom}</span>

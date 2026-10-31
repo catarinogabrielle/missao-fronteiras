@@ -75,6 +75,42 @@ const MISSION_TACTICAL_OBJECTIVES: Record<
       "Celebre com a comunidade Macua com cantos e ações de graças.",
     ],
   },
+  sertao: {
+    role: "GUARDIÃO DO POÇO & AGENTE DO SEMIÁRIDO",
+    quote: "A água do poço jorrou na terra seca! Vamos plantar sementes e esperança viva!",
+    tasks: [
+      "Perfure e ative a bomba d'água solar no terreiro da comunidade.",
+      "Distribua kits de sementes e hortas familiares aos sertanejos.",
+      "Organize uma roda de cordel e fé com Mateus e as crianças.",
+    ],
+  },
+  andes: {
+    role: "TECELÃ & PASTORA DAS ALTURAS",
+    quote: "Nos picos mais altos das cordilheiras, o amor de Cristo aquece cada lar!",
+    tasks: [
+      "Leve agasalhos térmicos e botas aos vilarejos de alta altitude.",
+      "Apoie a alfabetização bíblica das famílias na língua Quechua.",
+      "Estabeleça um refúgio de oração e acolhimento nas montanhas.",
+    ],
+  },
+  himalaia: {
+    role: "GUIA DAS GARGANTAS & MENSAGEIRO SOLAR",
+    quote: "Cada abismo cruzado é uma ponte para a Palavra de Deus entrar nos vales!",
+    tasks: [
+      "Cruze as pontes pênseis levando tocadores solares de áudio-Bíblia.",
+      "Ative as 3 torres de retransmissão nos picos nevados.",
+      "Ore com os anciãos das cabanas de pedra celebrando a paz de Cristo.",
+    ],
+  },
+  europa: {
+    role: "VOLUNTÁRIA & EMBAIXADORA DO ACOLHIMENTO",
+    quote: "Na mesa de Cristo, cada forasteiro encontra uma família que o ama sem limites!",
+    tasks: [
+      "Sirva refeições quentes e organize oficinas de música para as crianças.",
+      "Distribua materiais de acolhimento e Bíblias digitais nos centros de refúgio.",
+      "Lidere uma oração de cura de traumas e fraternidade internacional.",
+    ],
+  },
 };
 
 interface MissionHubProps {
@@ -196,17 +232,26 @@ export function MissionHub({
             </div>
 
             {/* Active Mode (Glowing, 2-line title to never truncate) */}
-            <div className="w-full flex h-10 items-center gap-2 rounded-xl border-2 border-amber-400/70 bg-gradient-to-r from-amber-500/25 via-slate-900/95 to-slate-900/95 px-2 text-left shadow-[0_0_15px_rgba(245,158,11,0.3)]">
+            <button
+              type="button"
+              onClick={() => {
+                playSfx("click");
+                setCitySelectorOpen(true);
+              }}
+              title="Clique para alternar entre as 8 cidades e missões"
+              className="w-full flex h-10 items-center gap-2 rounded-xl border-2 border-amber-400/70 bg-gradient-to-r from-amber-500/25 via-slate-900/95 to-slate-900/95 px-2 text-left shadow-[0_0_15px_rgba(245,158,11,0.3)] hover:border-amber-300 cursor-pointer transition"
+            >
               <Swords className="h-4 w-4 text-amber-300 shrink-0" />
               <div className="min-w-0 flex-1">
                 <div className="text-[11px] font-black uppercase text-white truncate leading-tight">
                   {selectedMission.title}
                 </div>
-                <div className="text-[8.5px] font-bold text-amber-300 uppercase truncate">
-                  Missão Ativa • Fase {selectedMission.order}
+                <div className="text-[8.5px] font-bold text-amber-300 uppercase truncate flex items-center justify-between">
+                  <span>Fase {selectedMission.order}</span>
+                  <span className="text-cyan-400">8 CIDADES ▾</span>
                 </div>
               </div>
-            </div>
+            </button>
 
             <motion.button
               type="button"
@@ -346,8 +391,8 @@ export function MissionHub({
             />
           </div>
 
-          {/* 4 Cities Visual Map Carousel / Grid (The actual cities with map photos!) */}
-          <div className="grid grid-cols-4 gap-1.5 w-full shrink-0 pt-0.5">
+          {/* 8 Cities Visual Map Horizontal Strip with real photos */}
+          <div className="flex items-center gap-1.5 w-full shrink-0 pt-0.5 overflow-x-auto pb-0.5 snap-x no-scrollbar">
             {allMissions.map((m) => {
               const isSelected = m.id === selectedMission.id;
               const unlocked = unlockedIds.includes(m.id);
@@ -366,7 +411,7 @@ export function MissionHub({
                       setSelectedId(m.id);
                     }
                   }}
-                  className={`group relative h-13 sm:h-15 overflow-hidden rounded-xl border-2 text-left transition cursor-pointer select-none ${
+                  className={`group relative h-13 sm:h-14 w-28 sm:w-32 shrink-0 snap-start overflow-hidden rounded-xl border-2 text-left transition cursor-pointer select-none ${
                     isSelected
                       ? "border-amber-300 ring-2 ring-amber-300 shadow-[0_0_16px_rgba(245,158,11,0.55)]"
                       : unlocked
@@ -400,11 +445,15 @@ export function MissionHub({
 
                   {/* Bottom City Name */}
                   <div className="absolute right-1 bottom-1 left-1 pointer-events-none">
-                    <div className="truncate text-[9.5px] font-black uppercase text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] leading-tight">
+                    <div className="truncate text-[9px] font-black uppercase text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] leading-tight">
                       {m.title
                         .replace("Amazônia Ribeirinha", "Amazônia")
                         .replace("Metrópole Digital", "Tóquio")
-                        .replace("Savana & Vilas", "Savana")}
+                        .replace("Savana & Vilas", "Savana")
+                        .replace("Sertão & Caatinga", "Sertão")
+                        .replace("Cordilheira dos Andes", "Andes")
+                        .replace("Vales do Himalaia", "Himalaia")
+                        .replace("Metrópole de Acolhimento", "Europa")}
                     </div>
                     <div className="text-[7.5px] font-bold text-amber-300 truncate">
                       {m.regionName}
@@ -534,8 +583,8 @@ export function MissionHub({
                   <Swords className="h-4.5 w-4.5 fill-slate-950 text-slate-950 shrink-0" />
                   <span>JOGAR</span>
                 </div>
-                <div className="text-[8.5px] font-extrabold uppercase tracking-wider text-amber-950/90 truncate max-w-[95%]">
-                  {selectedMission.title} • FASE {selectedMission.order}
+                <div className="text-[9px] font-extrabold uppercase tracking-wider text-amber-950/90 truncate max-w-[95%]">
+                  ENTRAR NA CIDADE • FASE {selectedMission.order}
                 </div>
               </motion.button>
             ) : (
@@ -549,22 +598,35 @@ export function MissionHub({
               </button>
             )}
 
-            {/* Quick Wardrobe/Skins Link */}
-            <button
-              type="button"
-              onClick={() => {
-                playSfx("click");
-                onOpenWardrobe();
-              }}
-              className="w-full flex items-center justify-center gap-1 py-1 rounded-lg border border-violet-500/35 bg-slate-900/80 text-[8.5px] font-bold text-violet-300 hover:border-violet-400 hover:text-white transition cursor-pointer uppercase"
-            >
-              <Sparkles className="h-3 w-3 text-amber-300 shrink-0" />
-              <span>Vestiário de Skins 3D & Emotes</span>
-            </button>
+            {/* Quick Actions: Trocar Cidade (8) & Skins 3D */}
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  playSfx("click");
+                  setCitySelectorOpen(true);
+                }}
+                className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl border border-cyan-500/40 bg-slate-900/90 text-[8.5px] font-black text-cyan-300 hover:border-cyan-400 hover:text-white transition cursor-pointer uppercase shadow-sm"
+              >
+                <Compass className="h-3 w-3 text-cyan-300 shrink-0" />
+                <span>Cidades (8)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  playSfx("click");
+                  onOpenWardrobe();
+                }}
+                className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl border border-violet-500/40 bg-slate-900/90 text-[8.5px] font-black text-violet-300 hover:border-violet-400 hover:text-white transition cursor-pointer uppercase shadow-sm"
+              >
+                <Sparkles className="h-3 w-3 text-amber-300 shrink-0" />
+                <span>Skins 3D</span>
+              </button>
+            </div>
           </div>
         </aside>
 
-        {/* 4. ANIMATED CITY SELECTOR MODAL SHEET */}
+        {/* 4. ANIMATED CITY SELECTOR MODAL SHEET (8 GLOBAL FRONTIERS) */}
         <AnimatePresence>
           {citySelectorOpen && (
             <motion.div
@@ -585,7 +647,7 @@ export function MissionHub({
                   <div className="flex items-center gap-2">
                     <Compass className="h-5 w-5 text-amber-300" />
                     <h3 className="text-base font-black text-white uppercase tracking-wider">
-                      Selecione a Cidade Missionária
+                      Selecione a Cidade Missionária (8 Fronteiras Mundiais)
                     </h3>
                   </div>
                   <button
@@ -597,12 +659,13 @@ export function MissionHub({
                   </button>
                 </div>
 
-                {/* 4 Large City Cards */}
-                <div className="grid grid-cols-4 gap-3 my-2 flex-1 min-h-0">
+                {/* 8 Dynamic City Cards in 2x4 Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 my-2 flex-1 min-h-0 overflow-y-auto pr-1">
                   {allMissions.map((m) => {
                     const isSelected = m.id === selectedMission.id;
                     const unlocked = unlockedIds.includes(m.id);
                     const done = completedIds.includes(m.id);
+                    const splash = getMissionSplash(m.id, m.biomeId);
                     const intel =
                       MISSION_TACTICAL_OBJECTIVES[m.id] ||
                       MISSION_TACTICAL_OBJECTIVES.amazonia;
@@ -611,8 +674,8 @@ export function MissionHub({
                       <motion.button
                         key={m.id}
                         type="button"
-                        whileHover={unlocked ? { scale: 1.03, y: -4 } : {}}
-                        whileTap={unlocked ? { scale: 0.97 } : {}}
+                        whileHover={unlocked ? { scale: 1.02, y: -2 } : {}}
+                        whileTap={unlocked ? { scale: 0.98 } : {}}
                         onClick={() => {
                           if (unlocked) {
                             playSfx("click");
@@ -620,23 +683,33 @@ export function MissionHub({
                             setCitySelectorOpen(false);
                           }
                         }}
-                        className={`relative flex flex-col justify-between rounded-2xl border-2 p-3 text-left transition ${
+                        className={`group relative flex flex-col justify-between rounded-2xl border-2 p-3 text-left transition overflow-hidden min-h-[145px] ${
                           isSelected
                             ? "border-amber-300 bg-amber-500/20 shadow-[0_0_24px_rgba(245,158,11,0.5)] ring-2 ring-amber-300"
                             : unlocked
-                              ? "border-slate-700 bg-slate-900/80 hover:border-cyan-400 cursor-pointer"
-                              : "border-slate-800 bg-slate-950/60 opacity-50 grayscale cursor-not-allowed"
+                              ? "border-slate-700 bg-slate-900/90 hover:border-cyan-400 cursor-pointer"
+                              : "border-slate-800 bg-slate-950/70 opacity-50 grayscale cursor-not-allowed"
                         }`}
                       >
+                        {/* Background City Splash Photo */}
+                        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                          <img
+                            src={splash}
+                            alt=""
+                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 opacity-25"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/85 to-slate-950/50" />
+                        </div>
+
                         {/* Top: Icon & Status */}
-                        <div className="flex items-center justify-between">
-                          <span className="text-2xl">{m.emoji}</span>
+                        <div className="relative z-10 flex items-center justify-between">
+                          <span className="text-xl sm:text-2xl">{m.emoji}</span>
                           <span
-                            className={`rounded-full px-2 py-0.5 text-[9px] font-mono font-black ${
+                            className={`rounded-full px-2 py-0.5 text-[8.5px] font-mono font-black ${
                               done
-                                ? "bg-emerald-500/25 text-emerald-300"
+                                ? "bg-emerald-500/30 text-emerald-300 border border-emerald-400/40"
                                 : unlocked
-                                  ? "bg-amber-500/25 text-amber-300"
+                                  ? "bg-amber-500/30 text-amber-300 border border-amber-400/40"
                                   : "bg-slate-800 text-slate-400"
                             }`}
                           >
@@ -645,20 +718,20 @@ export function MissionHub({
                         </div>
 
                         {/* Title & Region */}
-                        <div className="my-1">
-                          <div className="text-sm font-black text-white uppercase leading-snug">
+                        <div className="relative z-10 my-1">
+                          <div className="text-xs sm:text-sm font-black text-white uppercase leading-snug truncate">
                             {m.title}
                           </div>
-                          <div className="text-[10px] font-bold text-amber-300">
+                          <div className="text-[9.5px] font-bold text-amber-300 truncate">
                             {m.difficulty} • {m.regionName}
                           </div>
-                          <p className="line-clamp-2 text-[9px] text-slate-300 mt-1 italic">
+                          <p className="line-clamp-2 text-[8.5px] text-slate-300 mt-1 italic">
                             &ldquo;{intel.quote}&rdquo;
                           </p>
                         </div>
 
                         {/* Rewards */}
-                        <div className="border-t border-slate-800 pt-1.5 flex items-center justify-between text-[10px]">
+                        <div className="relative z-10 border-t border-slate-800/80 pt-1 flex items-center justify-between text-[9.5px]">
                           <span className="text-slate-400">Recompensa:</span>
                           <span className="font-mono font-black text-emerald-400">
                             +{m.rewardXp} XP • +{m.rewardWisdom} 💎
@@ -670,8 +743,8 @@ export function MissionHub({
                 </div>
 
                 {/* Footer Tip */}
-                <div className="text-center text-xs font-bold text-slate-400">
-                  Toque na cidade desejada para carregar a missão no Hub!
+                <div className="text-center text-xs font-bold text-slate-400 border-t border-slate-800/80 pt-2">
+                  Escolha qualquer uma das 8 fronteiras mundiais para entrar na cidade 3D!
                 </div>
               </motion.div>
             </motion.div>
@@ -909,8 +982,8 @@ export function MissionHub({
               />
             </div>
 
-            {/* Bottom Arena Map Selector Cards with 3D Thumbnails */}
-            <div className="grid max-h-36 grid-cols-2 gap-2 overflow-y-auto pt-1 sm:grid-cols-4">
+            {/* Bottom Arena Map Selector Cards with 3D Thumbnails (All 8 Cities) */}
+            <div className="grid max-h-48 grid-cols-2 gap-2 overflow-y-auto pt-1 sm:grid-cols-4 pr-0.5">
               {allMissions.map((m) => {
                 const isSelected = m.id === selectedMission.id;
                 const unlocked = unlockedIds.includes(m.id);
