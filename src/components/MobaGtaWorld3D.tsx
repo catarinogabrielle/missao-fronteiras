@@ -2426,10 +2426,6 @@ export function MobaGtaWorld3D({
         performAction("skillQ");
       } else if (k === "2") {
         performAction("skillW");
-      } else if (k === "w") {
-        if (cameraMode === "moba") {
-          performAction("skillW");
-        }
       } else if (k === "3" || k === "e") {
         performAction("skillE");
       } else if (k === "4" || k === "r") {

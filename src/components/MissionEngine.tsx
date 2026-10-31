@@ -231,6 +231,15 @@ export function MissionEngine({
   const [activeEncounter, setActiveEncounter] =
     useState<ActivePersonEncounter | null>(null);
   const [dialogueCompleted, setDialogueCompleted] = useState(false);
+  const [keyboardHelpVisible, setKeyboardHelpVisible] = useState(true);
+
+  // Auto-hide PC keyboard shortcuts bar after 6.5s so it doesn't linger permanently on screen
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setKeyboardHelpVisible(false);
+    }, 6500);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Main NPC Dialogue Clash State
   const [turnIndex, setTurnIndex] = useState(0);
@@ -1197,6 +1206,26 @@ export function MissionEngine({
           <Maximize2 className="h-3.5 w-3.5 text-cyan-300" />
         </motion.button>
 
+        {/* Toggle Keyboard Controls Help Bar */}
+        <motion.button
+          type="button"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.94 }}
+          onClick={() => {
+            playSfx("click");
+            setKeyboardHelpVisible((prev) => !prev);
+          }}
+          title="Alternar Guia de Teclas do Teclado"
+          className={`hidden sm:flex h-7 sm:h-8 cursor-pointer items-center gap-1 rounded-xl border px-2 text-[9px] sm:text-[10px] font-black shadow-lg transition ${
+            keyboardHelpVisible
+              ? "border-amber-400 bg-amber-500/25 text-amber-200"
+              : "border-slate-700/80 bg-slate-950/90 text-slate-300 hover:border-amber-400 hover:text-white"
+          }`}
+        >
+          <span>⌨️</span>
+          <span>TECLAS</span>
+        </motion.button>
+
         {isCompactMobile ? (
           <div className="moba-panel-cyan flex flex-col items-end rounded-xl px-2.5 py-1.5 shadow-xl">
             <button
@@ -1634,7 +1663,7 @@ export function MissionEngine({
             </div>
           </motion.button>
 
-          {/* Skill W [2]: Dash Tático */}
+          {/* Skill Shift / 2: Dash Tático */}
           <motion.button
             type="button"
             whileTap={{ scale: 0.88 }}
@@ -1658,8 +1687,8 @@ export function MissionEngine({
                   {hudSnap.cooldowns.w.toFixed(1)}
                 </span>
               )}
-              <span className="absolute -right-1 -bottom-1 rounded-full border border-emerald-200 bg-slate-950 px-1 font-mono text-[7.5px] sm:text-[8.5px] font-black text-emerald-300">
-                W / 2
+              <span className="absolute -right-1 -bottom-1 rounded-full border border-emerald-200 bg-slate-950 px-1.5 font-mono text-[7px] sm:text-[8px] font-black text-emerald-300">
+                SHIFT
               </span>
             </div>
           </motion.button>
@@ -1747,40 +1776,60 @@ export function MissionEngine({
         </div>
       </div>
 
-      {/* PC KEYBOARD SHORTCUTS HUD BAR (GTA / LOL / CS:GO STYLE) */}
-      <div className="hidden lg:flex pointer-events-none absolute bottom-2.5 left-1/2 -translate-x-1/2 z-20 items-center gap-2 rounded-full border border-amber-400/40 bg-slate-950/90 px-4 py-1 backdrop-blur-md text-[10px] font-mono font-bold text-slate-200 shadow-xl">
-        <span className="flex items-center gap-1">
-          <kbd className="rounded border border-amber-400/70 bg-amber-500/20 px-1 text-amber-300 font-black">W A S D</kbd> Mover
-        </span>
-        <span className="text-slate-600">•</span>
-        <span className="flex items-center gap-1">
-          <kbd className="rounded border border-rose-400/70 bg-rose-500/20 px-1.5 text-rose-300 font-black">ESPAÇO</kbd> Atacar
-        </span>
-        <span className="text-slate-600">•</span>
-        <span className="flex items-center gap-1">
-          <kbd className="rounded border border-cyan-400/70 bg-cyan-500/20 px-1 text-cyan-300 font-black">Q</kbd>
-          <kbd className="rounded border border-emerald-400/70 bg-emerald-500/20 px-1 text-emerald-300 font-black">W</kbd>
-          <kbd className="rounded border border-amber-400/70 bg-amber-500/20 px-1 text-amber-300 font-black">E</kbd>
-          <kbd className="rounded border border-orange-400/70 bg-orange-500/20 px-1 text-orange-300 font-black">R</kbd>
-          Skills
-        </span>
-        <span className="text-slate-600">•</span>
-        <span className="flex items-center gap-1">
-          <kbd className="rounded border border-emerald-400/70 bg-emerald-500/20 px-1 text-emerald-300 font-black">SHIFT</kbd> Dash/Nitro
-        </span>
-        <span className="text-slate-600">•</span>
-        <span className="flex items-center gap-1">
-          <kbd className="rounded border border-amber-400/70 bg-amber-500/20 px-1 text-amber-300 font-black">V</kbd> Veículo
-        </span>
-        <span className="text-slate-600">•</span>
-        <span className="flex items-center gap-1">
-          <kbd className="rounded border border-sky-400/70 bg-sky-500/20 px-1 text-sky-300 font-black">C</kbd> Câmera
-        </span>
-        <span className="text-slate-600">•</span>
-        <span className="flex items-center gap-1">
-          <kbd className="rounded border border-purple-400/70 bg-purple-500/20 px-1 text-purple-300 font-black">F</kbd> Interagir
-        </span>
-      </div>
+      {/* PC KEYBOARD SHORTCUTS HUD BAR (GTA / LOL / CS:GO STYLE) - FLOATS CLEANLY & AUTO-HIDES */}
+      <AnimatePresence>
+        {keyboardHelpVisible && (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 15 }}
+            transition={{ duration: 0.2 }}
+            className="hidden lg:flex pointer-events-auto absolute bottom-24 left-1/2 -translate-x-1/2 z-20 items-center gap-2 rounded-full border border-amber-400/50 bg-slate-950/95 px-4 py-1.5 backdrop-blur-md text-[10px] font-mono font-bold text-slate-200 shadow-[0_0_24px_rgba(0,0,0,0.85)]"
+          >
+            <span className="flex items-center gap-1">
+              <kbd className="rounded border border-amber-400/70 bg-amber-500/20 px-1 text-amber-300 font-black">W A S D</kbd> Mover
+            </span>
+            <span className="text-slate-600">•</span>
+            <span className="flex items-center gap-1">
+              <kbd className="rounded border border-rose-400/70 bg-rose-500/20 px-1.5 text-rose-300 font-black">ESPAÇO</kbd> Atacar
+            </span>
+            <span className="text-slate-600">•</span>
+            <span className="flex items-center gap-1">
+              <kbd className="rounded border border-emerald-400/70 bg-emerald-500/25 px-1.5 text-emerald-300 font-black">SHIFT</kbd> Dash / Nitro
+            </span>
+            <span className="text-slate-600">•</span>
+            <span className="flex items-center gap-1">
+              <kbd className="rounded border border-cyan-400/70 bg-cyan-500/20 px-1 text-cyan-300 font-black">Q</kbd>
+              <kbd className="rounded border border-amber-400/70 bg-amber-500/20 px-1 text-amber-300 font-black">E</kbd>
+              <kbd className="rounded border border-orange-400/70 bg-orange-500/20 px-1 text-orange-300 font-black">R</kbd>
+              Skills
+            </span>
+            <span className="text-slate-600">•</span>
+            <span className="flex items-center gap-1">
+              <kbd className="rounded border border-amber-400/70 bg-amber-500/20 px-1 text-amber-300 font-black">V</kbd> Veículo
+            </span>
+            <span className="text-slate-600">•</span>
+            <span className="flex items-center gap-1">
+              <kbd className="rounded border border-sky-400/70 bg-sky-500/20 px-1 text-sky-300 font-black">C</kbd> Câmera
+            </span>
+            <span className="text-slate-600">•</span>
+            <span className="flex items-center gap-1">
+              <kbd className="rounded border border-purple-400/70 bg-purple-500/20 px-1 text-purple-300 font-black">F</kbd> Falar
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                playSfx("click");
+                setKeyboardHelpVisible(false);
+              }}
+              title="Fechar guia de teclas [X]"
+              className="ml-1 cursor-pointer rounded-full p-0.5 text-slate-400 hover:bg-slate-800 hover:text-white transition"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* =========================================================
           MODALS & CONVERSATION OVERLAYS (ALL CLOSEABLE ANYTIME!)
