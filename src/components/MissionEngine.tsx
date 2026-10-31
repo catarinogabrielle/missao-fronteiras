@@ -814,22 +814,10 @@ export function MissionEngine({
       {/* =========================================================
           TOP-LEFT: GTA URBAN RADAR MINIMAP + MISSIONS PHONE BUTTON
          ========================================================= */}
-      <div className="pointer-events-auto absolute top-2 left-2 z-20 flex flex-col gap-1.5 sm:top-3 sm:left-3">
+      <div className="pointer-events-auto absolute top-2 left-2 z-20 flex flex-col gap-2 sm:gap-2.5 sm:top-3 sm:left-3 w-48 sm:w-56">
         <div
           className="moba-panel-gold relative overflow-hidden p-1.5 shadow-2xl h-22 w-22 sm:h-26 sm:w-26 rounded-xl"
         >
-          {/* Quick Camera Mode Switcher icon pinned to Radar Minimap Corner */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              fireAction("camera");
-            }}
-            title="Alternar Câmera: 3D GTA / MOBA Tática [C]"
-            className="pointer-events-auto absolute top-1 right-1 z-10 flex h-5 w-5 items-center justify-center rounded-md border border-amber-400/60 bg-slate-950/85 text-amber-300 shadow hover:bg-amber-500/25 active:scale-90 transition cursor-pointer"
-          >
-            <Camera className="h-2.5 w-2.5" />
-          </button>
           <div
             onClick={handleRadarClick}
             title="Clique em qualquer rua do Radar para marcar GPS!"
@@ -1011,31 +999,29 @@ export function MissionEngine({
           </div>
         </div>
 
-        {/* QUEST & HUB NAVIGATION CONTROLS (AAA ORGANIZED, ZERO CLUTTER) */}
-        <div className="flex flex-col gap-1 w-full">
-          <div className="flex items-center gap-1">
+        {/* QUEST & HUB NAVIGATION CONTROLS (SPACIOUS, ERGONOMIC, GAMER UI) */}
+        <div className="flex flex-col gap-2 sm:gap-2.5 w-full">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             {/* Professional Beveled Back to Lobby Button */}
             <motion.button
               type="button"
-              whileHover={{ scale: 1.05 }}
+              whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.94 }}
               onClick={() => {
                 playSfx("click");
                 onExitToHub();
               }}
               title="Sair da Missão e Voltar ao Lobby [ESC]"
-              className={`flex cursor-pointer items-center justify-center gap-1 rounded-xl border border-amber-400/70 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 font-black uppercase text-amber-300 shadow-[0_0_14px_rgba(245,158,11,0.25)] transition hover:border-amber-300 hover:text-white ${
-                isMobileLandscape ? "px-2 py-0.5 text-[9.5px]" : "px-2.5 py-1 text-xs"
-              }`}
+              className="flex-1 min-h-[38px] flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-amber-400/80 bg-gradient-to-b from-amber-500/25 via-slate-900 to-slate-950 px-2.5 py-1.5 text-xs font-black uppercase text-amber-300 shadow-[0_2px_10px_rgba(245,158,11,0.25)] transition hover:border-amber-300 hover:text-white active:scale-95"
             >
-              <ArrowLeft className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-amber-400" />
+              <ArrowLeft className="h-3.5 w-3.5 text-amber-400 shrink-0" />
               <span>{isMobile ? "LOBBY" : "LOBBY [ESC]"}</span>
             </motion.button>
 
-            {/* Cultural Intelligence & Lore (Moved here with quest activities!) */}
+            {/* Cultural Intelligence & Lore */}
             <motion.button
               type="button"
-              whileHover={{ scale: 1.05 }}
+              whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.94 }}
               onClick={() => {
                 playSfx("click");
@@ -1055,11 +1041,9 @@ export function MissionEngine({
                 }
               }}
               title="Inteligência Cultural & Tradições"
-              className={`flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-xl border border-cyan-400/50 bg-gradient-to-r from-cyan-950/80 to-slate-950 font-black uppercase text-cyan-300 shadow-md transition hover:border-cyan-300 hover:text-white ${
-                isMobileLandscape ? "px-2 py-0.5 text-[9.5px]" : "px-2.5 py-1 text-xs"
-              }`}
+              className="flex-1 min-h-[38px] flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-cyan-400/70 bg-gradient-to-b from-cyan-950/80 via-slate-900 to-slate-950 px-2.5 py-1.5 text-xs font-black uppercase text-cyan-300 shadow-[0_2px_10px_rgba(34,211,238,0.25)] transition hover:border-cyan-300 hover:text-white active:scale-95"
             >
-              <Compass className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-cyan-400" />
+              <Compass className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
               <span>{isMobile ? "CULTURA" : "CULTURA [F]"}</span>
             </motion.button>
 
@@ -1068,56 +1052,72 @@ export function MissionEngine({
                 type="button"
                 onClick={toggleLandscapeFullscreen}
                 title="Girar Celular / Modo Tela Cheia"
-                className="flex cursor-pointer items-center gap-1 rounded-xl border border-cyan-400/60 bg-slate-950/90 px-2 py-0.5 text-[9px] font-black text-cyan-300 shadow-md hover:bg-cyan-500/20"
+                className="flex cursor-pointer items-center justify-center h-[38px] w-[38px] rounded-xl border-2 border-cyan-400/60 bg-slate-950/90 text-cyan-300 shadow-md hover:bg-cyan-500/20 active:scale-90 transition shrink-0"
               >
-                <RotateCw className="h-3 w-3" />
+                <RotateCw className="h-3.5 w-3.5" />
               </button>
             )}
           </div>
 
           {/* GTA Mission Phone Button (12-Mission Selector) */}
-          <button
+          <motion.button
             type="button"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => {
               playSfx("click");
               setMissionPhoneOpen(true);
             }}
             title="Ver Todas as 12 Missões"
-            className={`flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-cyan-400/70 bg-gradient-to-r from-cyan-950 to-slate-950 font-black text-cyan-200 shadow-[0_0_14px_rgba(34,211,238,0.3)] transition hover:border-cyan-300 hover:text-white ${
-              isMobileLandscape ? "px-2 py-0.5 text-[9px]" : "px-2.5 py-1 text-[10.5px]"
-            }`}
+            className="flex min-h-[40px] w-full cursor-pointer items-center justify-between rounded-xl border-2 border-cyan-400/80 bg-gradient-to-r from-cyan-950 via-slate-900 to-cyan-950 px-3 py-2 text-xs font-black text-cyan-200 shadow-[0_3px_14px_rgba(34,211,238,0.3)] transition hover:border-cyan-300 hover:text-white active:scale-95"
           >
-            <ClipboardList className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-cyan-300" />
-            <span>MISSÕES ({completedMapMissions}/{totalMapMissions})</span>
-          </button>
+            <div className="flex items-center gap-2">
+              <ClipboardList className="h-4 w-4 text-cyan-300 shrink-0" />
+              <span className="tracking-wide">MISSÕES</span>
+            </div>
+            <span className="rounded-lg bg-cyan-500/25 border border-cyan-400/50 px-2 py-0.5 font-mono text-[10px] font-black text-cyan-300">
+              {completedMapMissions}/{totalMapMissions}
+            </span>
+          </motion.button>
 
-          {/* Quick Camera Mode Switcher (Tactile 3D Action Button - Ergonomically Docked in Nav Stack, Zero HUD Collisions!) */}
+          {/* TACTILE 3D GAMER PUSH-BUTTON: Camera Mode Switcher */}
           <motion.button
             type="button"
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.94 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.96 }}
             onPointerDown={(e) => {
               e.preventDefault();
               e.stopPropagation();
+              playSfx("click");
               fireAction("camera");
             }}
             title="Alternar Ângulo da Câmera (3D GTA / Tática MOBA) [C]"
-            className={`flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 font-black uppercase shadow-lg transition ${
-              isMobileLandscape ? "py-0.5 text-[8.5px]" : "py-1 text-[9.5px] sm:text-[10px]"
-            } ${
+            className={`group relative flex min-h-[44px] w-full cursor-pointer items-center justify-between rounded-xl border-t-2 border-x-2 border-b-4 px-3 py-1.5 transition active:translate-y-1 active:border-b-2 select-none ${
               hudSnap.cameraMode === "gta"
-                ? "border-amber-400 bg-gradient-to-r from-amber-500/30 via-slate-900 to-slate-950 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.35)] hover:border-amber-300"
-                : "border-sky-400 bg-gradient-to-r from-sky-500/30 via-slate-900 to-slate-950 text-sky-300 shadow-[0_0_12px_rgba(56,189,248,0.35)] hover:border-sky-300"
+                ? "border-t-amber-200 border-x-amber-400 border-b-amber-700 bg-gradient-to-b from-amber-400 via-amber-500 to-amber-600 text-slate-950 shadow-[0_4px_14px_rgba(245,158,11,0.5),0_2px_4px_rgba(0,0,0,0.6)] active:shadow-[0_1px_6px_rgba(245,158,11,0.3)]"
+                : "border-t-sky-200 border-x-sky-400 border-b-sky-700 bg-gradient-to-b from-sky-400 via-sky-500 to-cyan-600 text-slate-950 shadow-[0_4px_14px_rgba(56,189,248,0.5),0_2px_4px_rgba(0,0,0,0.6)] active:shadow-[0_1px_6px_rgba(56,189,248,0.3)]"
             }`}
           >
-            <Camera className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-amber-400" />
-            <span>{hudSnap.cameraMode === "gta" ? "CÂMERA 3D" : "CÂMERA MOBA"}</span>
-            <span className="text-[9px] font-mono opacity-80">↻</span>
-            {!isMobile && (
-              <kbd className="hidden md:inline-block rounded bg-slate-950/70 px-1 py-0.2 font-mono text-[8px] text-amber-300">
-                C
-              </kbd>
-            )}
+            {/* Left: Tactile Icon Box */}
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-950/25 border border-black/20 shadow-inner shrink-0">
+              <Camera className="h-4 w-4 fill-slate-950 text-slate-950" />
+            </div>
+
+            {/* Center: Bold Typography */}
+            <div className="flex-1 min-w-0 px-2 text-left leading-tight">
+              <div className="text-[11px] font-black uppercase tracking-wider truncate">
+                {hudSnap.cameraMode === "gta" ? "CÂMERA 3D (RUA)" : "CÂMERA MOBA (TOPO)"}
+              </div>
+              <div className="text-[8.5px] font-black text-slate-950/80 uppercase tracking-tight truncate">
+                Toque p/ alternar ângulo
+              </div>
+            </div>
+
+            {/* Right: Tactile Switch / Keyboard badge */}
+            <div className="flex items-center gap-1 rounded-md bg-slate-950/30 px-1.5 py-0.5 font-mono text-[9px] font-black text-slate-950 shrink-0">
+              <RotateCw className="h-3 w-3" />
+              {!isMobile && <span>C</span>}
+            </div>
           </motion.button>
         </div>
       </div>
