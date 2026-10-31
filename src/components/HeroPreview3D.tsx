@@ -85,12 +85,12 @@ export function HeroPreview3D({
     const scene = new THREE.Scene();
 
     const camera = new THREE.PerspectiveCamera(
-      compact ? 36 : 38,
+      compact ? 40 : 39,
       width / height,
       0.1,
       50
     );
-    camera.position.set(0, compact ? 1.48 : 1.45, compact ? 4.35 : 4.55);
+    camera.position.set(0, compact ? 1.32 : 1.35, compact ? 4.70 : 4.60);
     camera.lookAt(0, 1.15, 0);
 
     const renderer = new THREE.WebGLRenderer({
@@ -281,22 +281,16 @@ export function HeroPreview3D({
       const aspect = w / h;
       camera.aspect = aspect;
 
-      // Smart responsive hero framing:
-      // In mobile landscape, vertical height is shallow (e.g. 140px - 260px) while width is wide (400px - 700px).
-      // Standard camera FOV/position leaves the avatar tiny because it centers vertically with wide margins.
-      // We dynamically tune camera position, target, and FOV so the character is prominently framed and heroic:
-      if (h < 260 || (aspect > 1.35 && h < 340)) {
-        // Shallow mobile landscape / compact view:
-        camera.fov = 32;
-        camera.position.set(0, 1.25, 3.35);
-        camera.lookAt(0, 1.05, 0);
-      } else if (compact || h < 380) {
-        camera.fov = 35;
-        camera.position.set(0, 1.38, 3.85);
-        camera.lookAt(0, 1.12, 0);
+      // Perfectly balanced framing:
+      // Ensure the entire character (from pedestal -0.1 to hat/head ~2.35)
+      // has generous headroom so the face, eyes, hair, and expressions are 100% visible!
+      if (compact) {
+        camera.fov = 40;
+        camera.position.set(0, 1.32, 4.70);
+        camera.lookAt(0, 1.15, 0);
       } else {
-        camera.fov = 38;
-        camera.position.set(0, 1.45, 4.35);
+        camera.fov = 39;
+        camera.position.set(0, 1.35, 4.60);
         camera.lookAt(0, 1.15, 0);
       }
 
