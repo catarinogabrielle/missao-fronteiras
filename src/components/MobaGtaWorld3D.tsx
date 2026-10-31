@@ -2277,7 +2277,19 @@ export function MobaGtaWorld3D({
     const cooldowns = { q: 0, w: 0, e: 0, r: 0 };
     let currentNearby: NearbyInteractionInfo | null = null;
 
+    let lastCombatPopupTime = 0;
     const emitPopup = (text: string, color: string) => {
+      // Throttle repetitive combat hit/damage popups so they don't cover the screen during battles
+      const isCombatHit =
+        text.includes("HP") ||
+        text.includes("GOLPE") ||
+        text.includes("ORBE") ||
+        text.includes("ONDA");
+      const now = performance.now();
+      if (isCombatHit) {
+        if (now - lastCombatPopupTime < 1400) return;
+        lastCombatPopupTime = now;
+      }
       onPopupRef.current({
         id: Date.now() + Math.random(),
         text,

@@ -280,11 +280,24 @@ export function MissionEngine({
     );
   }, [currentTurn, mission.id]);
 
+  const lastPopupTimeRef = useRef<number>(0);
   const pushWorldPopup = useCallback((popup: WorldFloatingPopup) => {
-    setPopups((prev) => [...prev.slice(-4), popup]);
+    const now = Date.now();
+    // Throttle repetitive combat hit notifications within 650ms
+    if (
+      popup.text.includes("HP") ||
+      popup.text.includes("GOLPE") ||
+      popup.text.includes("ORBE") ||
+      popup.text.includes("ONDA")
+    ) {
+      if (now - lastPopupTimeRef.current < 650) return;
+      lastPopupTimeRef.current = now;
+    }
+    // Limit to at most 1 single popup on screen so it never occludes combat
+    setPopups([popup]);
     setTimeout(() => {
       setPopups((prev) => prev.filter((p) => p.id !== popup.id));
-    }, 1850);
+    }, 1100);
   }, []);
 
   const fireAction = useCallback((action: CombatActionType) => {
@@ -792,18 +805,18 @@ export function MissionEngine({
       </div>
 
       {/* =========================================================
-          FLOATING COMBAT / SCORE / LOOT POPUPS
+          FLOATING COMBAT / SCORE / LOOT POPUPS (TOP-DOCKED, UNBLOCKS HERO)
          ========================================================= */}
-      <div className="pointer-events-none absolute top-34 right-0 left-0 z-30 mx-auto flex max-w-md flex-col items-center gap-1.5 px-4">
+      <div className="pointer-events-none absolute top-12 sm:top-14 right-0 left-0 z-30 mx-auto flex max-w-sm flex-col items-center px-4">
         <AnimatePresence>
           {popups.map((p) => (
             <motion.div
               key={p.id}
-              initial={{ opacity: 0, y: 14, scale: 0.82 }}
+              initial={{ opacity: 0, y: -6, scale: 0.88 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -18, scale: 0.9 }}
+              exit={{ opacity: 0, y: -8, scale: 0.9 }}
               style={{ color: p.color }}
-              className="rounded-full border border-white/15 bg-slate-950/90 px-3.5 py-1 font-mono text-xs font-black tracking-wide shadow-[0_6px_20px_rgba(0,0,0,0.65)] sm:text-sm"
+              className="rounded-full border border-white/20 bg-slate-950/85 backdrop-blur-md px-3 py-0.5 font-mono text-[9.5px] sm:text-xs font-black tracking-wide shadow-md"
             >
               {p.text}
             </motion.div>
@@ -1115,38 +1128,39 @@ export function MissionEngine({
       </div>
 
       {/* =========================================================
-          TOP-CENTER: HP, PONTE, LIVE RACE TIMER & BOSS BAR
+          TOP-CENTER: ULTRA-SLIM, TRANSLUCENT GAMER HUD (ZERO CLUTTER)
          ========================================================= */}
-      <div className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 z-20 w-auto max-w-[calc(100%-230px)] sm:max-w-md lg:max-w-lg">
-        <div className="moba-panel-gold moba-clip-panel pointer-events-auto px-2.5 py-1.5 sm:px-4 sm:py-2">
-          <div className="flex flex-wrap items-center justify-between gap-1">
-            <div className="flex items-center gap-1.5 truncate">
-              <span className="text-xs sm:text-base">{mission.emoji}</span>
-              <span className="truncate text-[9px] font-black tracking-wider text-amber-300 uppercase sm:text-xs">
-                {mission.title}
+      <div className="pointer-events-none absolute top-1.5 sm:top-2 left-1/2 -translate-x-1/2 z-20 w-auto max-w-[calc(100%-210px)] sm:max-w-md">
+        <div className="pointer-events-auto rounded-xl border border-amber-400/40 bg-slate-950/80 backdrop-blur-md px-2.5 py-1 shadow-md flex flex-col gap-0.5">
+          {/* Top Row: Mission Short Title + HP/Trust Badges */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1 min-w-0">
+              <span className="text-xs shrink-0">{mission.emoji}</span>
+              <span className="truncate text-[9px] sm:text-[10px] font-black tracking-wider text-amber-300 uppercase max-w-[120px] sm:max-w-[170px]">
+                {mission.title.split("•")[0]?.trim() || mission.title}
               </span>
             </div>
 
-            <div className="flex items-center gap-1.5 font-mono text-[9px] font-black sm:text-xs">
-              <span className="flex items-center gap-1 rounded bg-rose-500/20 px-1.5 py-0.5 text-rose-300">
-                <Heart className="h-3 w-3 fill-rose-400 text-rose-400" />
+            <div className="flex items-center gap-1.5 font-mono text-[8.5px] sm:text-[9.5px] font-black shrink-0">
+              <span className="flex items-center gap-0.5 rounded bg-rose-500/20 px-1 py-0.2 text-rose-300">
+                <Heart className="h-2.5 w-2.5 fill-rose-400 text-rose-400" />
                 {hudSnap.hp}/{hudSnap.maxHp}
               </span>
-              <span className="flex items-center gap-1 rounded bg-emerald-500/20 px-1.5 py-0.5 text-emerald-300">
+              <span className="rounded bg-emerald-500/20 px-1 py-0.2 text-emerald-300">
                 🤝 {trust}%
               </span>
             </div>
           </div>
 
-          {/* Dual Progress Bars */}
-          <div className="mt-1 grid grid-cols-2 gap-1.5 sm:mt-1.5 sm:gap-2">
-            <div className="h-1.5 sm:h-2 w-full overflow-hidden rounded-full border border-rose-400/40 bg-slate-950">
+          {/* Dual Slim Progress Bars */}
+          <div className="grid grid-cols-2 gap-1.5">
+            <div className="h-1 sm:h-1.5 w-full overflow-hidden rounded-full border border-rose-400/30 bg-slate-950">
               <div
                 style={{ width: `${hpPct}%` }}
                 className="h-full bg-gradient-to-r from-rose-600 via-rose-400 to-emerald-400 transition-all duration-150"
               />
             </div>
-            <div className="h-1.5 sm:h-2 w-full overflow-hidden rounded-full border border-amber-400/45 bg-slate-950">
+            <div className="h-1 sm:h-1.5 w-full overflow-hidden rounded-full border border-amber-400/30 bg-slate-950">
               <motion.div
                 animate={{ width: `${trust}%` }}
                 className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-300"
@@ -1154,52 +1168,41 @@ export function MissionEngine({
             </div>
           </div>
 
-          {/* Active GTA Checkpoint Express Race Countdown Banner! */}
+          {/* Live Checkpoint Express Race Countdown (Only when racing) */}
           {hudSnap.raceActive && (
-            <div className="mt-1 flex items-center justify-between rounded-lg border border-emerald-400/70 bg-emerald-950/80 px-2.5 py-0.5 font-mono text-[9px] font-black text-emerald-200 sm:text-xs">
+            <div className="flex items-center justify-between pt-0.5 border-t border-emerald-500/30 font-mono text-[8.5px] font-black text-emerald-200">
               <span className="flex items-center gap-1">
-                <Flag className="h-3 w-3 text-amber-300" />
-                CHECKPOINT {hudSnap.raceCheckpointIdx + 1}/
-                {hudSnap.raceTotalCheckpoints}
+                <Flag className="h-2.5 w-2.5 text-amber-300" />
+                CHECKPOINT {hudSnap.raceCheckpointIdx + 1}/{hudSnap.raceTotalCheckpoints}
               </span>
-              <span
-                className={
-                  hudSnap.raceTimeLeft < 12
-                    ? "animate-pulse text-rose-300"
-                    : "text-amber-300"
-                }
-              >
+              <span className={hudSnap.raceTimeLeft < 12 ? "animate-pulse text-rose-300" : "text-amber-300"}>
                 ⏱️ {hudSnap.raceTimeLeft.toFixed(1)}s
               </span>
             </div>
           )}
 
-          {/* AAA Live District Shadow Boss HP Bar */}
+          {/* Integrated Slim District Boss Bar (Only when near boss) */}
           {nearBossArena && !hudSnap.raceActive && (
-            <div className="mt-1 rounded-xl border-2 border-fuchsia-400/70 bg-gradient-to-r from-fuchsia-950/90 via-slate-950/95 to-rose-950/85 px-2.5 py-1 shadow-[0_0_22px_rgba(217,70,239,0.45)]">
-              <div className="flex items-center justify-between text-[9px] font-black tracking-wide text-fuchsia-100 uppercase sm:text-[10px]">
-                <span className="flex items-center gap-1">
-                  <Crown className="h-3 w-3 text-amber-300" />
-                  BOSS: {worldCfg.bossName}
-                </span>
-                <span className="font-mono text-amber-300">
-                  {hudSnap.bossHpPct}% HP
-                </span>
-              </div>
-              <div className="mt-0.5 h-2 w-full overflow-hidden rounded-full border border-fuchsia-400/40 bg-slate-950">
+            <div className="flex items-center gap-1.5 pt-0.5 border-t border-fuchsia-500/30">
+              <span className="flex items-center gap-1 text-[8.5px] font-black text-fuchsia-200 uppercase shrink-0">
+                <Crown className="h-2.5 w-2.5 text-amber-300" />
+                {worldCfg.bossName.split(" ")[0] || "BOSS"}:
+              </span>
+              <div className="flex-1 h-1 sm:h-1.5 overflow-hidden rounded-full border border-fuchsia-400/30 bg-slate-950">
                 <div
                   style={{ width: `${hudSnap.bossHpPct}%` }}
                   className="h-full bg-gradient-to-r from-rose-500 via-fuchsia-500 to-amber-400 transition-all duration-150"
                 />
               </div>
+              <span className="font-mono text-[8px] font-black text-amber-300 shrink-0">
+                {hudSnap.bossHpPct}%
+              </span>
             </div>
           )}
 
-          <div className="mt-0.5 truncate text-[9px] font-bold text-cyan-200 sm:text-[10px]">
-            🎯 GPS:{" "}
-            {hudSnap.raceActive
-              ? `Atravesse o Anel Dourado ${hudSnap.raceCheckpointIdx + 1}/${hudSnap.raceTotalCheckpoints}!`
-              : activeGpsTarget.label}
+          {/* Ultra-Slim GPS Sub-line */}
+          <div className="truncate text-[8px] sm:text-[8.5px] font-bold text-cyan-200/90">
+            🎯 GPS: {hudSnap.raceActive ? `Anel ${hudSnap.raceCheckpointIdx + 1}/${hudSnap.raceTotalCheckpoints}` : activeGpsTarget.label}
           </div>
         </div>
       </div>
