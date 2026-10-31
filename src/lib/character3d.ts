@@ -116,6 +116,7 @@ export function buildStylizedHumanRig(
   root.add(bodyGroup);
 
   const isFemale = cfg.gender === "female";
+  const avatarKey = cfg.avatarId || (isFemale ? "sofia" : "lucas");
   const shoulderOffset = isFemale ? 0.285 : 0.33;
   const hipOffset = isFemale ? 0.135 : 0.145;
   const torsoWidth = isFemale ? 1.0 : 1.12;
@@ -140,7 +141,7 @@ export function buildStylizedHumanRig(
   const skinMat = new THREE.MeshStandardMaterial({
     color: cfg.skin,
     emissive: cfg.skin,
-    emissiveIntensity: 0.35,
+    emissiveIntensity: 0.08, // Subtle subsurface glow, sculpted by studio directional lights
     roughness: 0.44,
     metalness: 0.02,
   });
@@ -281,57 +282,458 @@ export function buildStylizedHumanRig(
   innerTorso.castShadow = true;
   bodyGroup.add(innerTorso);
 
-  // Glowing Chest Emblem / Crystal
-  const chestCore = new THREE.Mesh(
-    new THREE.OctahedronGeometry(0.05, 0),
-    accentMat
-  );
-  chestCore.position.set(0, 1.48, 0.175);
-  chestCore.scale.set(1, 1.25, 0.55);
-  bodyGroup.add(chestCore);
+  // --- HERO-SPECIFIC TORSO & OUTFIT SCULPTING ---
+  if (avatarKey === "lucas") {
+    // 1. LUCAS: Authentic Scout Expedition Vest over Slate Long-Sleeve
+    const vestMat = new THREE.MeshStandardMaterial({
+      color: 0x15803d, // Forest Scout Green
+      roughness: 0.48,
+      metalness: 0.1,
+    });
+    const vestTrimMat = new THREE.MeshStandardMaterial({
+      color: 0x14532d,
+      roughness: 0.45,
+    });
+    const zipMat = new THREE.MeshStandardMaterial({
+      color: 0x0f172a,
+      metalness: 0.8,
+      roughness: 0.2,
+    });
+    const buttonMat = new THREE.MeshStandardMaterial({
+      color: 0xe2e8f0,
+      metalness: 0.95,
+      roughness: 0.15,
+    });
 
-  const jacketShell = new THREE.Mesh(
-    new THREE.CylinderGeometry(
-      isFemale ? 0.235 : 0.255,
-      isFemale ? 0.205 : 0.225,
-      0.55,
-      18,
-      1,
-      false,
-      Math.PI * 0.22,
-      Math.PI * 1.56
-    ),
-    jacketMat
-  );
-  jacketShell.scale.set(isFemale ? 1.05 : 1.15, 1, isFemale ? 0.75 : 0.8);
-  jacketShell.position.y = 1.43;
-  jacketShell.castShadow = true;
-  bodyGroup.add(jacketShell);
+    // Outer Scout Vest Shell
+    const vestShell = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.252, 0.222, 0.54, 18, 1, false, Math.PI * 0.22, Math.PI * 1.56),
+      vestMat
+    );
+    vestShell.scale.set(1.15, 1, 0.80);
+    vestShell.position.y = 1.43;
+    vestShell.castShadow = true;
+    bodyGroup.add(vestShell);
 
-  [-0.09, 0.09].forEach((lx) => {
-    const lapel = new THREE.Mesh(
-      new THREE.BoxGeometry(0.04, 0.52, 0.04),
+    // Center Front Zipper Strip
+    const zipper = new THREE.Mesh(
+      new THREE.BoxGeometry(0.024, 0.52, 0.02),
+      zipMat
+    );
+    zipper.position.set(0, 1.43, 0.182);
+    bodyGroup.add(zipper);
+
+    // Left and Right Flap Cargo Pockets on Chest with Silver Snap Buttons
+    [-0.105, 0.105].forEach((px) => {
+      const pocket = new THREE.Mesh(
+        new THREE.BoxGeometry(0.082, 0.095, 0.035),
+        vestTrimMat
+      );
+      pocket.position.set(px, 1.38, 0.182);
+      bodyGroup.add(pocket);
+
+      const flap = new THREE.Mesh(
+        new THREE.BoxGeometry(0.086, 0.032, 0.04),
+        vestMat
+      );
+      flap.position.set(px, 1.43, 0.185);
+      bodyGroup.add(flap);
+
+      const snap = new THREE.Mesh(
+        new THREE.SphereGeometry(0.0075, 8, 8),
+        buttonMat
+      );
+      snap.position.set(px, 1.425, 0.206);
+      bodyGroup.add(snap);
+    });
+
+    // Left Chest: Official Brazilian Flag Badge
+    const flagGroup = new THREE.Group();
+    flagGroup.position.set(-0.11, 1.54, 0.182);
+    flagGroup.rotation.y = 0.14;
+
+    const flagBase = new THREE.Mesh(
+      new THREE.BoxGeometry(0.052, 0.034, 0.01),
+      new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.35 })
+    );
+    flagGroup.add(flagBase);
+
+    const flagRhombus = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.018, 0),
+      new THREE.MeshStandardMaterial({ color: 0xeab308, roughness: 0.35 })
+    );
+    flagRhombus.scale.set(1.4, 0.8, 0.2);
+    flagRhombus.position.z = 0.006;
+    flagGroup.add(flagRhombus);
+
+    const flagCircle = new THREE.Mesh(
+      new THREE.CircleGeometry(0.009, 12),
+      new THREE.MeshStandardMaterial({ color: 0x1d4ed8, roughness: 0.35 })
+    );
+    flagCircle.position.z = 0.008;
+    flagGroup.add(flagCircle);
+
+    bodyGroup.add(flagGroup);
+
+    // Right Chest: Macaw / Parrot Scout Crest
+    const crestGroup = new THREE.Group();
+    crestGroup.position.set(0.11, 1.54, 0.182);
+    crestGroup.rotation.y = -0.14;
+
+    const macawRed = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.012, 0.026, 6, 8),
+      new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.35 })
+    );
+    crestGroup.add(macawRed);
+
+    const macawWing = new THREE.Mesh(
+      new THREE.BoxGeometry(0.012, 0.022, 0.008),
+      new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.35 })
+    );
+    macawWing.position.set(0.008, -0.004, 0.006);
+    crestGroup.add(macawWing);
+
+    bodyGroup.add(crestGroup);
+
+    // Jade Drop Pendant Necklace on Neck
+    const neckCord = new THREE.Mesh(
+      new THREE.TorusGeometry(0.092, 0.006, 8, 20, Math.PI * 1.3),
+      new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.6 })
+    );
+    neckCord.rotation.x = Math.PI / 2 + 0.35;
+    neckCord.position.set(0, 1.70, 0.06);
+    bodyGroup.add(neckCord);
+
+    const jadePendant = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.022, 0),
+      new THREE.MeshStandardMaterial({
+        color: 0x10b981,
+        emissive: 0x059669,
+        emissiveIntensity: 0.8,
+        roughness: 0.15,
+        metalness: 0.2,
+      })
+    );
+    jadePendant.scale.set(0.7, 1.4, 0.7);
+    jadePendant.position.set(0, 1.62, 0.184);
+    bodyGroup.add(jadePendant);
+
+    // Adventurer Harness Straps over Shoulders with D-Rings
+    [-0.14, 0.14].forEach((hx) => {
+      const strap = new THREE.Mesh(
+        new THREE.BoxGeometry(0.038, 0.44, 0.016),
+        new THREE.MeshStandardMaterial({ color: 0x3f2215, roughness: 0.65 })
+      );
+      strap.position.set(hx, 1.50, 0.178);
+      strap.rotation.y = hx < 0 ? 0.08 : -0.08;
+      bodyGroup.add(strap);
+
+      const dRing = new THREE.Mesh(
+        new THREE.TorusGeometry(0.014, 0.004, 6, 12, Math.PI),
+        buttonMat
+      );
+      dRing.position.set(hx, 1.50, 0.192);
+      bodyGroup.add(dRing);
+    });
+
+    // Rolled-up Bedroll / Sleeping Bag Resting Behind Neck
+    const bedrollGroup = new THREE.Group();
+    bedrollGroup.position.set(0, 1.68, -0.21);
+
+    const rollCloth = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.085, 0.085, 0.44, 16),
+      new THREE.MeshStandardMaterial({ color: 0x14532d, roughness: 0.6 })
+    );
+    rollCloth.rotation.z = Math.PI / 2;
+    bedrollGroup.add(rollCloth);
+
+    [-0.14, 0.14].forEach((rx) => {
+      const buckleStrap = new THREE.Mesh(
+        new THREE.TorusGeometry(0.09, 0.01, 8, 16),
+        new THREE.MeshStandardMaterial({ color: 0x451a03, roughness: 0.6 })
+      );
+      buckleStrap.rotation.y = Math.PI / 2;
+      buckleStrap.position.x = rx;
+      bedrollGroup.add(buckleStrap);
+    });
+    bodyGroup.add(bedrollGroup);
+
+    // Collar
+    const vestCollar = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.165, 0.185, 0.11, 16, 1, true, Math.PI * 0.25, Math.PI * 1.5),
+      vestMat
+    );
+    vestCollar.position.y = 1.72;
+    bodyGroup.add(vestCollar);
+  } else if (avatarKey === "sofia") {
+    // 2. SOFIA: Turquoise Tech Jacket with Neon Orange Piping & High Collar
+    const jacketCyanMat = new THREE.MeshStandardMaterial({
+      color: 0x0284c7, // Turquoise Cyan
+      roughness: 0.4,
+      metalness: 0.15,
+    });
+    const orangePipingMat = new THREE.MeshStandardMaterial({
+      color: 0xf97316,
+      emissive: 0xf97316,
+      emissiveIntensity: 0.55,
+      roughness: 0.3,
+    });
+
+    const vestShell = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.235, 0.205, 0.55, 18, 1, false, Math.PI * 0.22, Math.PI * 1.56),
+      jacketCyanMat
+    );
+    vestShell.scale.set(1.05, 1, 0.75);
+    vestShell.position.y = 1.43;
+    vestShell.castShadow = true;
+    bodyGroup.add(vestShell);
+
+    // Neon Orange Piping Lapels
+    [-0.085, 0.085].forEach((lx) => {
+      const piping = new THREE.Mesh(
+        new THREE.BoxGeometry(0.024, 0.52, 0.024),
+        orangePipingMat
+      );
+      piping.position.set(lx, 1.43, 0.18);
+      bodyGroup.add(piping);
+    });
+
+    // High Tech Collar with Orange Piping Rim
+    const highCollar = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.16, 0.175, 0.13, 16, 1, true, Math.PI * 0.25, Math.PI * 1.5),
+      jacketCyanMat
+    );
+    highCollar.position.y = 1.73;
+    bodyGroup.add(highCollar);
+
+    const collarRim = new THREE.Mesh(
+      new THREE.TorusGeometry(0.162, 0.012, 8, 20, Math.PI * 1.4),
+      orangePipingMat
+    );
+    collarRim.rotation.x = Math.PI / 2;
+    collarRim.rotation.z = Math.PI * 0.8;
+    collarRim.position.set(0, 1.79, 0.02);
+    bodyGroup.add(collarRim);
+  } else if (avatarKey === "davi") {
+    // 3. DAVI: Ochre Streetwear Tech Hoodie with White Drawstrings & Gold Traces
+    const hoodieMat = new THREE.MeshStandardMaterial({
+      color: 0xd97706, // Ochre Mustard Amber
+      roughness: 0.55,
+      metalness: 0.05,
+    });
+    const pocketMat = new THREE.MeshStandardMaterial({
+      color: 0xb45309,
+      roughness: 0.58,
+    });
+    const stringMat = new THREE.MeshStandardMaterial({
+      color: 0xf8fafc,
+      roughness: 0.3,
+    });
+    const traceMat = new THREE.MeshStandardMaterial({
+      color: 0xfef08a,
+      emissive: 0xfbbf24,
+      emissiveIntensity: 0.85,
+    });
+
+    const hoodieBody = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.255, 0.225, 0.56, 18),
+      hoodieMat
+    );
+    hoodieBody.scale.set(1.15, 1, 0.8);
+    hoodieBody.position.y = 1.43;
+    hoodieBody.castShadow = true;
+    bodyGroup.add(hoodieBody);
+
+    // Front Kangaroo Pouch Pocket
+    const pouch = new THREE.Mesh(
+      new THREE.BoxGeometry(0.24, 0.16, 0.04),
+      pocketMat
+    );
+    pouch.position.set(0, 1.30, 0.186);
+    bodyGroup.add(pouch);
+
+    // White Hoodie Drawstrings
+    [-0.04, 0.04].forEach((sx) => {
+      const stringMesh = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.007, 0.18, 6, 8),
+        stringMat
+      );
+      stringMesh.position.set(sx, 1.54, 0.192);
+      bodyGroup.add(stringMesh);
+    });
+
+    // Tech Circuit Line Traces on Chest
+    const trace = new THREE.Mesh(
+      new THREE.BoxGeometry(0.18, 0.012, 0.012),
+      traceMat
+    );
+    trace.position.set(0, 1.48, 0.188);
+    bodyGroup.add(trace);
+
+    // Hoodie Neck Trim
+    const hoodCollar = new THREE.Mesh(
+      new THREE.TorusGeometry(0.165, 0.038, 10, 20),
+      hoodieMat
+    );
+    hoodCollar.rotation.x = Math.PI / 2;
+    hoodCollar.position.set(0, 1.72, -0.02);
+    bodyGroup.add(hoodCollar);
+
+    // Floating Golden Data Runes / Glyphs near Right Shoulder
+    const runeGroup = new THREE.Group();
+    runeGroup.position.set(0.28, 1.70, 0.05);
+    for (let i = 0; i < 6; i++) {
+      const ang = (i / 6) * Math.PI * 2;
+      const rune = new THREE.Mesh(
+        new THREE.OctahedronGeometry(0.016, 0),
+        traceMat
+      );
+      rune.position.set(Math.cos(ang) * 0.08, i % 2 === 0 ? 0.04 : -0.04, Math.sin(ang) * 0.08);
+      runeGroup.add(rune);
+    }
+    bodyGroup.add(runeGroup);
+  } else if (avatarKey === "ester") {
+    // 4. ESTER: Royal Imperial Purple Trench Coat with Gold Lapel & Epaulettes
+    const purpleMat = new THREE.MeshStandardMaterial({
+      color: 0x6b21a8, // Royal Imperial Purple
+      roughness: 0.42,
+      metalness: 0.15,
+    });
+    const goldMat = new THREE.MeshStandardMaterial({
+      color: 0xfbbf24,
+      emissive: 0xd97706,
+      emissiveIntensity: 0.55,
+      metalness: 0.92,
+      roughness: 0.16,
+    });
+
+    const coatShell = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.235, 0.205, 0.55, 18, 1, false, Math.PI * 0.22, Math.PI * 1.56),
+      purpleMat
+    );
+    coatShell.scale.set(1.05, 1, 0.75);
+    coatShell.position.y = 1.43;
+    coatShell.castShadow = true;
+    bodyGroup.add(coatShell);
+
+    // Left Lapel Gold Embroidered Crescent Moon & Star
+    const lapelGroup = new THREE.Group();
+    lapelGroup.position.set(-0.09, 1.52, 0.185);
+
+    const moonRing = new THREE.Mesh(
+      new THREE.TorusGeometry(0.024, 0.006, 8, 16, Math.PI * 1.2),
+      goldMat
+    );
+    moonRing.rotation.z = 0.4;
+    lapelGroup.add(moonRing);
+
+    const moonStar = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.010, 0),
+      goldMat
+    );
+    moonStar.position.set(0.014, 0.008, 0.005);
+    lapelGroup.add(moonStar);
+    bodyGroup.add(lapelGroup);
+
+    // Gold Double-Breasted Buttons
+    [-0.06, 0.06].forEach((bx) => {
+      [1.35, 1.44].forEach((by) => {
+        const btn = new THREE.Mesh(
+          new THREE.SphereGeometry(0.008, 8, 8),
+          goldMat
+        );
+        btn.position.set(bx, by, 0.182);
+        bodyGroup.add(btn);
+      });
+    });
+
+    // Gold Shoulder Epaulettes
+    [-0.27, 0.27].forEach((ex) => {
+      const epaulette = new THREE.Mesh(
+        new THREE.BoxGeometry(0.09, 0.02, 0.12),
+        goldMat
+      );
+      epaulette.position.set(ex, 1.66, 0);
+      epaulette.rotation.z = ex < 0 ? 0.25 : -0.25;
+      bodyGroup.add(epaulette);
+    });
+
+    // Draped Silk Scarf around neck
+    const scarfMat = new THREE.MeshStandardMaterial({
+      color: 0xfacc15,
+      emissive: 0xeab308,
+      emissiveIntensity: 0.35,
+      roughness: 0.55,
+    });
+    const scarfRing = new THREE.Mesh(
+      new THREE.TorusGeometry(0.125, 0.038, 10, 24),
+      scarfMat
+    );
+    scarfRing.rotation.x = Math.PI / 2;
+    scarfRing.position.set(0, 1.75, 0.02);
+    bodyGroup.add(scarfRing);
+
+    [-0.04, 0.04].forEach((sx) => {
+      const tail = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.028, 0.18, 6, 10),
+        scarfMat
+      );
+      tail.position.set(sx, 1.62, 0.18);
+      bodyGroup.add(tail);
+    });
+  } else {
+    // 5. Default / Fallback Outer Shell & Lapels
+    const chestCore = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.05, 0),
       accentMat
     );
-    lapel.position.set(lx, 1.43, 0.18);
-    bodyGroup.add(lapel);
-  });
+    chestCore.position.set(0, 1.48, 0.175);
+    chestCore.scale.set(1, 1.25, 0.55);
+    bodyGroup.add(chestCore);
 
-  const collar = new THREE.Mesh(
-    new THREE.CylinderGeometry(
-      0.16,
-      0.18,
-      0.11,
-      16,
-      1,
-      true,
-      Math.PI * 0.25,
-      Math.PI * 1.5
-    ),
-    jacketMat
-  );
-  collar.position.y = 1.72;
-  bodyGroup.add(collar);
+    const jacketShell = new THREE.Mesh(
+      new THREE.CylinderGeometry(
+        isFemale ? 0.235 : 0.255,
+        isFemale ? 0.205 : 0.225,
+        0.55,
+        18,
+        1,
+        false,
+        Math.PI * 0.22,
+        Math.PI * 1.56
+      ),
+      jacketMat
+    );
+    jacketShell.scale.set(isFemale ? 1.05 : 1.15, 1, isFemale ? 0.75 : 0.8);
+    jacketShell.position.y = 1.43;
+    jacketShell.castShadow = true;
+    bodyGroup.add(jacketShell);
+
+    [-0.09, 0.09].forEach((lx) => {
+      const lapel = new THREE.Mesh(
+        new THREE.BoxGeometry(0.04, 0.52, 0.04),
+        accentMat
+      );
+      lapel.position.set(lx, 1.43, 0.18);
+      bodyGroup.add(lapel);
+    });
+
+    const collar = new THREE.Mesh(
+      new THREE.CylinderGeometry(
+        0.16,
+        0.18,
+        0.11,
+        16,
+        1,
+        true,
+        Math.PI * 0.25,
+        Math.PI * 1.5
+      ),
+      jacketMat
+    );
+    collar.position.y = 1.72;
+    bodyGroup.add(collar);
+  }
 
   // --- PAULDRONS (OPTIONAL) ---
   if (cfg.hasPauldrons) {
@@ -496,15 +898,15 @@ export function buildStylizedHumanRig(
   // High-Quality Stylized Pixar / Anime Eyes
   const scleraMat = new THREE.MeshStandardMaterial({
     color: 0xffffff,
-    roughness: 0.15,
+    roughness: 0.12,
     metalness: 0.0,
     emissive: 0xffffff,
-    emissiveIntensity: 0.35,
+    emissiveIntensity: 0.20,
   });
   const irisMat = new THREE.MeshStandardMaterial({
     color: cfg.eye,
     emissive: cfg.eye,
-    emissiveIntensity: 0.55,
+    emissiveIntensity: 0.40,
     roughness: 0.2,
   });
   const pupilMat = new THREE.MeshBasicMaterial({ color: 0x07090e });
@@ -523,7 +925,7 @@ export function buildStylizedHumanRig(
     sclera.scale.set(1.24, 0.95, 0.42);
     eyeSocket.add(sclera);
 
-    // Eyelid line (subtle top contour for expressive cartoon character)
+    // Eyelid line (subtle top contour for expressive character)
     const upperEyelid = new THREE.Mesh(
       new THREE.TorusGeometry(0.048, 0.0065, 8, 18, Math.PI * 0.74),
       eyelidMat
@@ -583,8 +985,8 @@ export function buildStylizedHumanRig(
   smile.position.set(0, -0.062, isFemale ? 0.208 : 0.218);
   headGroup.add(smile);
 
-  // Soft Rosy Cheeks for Girls (Sofia & Ester) - Safely on the outer cheek, NEVER over eyes!
-  if (isFemale) {
+  // Soft Rosy Cheeks for Sofia
+  if (avatarKey === "sofia") {
     [-0.130, 0.130].forEach((bx) => {
       const blush = new THREE.Mesh(
         new THREE.CircleGeometry(0.032, 16),
@@ -599,75 +1001,110 @@ export function buildStylizedHumanRig(
     });
   }
 
-  // =========================================================================
-  // SCULPTED AUTHENTIC HERO HAIR (NEVER BALD ACROSS ANY SKIN OR HAT!)
-  // =========================================================================
-  const avatarKey = cfg.avatarId || (isFemale ? "sofia" : "lucas");
+  // Freckles for Lucas and Ester (matching official artworks!)
+  if (avatarKey === "lucas" || avatarKey === "ester") {
+    const freckleMat = new THREE.MeshBasicMaterial({
+      color: avatarKey === "lucas" ? 0x92400e : 0x78350f,
+      transparent: true,
+      opacity: 0.48,
+    });
+    [
+      [-0.065, -0.012, 0.210],
+      [-0.035, -0.006, 0.220],
+      [-0.018, -0.016, 0.224],
+      [0.018, -0.016, 0.224],
+      [0.035, -0.006, 0.220],
+      [0.065, -0.012, 0.210],
+    ].forEach(([fx, fy, fz]) => {
+      const freckle = new THREE.Mesh(
+        new THREE.CircleGeometry(0.0042, 8),
+        freckleMat
+      );
+      freckle.position.set(fx, fy, fz);
+      headGroup.add(freckle);
+    });
+  }
 
-  // 1. SOFIA: Long flowing wavy brunette hair framing the sides cleanly
+  // =========================================================================
+  // SCULPTED AUTHENTIC HERO HAIR (NEVER BALD & NEVER COVERING FACE!)
+  // =========================================================================
+
+  // 1. SOFIA: Long flowing wavy brunette hair with violet highlights framing the sides cleanly
   if (avatarKey === "sofia") {
-    // Full crown and occipital hair dome covering entire head
-    const crownHair = new THREE.Mesh(
-      new THREE.SphereGeometry(0.228, 24, 20, 0, Math.PI * 2, 0, Math.PI * 0.72),
+    // Back hair dome (shifted to rear: z = -0.04, leaving front face 100% open!)
+    const backHair = new THREE.Mesh(
+      new THREE.SphereGeometry(0.224, 20, 16, 0, Math.PI * 2, 0, Math.PI * 0.55),
       hairMat
     );
-    crownHair.scale.set(0.96, 1.08, 1.03);
-    crownHair.position.set(0, 0.02, -0.01);
-    crownHair.castShadow = true;
-    headGroup.add(crownHair);
+    backHair.position.set(0, 0.02, -0.04);
+    backHair.castShadow = true;
+    headGroup.add(backHair);
 
-    // Front high curtain bangs (kept safely above the forehead, never covering eyes)
-    [-0.076, 0.076].forEach((fx) => {
-      const sweep = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.028, 0.08, 6, 10),
-        hairMat
-      );
-      sweep.position.set(fx, 0.13, 0.168);
-      sweep.rotation.z = fx < 0 ? 0.72 : -0.72;
-      headGroup.add(sweep);
-    });
-
-    // Cascading side locks kept cleanly on the SIDES of the head and behind shoulders
-    [-0.205, 0.205].forEach((lx) => {
-      const lockUpper = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.046, 0.20, 8, 12),
-        hairMat
-      );
-      lockUpper.position.set(lx, -0.07, 0.02);
-      lockUpper.rotation.z = lx < 0 ? -0.18 : 0.18;
-      lockUpper.rotation.y = lx < 0 ? 0.22 : -0.22;
-      headGroup.add(lockUpper);
-
-      const lockLower = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.042, 0.18, 8, 12),
-        hairMat
-      );
-      lockLower.position.set(lx * 0.96, -0.23, -0.01);
-      lockLower.rotation.x = 0.12;
-      headGroup.add(lockLower);
-    });
-
-    // Back hair flowing down to shoulder blades (fully covers back of neck & nape)
+    // Cascading back waves covering down past the neck to the shoulder blades
     const backMane = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.15, 0.34, 10, 14),
+      new THREE.CapsuleGeometry(0.14, 0.32, 8, 12),
       hairMat
     );
-    backMane.position.set(0, -0.17, -0.15);
-    backMane.rotation.x = 0.18;
+    backMane.position.set(0, -0.15, -0.15);
+    backMane.rotation.x = 0.16;
     backMane.castShadow = true;
     headGroup.add(backMane);
 
-    // Sofia's signature DJ Studio Headphones resting around neck
+    // Front high curtain bangs (parted cleanly to left and right, NEVER covering eyes!)
+    [-0.09, 0.09].forEach((fx) => {
+      const sweep = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.028, 0.09, 6, 10),
+        hairMat
+      );
+      sweep.position.set(fx, 0.13, 0.165);
+      sweep.rotation.z = fx < 0 ? 0.70 : -0.70;
+      headGroup.add(sweep);
+    });
+
+    // Cascading side wavy locks along cheeks (flanking ears cleanly at |x| = 0.195)
+    [-0.195, 0.195].forEach((lx) => {
+      const lockUpper = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.042, 0.22, 8, 12),
+        hairMat
+      );
+      lockUpper.position.set(lx, -0.07, 0.02);
+      lockUpper.rotation.z = lx < 0 ? -0.16 : 0.16;
+      headGroup.add(lockUpper);
+
+      const lockLower = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.038, 0.20, 8, 12),
+        hairMat
+      );
+      lockLower.position.set(lx * 0.96, -0.22, -0.01);
+      headGroup.add(lockLower);
+    });
+
+    // Subtle Electric Violet Highlight streak lock on the right side
+    const violetMat = new THREE.MeshStandardMaterial({
+      color: 0x6366f1,
+      emissive: 0x4f46e5,
+      emissiveIntensity: 0.45,
+      roughness: 0.5,
+    });
+    const violetStreak = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.020, 0.18, 6, 8),
+      violetMat
+    );
+    violetStreak.position.set(0.18, -0.10, 0.05);
+    violetStreak.rotation.z = -0.14;
+    headGroup.add(violetStreak);
+
+    // Signature DJ Headphones around neck (coral red band, glowing cyan cups)
     if (cfg.hatType !== "hood") {
-      const phoneMat = new THREE.MeshStandardMaterial({
-        color: 0xf43f5e,
-        emissive: 0xe11d48,
-        emissiveIntensity: 0.35,
-        metalness: 0.6,
-      });
       const bandMat = new THREE.MeshStandardMaterial({
-        color: 0x0284c7,
-        metalness: 0.7,
+        color: 0xf43f5e,
+        roughness: 0.35,
+      });
+      const cupMat = new THREE.MeshStandardMaterial({
+        color: 0x06b6d4,
+        emissive: 0x22d3ee,
+        emissiveIntensity: 0.9,
+        metalness: 0.5,
         roughness: 0.2,
       });
 
@@ -683,7 +1120,7 @@ export function buildStylizedHumanRig(
       [-0.14, 0.14].forEach((cx) => {
         const earCup = new THREE.Mesh(
           new THREE.CylinderGeometry(0.062, 0.062, 0.046, 16),
-          phoneMat
+          cupMat
         );
         earCup.rotation.z = cx < 0 ? 0.3 : -0.3;
         earCup.rotation.y = cx < 0 ? -0.4 : 0.4;
@@ -693,32 +1130,30 @@ export function buildStylizedHumanRig(
     }
   }
 
-  // 2. DAVI: Modern High-Top Textured Fade + Signature Cyber Style
+  // 2. DAVI: Modern High-Top Textured Fade + Signature Cyber Smart-Visor
   else if (avatarKey === "davi") {
-    // Base hair coverage covering entire skull and occipital bone (fade foundation)
+    // Back and side fade foundation (shifted to rear: z = -0.03)
     const baseFade = new THREE.Mesh(
-      new THREE.SphereGeometry(0.226, 22, 18, 0, Math.PI * 2, 0, Math.PI * 0.68),
+      new THREE.SphereGeometry(0.222, 20, 16, 0, Math.PI * 2, 0, Math.PI * 0.52),
       hairMat
     );
-    baseFade.scale.set(0.95, 1.06, 0.98);
-    baseFade.position.set(0, 0.015, -0.01);
+    baseFade.position.set(0, 0.02, -0.03);
     headGroup.add(baseFade);
 
-    // Tapered back and sides fade
-    const backFade = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.205, 0.185, 0.16, 18),
+    const napeFade = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.19, 0.17, 0.16, 16),
       hairMat
     );
-    backFade.position.set(0, 0.04, -0.02);
-    headGroup.add(backFade);
+    napeFade.position.set(0, 0.03, -0.04);
+    headGroup.add(napeFade);
 
-    // High-top box fade volume
+    // High-top box volume
     const highTop = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.182, 0.208, 0.18, 18),
+      new THREE.CylinderGeometry(0.185, 0.205, 0.18, 18),
       hairMat
     );
-    highTop.scale.set(0.94, 1, 0.92);
-    highTop.position.set(0, 0.17, -0.01);
+    highTop.scale.set(0.95, 1, 0.90);
+    highTop.position.set(0, 0.17, -0.02);
     highTop.castShadow = true;
     headGroup.add(highTop);
 
@@ -727,17 +1162,17 @@ export function buildStylizedHumanRig(
       const ang = (i / 9) * Math.PI * 2;
       const rad = i % 2 === 0 ? 0.095 : 0.055;
       const curlNub = new THREE.Mesh(
-        new THREE.SphereGeometry(0.038, 8, 8),
+        new THREE.SphereGeometry(0.036, 8, 8),
         hairMat
       );
-      curlNub.position.set(Math.sin(ang) * rad, 0.25, Math.cos(ang) * rad - 0.01);
+      curlNub.position.set(Math.sin(ang) * rad, 0.25, Math.cos(ang) * rad - 0.02);
       headGroup.add(curlNub);
     }
 
-    // Davi's signature holographic glasses (when not replaced by skin visor)
+    // Davi's Signature Smart Visor across eyes
     if (cfg.hatType !== "visor") {
       const glassFrameMat = new THREE.MeshStandardMaterial({
-        color: 0x0f172a,
+        color: 0x090d16,
         metalness: 0.85,
         roughness: 0.2,
       });
@@ -751,20 +1186,29 @@ export function buildStylizedHumanRig(
       });
 
       const cyberVisorGroup = new THREE.Group();
-      cyberVisorGroup.position.set(0, 0.028, 0.186);
+      cyberVisorGroup.position.set(0, 0.038, 0.20);
 
       const visorLens = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.21, 0.21, 0.05, 20, 1, true, -Math.PI * 0.36, Math.PI * 0.72),
+        new THREE.BoxGeometry(0.29, 0.054, 0.024),
         glassLensMat
       );
       cyberVisorGroup.add(visorLens);
 
       const visorFrame = new THREE.Mesh(
-        new THREE.BoxGeometry(0.31, 0.014, 0.038),
+        new THREE.BoxGeometry(0.30, 0.012, 0.032),
         glassFrameMat
       );
-      visorFrame.position.set(0, 0.025, 0.03);
+      visorFrame.position.set(0, 0.026, 0.008);
       cyberVisorGroup.add(visorFrame);
+
+      [-0.15, 0.15].forEach((vx) => {
+        const arm = new THREE.Mesh(
+          new THREE.BoxGeometry(0.012, 0.016, 0.16),
+          glassFrameMat
+        );
+        arm.position.set(vx, 0, -0.07);
+        cyberVisorGroup.add(arm);
+      });
 
       headGroup.add(cyberVisorGroup);
     }
@@ -772,43 +1216,43 @@ export function buildStylizedHumanRig(
 
   // 3. ESTER: Voluminous Curly Afro Crown + Golden Diadem + Silk Scarf
   else if (avatarKey === "ester") {
-    // Afro Base sphere
+    // Afro Volume (shifted slightly rearward: z = -0.04)
     const afroBase = new THREE.Mesh(
-      new THREE.SphereGeometry(0.234, 22, 20),
+      new THREE.SphereGeometry(0.228, 20, 18, 0, Math.PI * 2, 0, Math.PI * 0.55),
       hairMat
     );
-    afroBase.position.set(0, 0.05, -0.035);
+    afroBase.position.set(0, 0.04, -0.04);
     afroBase.castShadow = true;
     headGroup.add(afroBase);
 
-    // Full 360-degree bouncy ringlet curl clusters (front, crown, sides, AND back/nape)
+    // Full 360-degree bouncy curly afro ringlet clusters (halo around head, KEEPING FRONT FACE CLEAR!)
     const curlCoords = [
-      [-0.17, 0.12, -0.06],
-      [0.17, 0.12, -0.06],
-      [0, 0.23, -0.06],
-      [-0.13, 0.2, 0.04],
-      [0.13, 0.2, 0.04],
-      [-0.18, 0.01, 0.02],
-      [0.18, 0.01, 0.02],
+      [-0.18, 0.13, -0.04],
+      [0.18, 0.13, -0.04],
+      [0, 0.23, -0.04],
+      [-0.14, 0.21, 0.04],
+      [0.14, 0.21, 0.04],
+      [-0.19, 0.01, 0.02],
+      [0.19, 0.01, 0.02],
       [0, 0.15, -0.16],
-      [-0.14, 0.08, -0.14],
-      [0.14, 0.08, -0.14],
-      [0, -0.04, -0.16], // back nape coverage
-      [-0.12, -0.04, -0.14], // back left nape
-      [0.12, -0.04, -0.14], // back right nape
-      [-0.08, 0.22, -0.02],
-      [0.08, 0.22, -0.02],
+      [-0.15, 0.08, -0.14],
+      [0.15, 0.08, -0.14],
+      [0, -0.04, -0.16],
+      [-0.13, -0.04, -0.14],
+      [0.13, -0.04, -0.14],
+      [-0.09, 0.23, -0.02],
+      [0.09, 0.23, -0.02],
     ];
     curlCoords.forEach(([cx, cy, cz]) => {
       const puff = new THREE.Mesh(
-        new THREE.SphereGeometry(0.084, 10, 10),
+        new THREE.SphereGeometry(0.082, 10, 10),
         hairMat
       );
       puff.position.set(cx, cy, cz);
       headGroup.add(puff);
     });
 
-    // Golden Headband / Diadem
+    // Golden Royal Diadem Headband
     const headbandMat = new THREE.MeshStandardMaterial({
       color: 0xfbbf24,
       emissive: 0xd97706,
@@ -825,139 +1269,116 @@ export function buildStylizedHumanRig(
     headband.position.set(0, 0.06, 0.02);
     headGroup.add(headband);
 
-    const starGem = new THREE.Mesh(
-      new THREE.OctahedronGeometry(0.024, 0),
+    // Front Crescent Moon & Star Crest on Diadem
+    const crestGroup = new THREE.Group();
+    crestGroup.position.set(0, 0.10, 0.195);
+    const moon = new THREE.Mesh(
+      new THREE.TorusGeometry(0.016, 0.005, 8, 16, Math.PI * 1.3),
       headbandMat
     );
-    starGem.position.set(0, 0.098, 0.196);
-    headGroup.add(starGem);
-
-    // Draped Silk Scarf around neck
-    const scarfMat = new THREE.MeshStandardMaterial({
-      color: 0xfef08a,
-      emissive: 0xfbbf24,
-      emissiveIntensity: 0.35,
-      roughness: 0.6,
-    });
-    const scarfRing = new THREE.Mesh(
-      new THREE.TorusGeometry(0.125, 0.036, 10, 24),
-      scarfMat
+    moon.rotation.z = 0.3;
+    crestGroup.add(moon);
+    const star = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.010, 0),
+      headbandMat
     );
-    scarfRing.rotation.x = Math.PI / 2;
-    scarfRing.position.set(0, 1.76, 0.02);
-    bodyGroup.add(scarfRing);
-
-    [-0.04, 0.04].forEach((sx) => {
-      const tail = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.028, 0.18, 6, 10),
-        scarfMat
-      );
-      tail.position.set(sx, 1.62, 0.18);
-      bodyGroup.add(tail);
-    });
+    star.position.set(0.008, 0.006, 0.004);
+    crestGroup.add(star);
+    headGroup.add(crestGroup);
   }
 
-  // 4. LUCAS: Authentic Tousled Brown Anime Boy Locks (Full 360 Head Coverage!)
+  // 4. LUCAS: Authentic Tousled Brown Anime Boy Locks (Full 360 Head Coverage, Front Face 100% Clear!)
   else if (avatarKey === "lucas") {
-    // A. Base skull dome covering crown, upper back, and sides
-    const skullHair = new THREE.Mesh(
-      new THREE.SphereGeometry(0.228, 22, 18, 0, Math.PI * 2, 0, Math.PI * 0.72),
-      hairMat
-    );
-    skullHair.scale.set(0.96, 1.08, 1.02);
-    skullHair.position.set(0, 0.02, -0.012);
-    skullHair.castShadow = true;
-    headGroup.add(skullHair);
-
-    // B. Back mane & nape coverage (ELIMINATES ANY BALD PATCH FROM BEHIND!)
+    // Back Occipital Hair Cap (covers skull from behind, z <= 0.02)
     const backHair = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.14, 0.24, 10, 14),
+      new THREE.SphereGeometry(0.222, 20, 16, 0, Math.PI * 2, 0, Math.PI * 0.50),
       hairMat
     );
-    backHair.position.set(0, -0.08, -0.15);
-    backHair.rotation.x = 0.2;
+    backHair.position.set(0, 0.02, -0.04);
     backHair.castShadow = true;
     headGroup.add(backHair);
 
-    // Lower nape hair tufts covering down to the collar
-    [-0.08, 0, 0.08].forEach((nx) => {
+    // Back mane & nape coverage (flows down to the collar at the back)
+    const napeMane = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.13, 0.22, 8, 12),
+      hairMat
+    );
+    napeMane.position.set(0, -0.09, -0.15);
+    napeMane.rotation.x = 0.2;
+    napeMane.castShadow = true;
+    headGroup.add(napeMane);
+
+    [-0.08, 0.08].forEach((nx) => {
       const napeTuft = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.036, 0.14, 6, 10),
+        new THREE.CapsuleGeometry(0.034, 0.13, 6, 8),
         hairMat
       );
-      napeTuft.position.set(nx, -0.14, -0.145);
+      napeTuft.position.set(nx, -0.13, -0.145);
       napeTuft.rotation.x = 0.15;
-      napeTuft.rotation.z = nx < 0 ? -0.15 : nx > 0 ? 0.15 : 0;
+      napeTuft.rotation.z = nx < 0 ? -0.15 : 0.15;
       headGroup.add(napeTuft);
     });
 
-    // C. Front bangs (only if not wearing cap, so they don't clip through visor)
-    if (cfg.hatType !== "cap") {
-      const centerBang = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.032, 0.10, 6, 10),
-        hairMat
-      );
-      centerBang.rotation.z = Math.PI / 2 - 0.22;
-      centerBang.position.set(0.01, 0.125, 0.172);
-      headGroup.add(centerBang);
-
-      const leftBang = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.030, 0.09, 6, 10),
-        hairMat
-      );
-      leftBang.position.set(-0.08, 0.13, 0.165);
-      leftBang.rotation.z = -0.42;
-      headGroup.add(leftBang);
-
-      const rightBang = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.030, 0.09, 6, 10),
-        hairMat
-      );
-      rightBang.position.set(0.09, 0.12, 0.165);
-      rightBang.rotation.z = 0.52;
-      headGroup.add(rightBang);
-    }
-
-    // D. Sideburns & temple tufts framing ears (cleanly at the sides)
+    // Sideburns and temple locks framing the ears cleanly on the far sides (|x| >= 0.17)
     [-0.175, 0.175].forEach((tx) => {
       const sideTuft = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.036, 0.13, 6, 10),
+        new THREE.CapsuleGeometry(0.034, 0.14, 6, 10),
         hairMat
       );
-      sideTuft.position.set(tx, -0.04, 0.05);
-      sideTuft.rotation.z = tx < 0 ? -0.28 : 0.28;
+      sideTuft.position.set(tx, -0.04, 0.04);
+      sideTuft.rotation.z = tx < 0 ? -0.22 : 0.22;
       headGroup.add(sideTuft);
     });
 
-    // E. Tousled crown volume tufts (giving that adventurous anime silhouette)
-    const crownTuftCenter = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.038, 0.12, 6, 10),
-      hairMat
-    );
-    crownTuftCenter.position.set(0, 0.21, 0.02);
-    crownTuftCenter.rotation.x = -0.3;
-    headGroup.add(crownTuftCenter);
-
-    [-0.07, 0.07].forEach((cx) => {
-      const crownTuft = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.036, 0.11, 6, 10),
+    // When NOT wearing cap: full anime tousled locks and side bangs
+    if (cfg.hatType !== "cap") {
+      const crownTuftCenter = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.038, 0.12, 6, 10),
         hairMat
       );
-      crownTuft.position.set(cx, 0.20, -0.04);
-      crownTuft.rotation.z = cx < 0 ? 0.35 : -0.35;
-      headGroup.add(crownTuft);
-    });
+      crownTuftCenter.position.set(0, 0.21, 0.02);
+      crownTuftCenter.rotation.x = -0.3;
+      headGroup.add(crownTuftCenter);
+
+      [-0.08, 0.08].forEach((cx) => {
+        const crownTuft = new THREE.Mesh(
+          new THREE.CapsuleGeometry(0.034, 0.10, 6, 10),
+          hairMat
+        );
+        crownTuft.position.set(cx, 0.19, -0.04);
+        crownTuft.rotation.z = cx < 0 ? 0.35 : -0.35;
+        headGroup.add(crownTuft);
+
+        const bang = new THREE.Mesh(
+          new THREE.CapsuleGeometry(0.028, 0.09, 6, 8),
+          hairMat
+        );
+        bang.position.set(cx, 0.12, 0.165);
+        bang.rotation.z = cx < 0 ? -0.45 : 0.45;
+        headGroup.add(bang);
+      });
+    } else {
+      // When wearing cap: subtle side locks peeking out from under cap rim on far sides
+      [-0.145, 0.145].forEach((sx) => {
+        const peekLock = new THREE.Mesh(
+          new THREE.CapsuleGeometry(0.026, 0.08, 6, 8),
+          hairMat
+        );
+        peekLock.position.set(sx, 0.05, 0.14);
+        peekLock.rotation.z = sx < 0 ? -0.38 : 0.38;
+        headGroup.add(peekLock);
+      });
+    }
   }
 
   // 5. Generic Fallback (NPCs / Custom Avatars)
   else {
     if (isFemale) {
       const bobHair = new THREE.Mesh(
-        new THREE.SphereGeometry(0.228, 20, 16, 0, Math.PI * 2, 0, Math.PI * 0.72),
+        new THREE.SphereGeometry(0.224, 20, 16, 0, Math.PI * 2, 0, Math.PI * 0.55),
         hairMat
       );
-      bobHair.scale.set(0.96, 1.06, 1.02);
-      bobHair.position.set(0, 0.02, -0.01);
+      bobHair.position.set(0, 0.02, -0.03);
       headGroup.add(bobHair);
 
       const backBob = new THREE.Mesh(
@@ -978,11 +1399,10 @@ export function buildStylizedHumanRig(
       });
     } else {
       const shortHair = new THREE.Mesh(
-        new THREE.SphereGeometry(0.226, 20, 16, 0, Math.PI * 2, 0, Math.PI * 0.70),
+        new THREE.SphereGeometry(0.222, 20, 16, 0, Math.PI * 2, 0, Math.PI * 0.50),
         hairMat
       );
-      shortHair.scale.set(0.96, 1.06, 1);
-      shortHair.position.set(0, 0.02, -0.01);
+      shortHair.position.set(0, 0.02, -0.03);
       headGroup.add(shortHair);
 
       const napeShort = new THREE.Mesh(
@@ -1008,42 +1428,88 @@ export function buildStylizedHumanRig(
   // SCULPTED HEADGEAR & ACCESSORIES (LAYERED NATURALLY ON TOP OF FULL HAIR!)
   // =========================================================================
 
-  // A. SCOUT CAP (Lucas Default)
+  // A. SCOUT BASEBALL CAP (Lucas Default)
   if (cfg.hatType === "cap") {
     const capMat = new THREE.MeshStandardMaterial({
-      color: 0x15803d,
-      roughness: 0.55,
-      metalness: 0.1,
+      color: 0x165b2d, // Deep Forest Scout Green
+      roughness: 0.50,
+      metalness: 0.08,
     });
+    const visorMat = new THREE.MeshStandardMaterial({
+      color: 0x134624,
+      roughness: 0.52,
+    });
+
+    // Cap Dome Crown covering top of head cleanly
     const capDome = new THREE.Mesh(
-      new THREE.SphereGeometry(0.234, 22, 16, 0, Math.PI * 2, 0, Math.PI * 0.50),
+      new THREE.SphereGeometry(0.232, 22, 16, 0, Math.PI * 2, 0, Math.PI * 0.44),
       capMat
     );
-    capDome.position.y = 0.05;
+    capDome.position.set(0, 0.06, -0.015);
+    capDome.rotation.x = -0.06;
     headGroup.add(capDome);
 
-    // Visor tilted UPWARD so it never obstructs or shadows the eyes
-    const visor = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.224, 0.224, 0.024, 16, 1, false, -Math.PI * 0.35, Math.PI * 0.7),
-      new THREE.MeshStandardMaterial({ color: 0x14532d, roughness: 0.55 })
-    );
-    visor.position.set(0, 0.125, 0.11);
-    visor.rotation.x = -0.12;
-    headGroup.add(visor);
+    // Sculpted Curved Baseball Cap Brim (extending forward nicely over brow, NEVER covering eyes!)
+    const brimGroup = new THREE.Group();
+    brimGroup.position.set(0, 0.085, 0.16);
+    brimGroup.rotation.x = 0.14; // Gently pitched forward
 
-    // Golden Mission Compass Pin on front of cap
-    const pin = new THREE.Mesh(
-      new THREE.OctahedronGeometry(0.032, 0),
+    const brimPlate = new THREE.Mesh(
+      new THREE.BoxGeometry(0.24, 0.016, 0.14),
+      visorMat
+    );
+    brimPlate.position.set(0, 0, 0.07);
+    brimGroup.add(brimPlate);
+
+    headGroup.add(brimGroup);
+
+    // Golden Mission Compass Emblem on front crown of cap
+    const compassGroup = new THREE.Group();
+    compassGroup.position.set(0, 0.155, 0.192);
+    compassGroup.rotation.x = -0.16;
+
+    // Outer Gold Ring
+    const goldRing = new THREE.Mesh(
+      new THREE.TorusGeometry(0.036, 0.007, 8, 20),
       new THREE.MeshStandardMaterial({
         color: 0xfbbf24,
         emissive: 0xd97706,
-        emissiveIntensity: 0.75,
-        metalness: 0.85,
+        emissiveIntensity: 0.5,
+        metalness: 0.9,
+        roughness: 0.2,
       })
     );
-    pin.position.set(0, 0.155, 0.198);
-    pin.scale.set(1, 1, 0.4);
-    headGroup.add(pin);
+    compassGroup.add(goldRing);
+
+    // Inner Emerald Green Disc
+    const emeraldDisc = new THREE.Mesh(
+      new THREE.CircleGeometry(0.032, 16),
+      new THREE.MeshStandardMaterial({
+        color: 0x10b981,
+        emissive: 0x059669,
+        emissiveIntensity: 0.7,
+        roughness: 0.3,
+      })
+    );
+    emeraldDisc.position.z = 0.004;
+    compassGroup.add(emeraldDisc);
+
+    // Center 4-Point Golden Compass Star
+    const starPin = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.020, 0),
+      new THREE.MeshStandardMaterial({
+        color: 0xfef08a,
+        emissive: 0xfbbf24,
+        emissiveIntensity: 0.9,
+        metalness: 0.85,
+        roughness: 0.15,
+      })
+    );
+    starPin.position.z = 0.010;
+    starPin.scale.set(1.4, 1.4, 0.3);
+    compassGroup.add(starPin);
+
+    headGroup.add(compassGroup);
   }
 
   // B. EXPEDITION STRAW HAT (Explorador Selva)
@@ -1254,35 +1720,109 @@ export function buildStylizedHumanRig(
 
   // --- ARMS ---
   const buildArm = (offsetX: number) => {
+    const isLeft = offsetX < 0;
     const shoulderPivot = new THREE.Group();
     shoulderPivot.position.set(offsetX, 1.64, 0);
 
+    const armUpperMat =
+      avatarKey === "lucas" ? innerShirtMat : jacketMat;
+
     const deltoid = new THREE.Mesh(
       new THREE.SphereGeometry(isFemale ? 0.086 : 0.095, 12, 10),
-      jacketMat
+      armUpperMat
     );
     shoulderPivot.add(deltoid);
 
     const upperArm = new THREE.Mesh(
       new THREE.CapsuleGeometry(isFemale ? 0.068 : 0.076, 0.22, 8, 12),
-      jacketMat
+      armUpperMat
     );
     upperArm.position.y = -0.16;
     upperArm.castShadow = true;
     shoulderPivot.add(upperArm);
+
+    // Sofia: Tactical utility pocket with orange tab on right upper arm
+    if (avatarKey === "sofia" && !isLeft) {
+      const pocket = new THREE.Mesh(
+        new THREE.BoxGeometry(0.04, 0.08, 0.06),
+        jacketMat
+      );
+      pocket.position.set(0.06, -0.14, 0);
+      shoulderPivot.add(pocket);
+
+      const tab = new THREE.Mesh(
+        new THREE.BoxGeometry(0.045, 0.02, 0.024),
+        new THREE.MeshStandardMaterial({ color: 0xf97316, emissive: 0xf97316, emissiveIntensity: 0.6 })
+      );
+      tab.position.set(0.065, -0.11, 0);
+      shoulderPivot.add(tab);
+    }
+
+    // Ester: Royal purple pocket with gold button on left upper arm
+    if (avatarKey === "ester" && isLeft) {
+      const pocket = new THREE.Mesh(
+        new THREE.BoxGeometry(0.04, 0.08, 0.06),
+        jacketMat
+      );
+      pocket.position.set(-0.06, -0.14, 0);
+      shoulderPivot.add(pocket);
+
+      const goldBtn = new THREE.Mesh(
+        new THREE.SphereGeometry(0.007, 8, 8),
+        new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.9 })
+      );
+      goldBtn.position.set(-0.08, -0.12, 0);
+      shoulderPivot.add(goldBtn);
+    }
 
     const elbowPivot = new THREE.Group();
     elbowPivot.position.set(0, -0.31, 0);
     elbowPivot.rotation.x = -0.22;
     shoulderPivot.add(elbowPivot);
 
+    // Lucas has rolled-up sleeves just below elbow
+    if (avatarKey === "lucas") {
+      const rollCuff = new THREE.Mesh(
+        new THREE.TorusGeometry(0.062, 0.015, 8, 16),
+        innerShirtMat
+      );
+      rollCuff.rotation.x = Math.PI / 2;
+      rollCuff.position.y = -0.02;
+      elbowPivot.add(rollCuff);
+    }
+
+    // Sofia, Davi, Ester have full jacket/hoodie sleeves
+    const forearmMat =
+      avatarKey === "sofia" || avatarKey === "ester" || avatarKey === "davi"
+        ? jacketMat
+        : skinMat;
+
     const forearm = new THREE.Mesh(
       new THREE.CylinderGeometry(isFemale ? 0.06 : 0.068, isFemale ? 0.05 : 0.055, 0.25, 12),
-      skinMat
+      forearmMat
     );
     forearm.position.y = -0.13;
     forearm.castShadow = true;
     elbowPivot.add(forearm);
+
+    // Wrist Cuffs
+    if (avatarKey === "ester") {
+      const goldCuff = new THREE.Mesh(
+        new THREE.TorusGeometry(0.056, 0.009, 8, 16),
+        new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.9, roughness: 0.2 })
+      );
+      goldCuff.rotation.x = Math.PI / 2;
+      goldCuff.position.y = -0.23;
+      elbowPivot.add(goldCuff);
+    } else if (avatarKey === "sofia") {
+      const whiteCuff = new THREE.Mesh(
+        new THREE.TorusGeometry(0.056, 0.008, 8, 16),
+        new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.3 })
+      );
+      whiteCuff.rotation.x = Math.PI / 2;
+      whiteCuff.position.y = -0.23;
+      elbowPivot.add(whiteCuff);
+    }
 
     const hand = new THREE.Mesh(
       new THREE.SphereGeometry(isFemale ? 0.054 : 0.062, 12, 10),
@@ -1741,68 +2281,68 @@ export function createPlayableChampion3D(
 ): ArticulatedRig {
   const baseByAvatar: Record<AvatarId, CharacterVisualConfig> = {
     lucas: {
-      skin: "#f6caa7",
-      eye: "#b45309",
+      skin: "#f4be9b",
+      eye: "#9a3412",
       shirt: 0x15803d,
-      innerShirt: 0x1f2937,
+      innerShirt: 0x1e293b,
       secondary: 0x22c55e,
-      pants: 0x1e293b,
+      pants: 0x0f172a,
       shoeColor: 0x451a03,
-      hair: 0x3d2112,
+      hair: 0x3a1e12,
       gender: "male",
       avatarId: "lucas",
       hatType: "cap",
       heldItemType: "sword",
       hasBackpack: true,
       hasWeapon: true,
-      weaponColor: 0x34d399,
-      labelColor: "#34d399",
+      weaponColor: 0x10b981,
+      labelColor: "#10b981",
     },
     sofia: {
-      skin: "#fee0cb",
-      eye: "#0284c7",
+      skin: "#fed7aa",
+      eye: "#42251a",
       shirt: 0x0284c7,
-      innerShirt: 0xf8fafc,
-      secondary: 0x38bdf8,
-      pants: 0x1e1b4b,
+      innerShirt: 0x0f172a,
+      secondary: 0xf97316,
+      pants: 0x0f172a,
       shoeColor: 0xf8fafc,
-      hair: 0x451e0e,
+      hair: 0x2a160d,
       gender: "female",
       avatarId: "sofia",
       hatType: "headphones",
       heldItemType: "tablet",
-      hasBackpack: true,
+      hasBackpack: false,
       hasWeapon: true,
       weaponColor: 0x22d3ee,
       labelColor: "#22d3ee",
     },
     davi: {
-      skin: "#bd835a",
-      eye: "#f59e0b",
-      shirt: 0xf59e0b,
+      skin: "#945831",
+      eye: "#451a03",
+      shirt: 0xd97706,
       innerShirt: 0x0f172a,
-      secondary: 0xfbbf24,
-      pants: 0x0f172a,
-      shoeColor: 0x1e293b,
-      hair: 0x18181b,
+      secondary: 0x00f0ff,
+      pants: 0x090d16,
+      shoeColor: 0x18181b,
+      hair: 0x171717,
       gender: "male",
       avatarId: "davi",
       hatType: "glasses",
       heldItemType: "cyber_blade",
-      hasBackpack: true,
+      hasBackpack: false,
       hasWeapon: true,
       weaponColor: 0xfbbf24,
       labelColor: "#fbbf24",
     },
     ester: {
-      skin: "#cb8d63",
-      eye: "#a855f7",
+      skin: "#b47243",
+      eye: "#92400e",
       shirt: 0x6b21a8,
-      innerShirt: 0xfde047,
+      innerShirt: 0xfacc15,
       secondary: 0xfbbf24,
-      pants: 0x2e1065,
-      shoeColor: 0xfbbf24,
-      hair: 0x1f140d,
+      pants: 0x1e1035,
+      shoeColor: 0x581c87,
+      hair: 0x18181b,
       gender: "female",
       avatarId: "ester",
       hatType: "curls",

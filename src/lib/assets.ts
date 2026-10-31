@@ -1,10 +1,10 @@
 import { AvatarId, BiomeId } from "@/types/game";
 
 export const HERO_PORTRAITS: Record<AvatarId, string> = {
-  lucas: "/assets/heroes/lucas.jpg",
-  sofia: "/assets/heroes/sofia.jpg",
-  davi: "/assets/heroes/davi.jpg",
-  ester: "/assets/heroes/ester.jpg",
+  lucas: "/assets/heroes/lucas.png",
+  sofia: "/assets/heroes/sofia.png",
+  davi: "/assets/heroes/davi.png",
+  ester: "/assets/heroes/ester.png",
 };
 
 export const NPC_PORTRAITS: Record<
