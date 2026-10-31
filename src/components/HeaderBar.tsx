@@ -129,7 +129,7 @@ export function HeaderBar({
           {/* Top-Right: Currencies & Console Control Hub (Ultra-Compact, No Overflow) */}
           <div className="flex items-center gap-1.5 shrink-0">
             {/* Currencies Capsule (Streak + Wisdom) */}
-            <div className="flex items-center gap-2 rounded-xl border border-slate-700/80 bg-slate-900/90 px-3 py-1 text-[11px] font-black shadow-sm">
+            <div className="flex items-center gap-2.5 rounded-xl border border-slate-700/80 bg-slate-900/90 px-3.5 py-1.5 text-[11px] font-black shadow-sm">
               <div
                 title="Chamas de Fervor Diário"
                 className="flex items-center gap-1.5 text-orange-400"
@@ -321,9 +321,9 @@ export function HeaderBar({
           {/* Streak Flames */}
           <div
             title="Chamas de Fervor"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-orange-500/60 bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 px-3.5 py-1.5 text-xs font-black text-orange-400 shadow-[0_0_12px_rgba(249,115,22,0.25)]"
+            className="inline-flex items-center gap-2 rounded-xl border border-orange-500/60 bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 px-4 py-1.5 text-xs font-black text-orange-400 shadow-[0_0_12px_rgba(249,115,22,0.25)]"
           >
-            <Flame className="h-3.5 w-3.5 fill-orange-400 text-orange-400" />
+            <Flame className="h-4 w-4 fill-orange-400 text-orange-400" />
             <span>{state.streak}</span>
           </div>
 
@@ -335,9 +335,9 @@ export function HeaderBar({
               onOpenWardrobe();
             }}
             title="Cristais de Sabedoria • Clique para abrir Skins 3D"
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-cyan-400/60 bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 px-3.5 py-1.5 text-xs font-black text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.25)] transition hover:border-cyan-300 hover:text-white hover:scale-105"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-cyan-400/60 bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 px-4 py-1.5 text-xs font-black text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.25)] transition hover:border-cyan-300 hover:text-white hover:scale-105"
           >
-            <Gem className="h-3.5 w-3.5 text-cyan-300" />
+            <Gem className="h-4 w-4 text-cyan-300" />
             <span>{state.wisdom}</span>
           </button>
 

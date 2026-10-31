@@ -180,6 +180,8 @@ export function MissionEngine({
     toggleLandscapeFullscreen,
   } = useMobileViewport();
 
+  const isMobile = isMobileDevice || isCompactMobile || isMobileLandscape;
+
   const [scorePanelOpen, setScorePanelOpen] = useState(false);
 
   const resolvedBiome = useMemo(
@@ -998,7 +1000,7 @@ export function MissionEngine({
               }`}
             >
               <ArrowLeft className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-amber-400" />
-              <span>LOBBY [ESC]</span>
+              <span>{isMobile ? "LOBBY" : "LOBBY [ESC]"}</span>
             </motion.button>
 
             {/* Cultural Intelligence & Lore (Moved here with quest activities!) */}
@@ -1029,7 +1031,7 @@ export function MissionEngine({
               }`}
             >
               <Compass className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-cyan-400" />
-              <span>CULTURA [F]</span>
+              <span>{isMobile ? "CULTURA" : "CULTURA [F]"}</span>
             </motion.button>
 
             {isMobileDevice && !isMobileLandscape && (
@@ -1156,21 +1158,36 @@ export function MissionEngine({
           TOP-RIGHT: CAMERA MODE & SCOREBOARD (AAA ERGONOMIC POSITIONING)
          ========================================================= */}
       <div className="pointer-events-auto absolute top-2 right-2 z-20 flex items-start gap-1.5 sm:top-3 sm:right-3">
-        {/* Quick Camera Mode Switcher [C] (Moved here from combat area - zero misclicks!) */}
+        {/* Quick Camera Mode Switcher (Tactile 3D Action Button) */}
         <motion.button
           type="button"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.94 }}
+          whileHover={{ scale: 1.06, y: -1 }}
+          whileTap={{ scale: 0.92, y: 1 }}
           onPointerDown={(e) => {
             e.preventDefault();
             e.stopPropagation();
             fireAction("camera");
           }}
-          title="Alternar Câmera: Tática MOBA / GTA 3ª Pessoa [C]"
-          className="flex h-7 sm:h-8 cursor-pointer items-center gap-1 rounded-xl border border-slate-700/80 bg-slate-950/90 px-2 sm:px-2.5 text-[9px] sm:text-[10px] font-black text-slate-200 shadow-lg transition hover:border-amber-400 hover:text-white"
+          title="Mudar Ângulo da Câmera (3D GTA / Tática MOBA)"
+          className="flex h-8 sm:h-9 cursor-pointer items-center gap-1.5 rounded-xl border-2 border-amber-300 bg-gradient-to-b from-amber-300 via-amber-400 to-amber-600 px-2 sm:px-3 text-[10px] sm:text-xs font-black text-slate-950 shadow-[0_3px_0_#92400e,0_0_16px_rgba(245,158,11,0.55),inset_0_1px_1px_rgba(255,255,255,0.85)] hover:brightness-110 active:translate-y-0.5 active:shadow-[0_1px_0_#92400e] transition select-none uppercase tracking-tight"
         >
-          <Camera className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-amber-300" />
-          <span>{hudSnap.cameraMode === "gta" ? "CAM GTA [C]" : "CAM MOBA [C]"}</span>
+          <div className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-lg bg-slate-950/20 shadow-inner text-slate-950">
+            <Camera className="h-3.5 w-3.5 sm:h-4 sm:w-4 stroke-[2.5]" />
+          </div>
+          <div className="flex flex-col text-left leading-none">
+            <span className="text-[7px] sm:text-[7.5px] font-black tracking-widest text-amber-950">MUDAR</span>
+            <span className="text-[9.5px] sm:text-[11px] font-black tracking-tight text-slate-950">
+              {hudSnap.cameraMode === "gta" ? "CÂMERA 3D" : "CÂMERA MOBA"}
+            </span>
+          </div>
+          <span className="flex h-4 w-4 items-center justify-center rounded-md bg-slate-950/15 text-[9px] font-black text-slate-950">
+            ↻
+          </span>
+          {!isMobile && (
+            <kbd className="hidden md:inline-block rounded bg-slate-950/25 px-1 py-0.2 font-mono text-[8px] font-black text-slate-950">
+              C
+            </kbd>
+          )}
         </motion.button>
 
         {/* Quick Audio Mute / Unmute Toggle */}
@@ -1355,9 +1372,11 @@ export function MissionEngine({
               onClick={() => fireAction("interact")}
               className="shadow-[0_0_30px_rgba(251,191,36,0.55)]"
             >
-              <span className="rounded bg-slate-950/90 px-2 py-0.5 font-mono text-xs text-amber-300">
-                F
-              </span>
+              {!isMobile && (
+                <span className="rounded bg-slate-950/90 px-2 py-0.5 font-mono text-xs text-amber-300">
+                  F
+                </span>
+              )}
               {hudSnap.nearby.label}
             </MobaButton>
           </motion.div>
@@ -1408,31 +1427,39 @@ export function MissionEngine({
             }}
             className="relative flex touch-none items-center justify-center rounded-full border-3 border-amber-400/60 bg-slate-950/85 shadow-[0_0_35px_rgba(245,158,11,0.45)] backdrop-blur-md h-36 w-36 sm:h-40 sm:w-40"
           >
-            {/* Inner aesthetic guide ring & cardinal notches with WASD keys */}
+            {/* Inner aesthetic guide ring & cardinal notches with WASD keys (hidden on mobile) */}
             <div className="pointer-events-none absolute inset-3 rounded-full border border-cyan-400/35 bg-radial from-slate-900/50 to-transparent" />
             
             {/* CIMA [W] */}
-            <span className="pointer-events-none absolute top-1 flex flex-col items-center font-mono text-[9px] font-black text-amber-300">
-              <span className="rounded border border-amber-400/70 bg-slate-950/95 px-1 py-0.2 text-[8px] text-amber-200 shadow-sm">W</span>
-              <span className="leading-none text-[8px] text-amber-300">▲</span>
+            <span className="pointer-events-none absolute top-1.5 flex flex-col items-center font-mono text-[9px] font-black text-amber-300">
+              {!isMobile && (
+                <span className="rounded border border-amber-400/70 bg-slate-950/95 px-1 py-0.2 text-[8px] text-amber-200 shadow-sm">W</span>
+              )}
+              <span className="leading-none text-[9px] text-amber-300 drop-shadow">▲</span>
             </span>
 
             {/* BAIXO [S] */}
-            <span className="pointer-events-none absolute bottom-1 flex flex-col items-center font-mono text-[9px] font-black text-amber-300">
-              <span className="leading-none text-[8px] text-amber-300">▼</span>
-              <span className="rounded border border-amber-400/70 bg-slate-950/95 px-1 py-0.2 text-[8px] text-amber-200 shadow-sm">S</span>
+            <span className="pointer-events-none absolute bottom-1.5 flex flex-col items-center font-mono text-[9px] font-black text-amber-300">
+              <span className="leading-none text-[9px] text-amber-300 drop-shadow">▼</span>
+              {!isMobile && (
+                <span className="rounded border border-amber-400/70 bg-slate-950/95 px-1 py-0.2 text-[8px] text-amber-200 shadow-sm">S</span>
+              )}
             </span>
 
             {/* ESQUERDA [A] */}
-            <span className="pointer-events-none absolute left-1 flex items-center gap-0.5 font-mono text-[9px] font-black text-amber-300">
-              <span className="rounded border border-amber-400/70 bg-slate-950/95 px-1 py-0.2 text-[8px] text-amber-200 shadow-sm">A</span>
-              <span className="leading-none text-[8px] text-amber-300">◄</span>
+            <span className="pointer-events-none absolute left-1.5 flex items-center gap-0.5 font-mono text-[9px] font-black text-amber-300">
+              {!isMobile && (
+                <span className="rounded border border-amber-400/70 bg-slate-950/95 px-1 py-0.2 text-[8px] text-amber-200 shadow-sm">A</span>
+              )}
+              <span className="leading-none text-[9px] text-amber-300 drop-shadow">◄</span>
             </span>
 
             {/* DIREITA [D] */}
-            <span className="pointer-events-none absolute right-1 flex items-center gap-0.5 font-mono text-[9px] font-black text-amber-300">
-              <span className="leading-none text-[8px] text-amber-300">►</span>
-              <span className="rounded border border-amber-400/70 bg-slate-950/95 px-1 py-0.2 text-[8px] text-amber-200 shadow-sm">D</span>
+            <span className="pointer-events-none absolute right-1.5 flex items-center gap-0.5 font-mono text-[9px] font-black text-amber-300">
+              <span className="leading-none text-[9px] text-amber-300 drop-shadow">►</span>
+              {!isMobile && (
+                <span className="rounded border border-amber-400/70 bg-slate-950/95 px-1 py-0.2 text-[8px] text-amber-200 shadow-sm">D</span>
+              )}
             </span>
 
             {/* Large Ergonomic Thumb Knob */}
@@ -1443,8 +1470,10 @@ export function MissionEngine({
               className="pointer-events-none flex h-16 w-16 sm:h-18 sm:w-18 items-center justify-center rounded-full border-2 border-amber-200 bg-gradient-to-b from-amber-300 via-amber-500 to-orange-600 text-[10px] sm:text-[11px] font-black text-slate-950 shadow-[0_0_24px_rgba(251,191,36,0.85)] active:scale-95"
             >
               <div className="flex flex-col items-center justify-center rounded-full border border-amber-950/40 bg-amber-400/30 h-11 w-11 sm:h-12 sm:w-12">
-                <span className="leading-none text-[9px] sm:text-[10px] font-black">MOVER</span>
-                <span className="text-[7.5px] font-extrabold text-amber-950 tracking-tighter mt-0.5">WASD</span>
+                <span className="leading-none text-[9.5px] sm:text-[10.5px] font-black tracking-wide">MOVER</span>
+                {!isMobile && (
+                  <span className="text-[7.5px] font-extrabold text-amber-950 tracking-tighter mt-0.5">WASD</span>
+                )}
               </div>
             </div>
           </div>
@@ -1551,7 +1580,7 @@ export function MissionEngine({
               }`}
             >
               <span>🎭</span>
-              <span>EMOTES [5-8]</span>
+              <span>{isMobile ? "EMOTES" : "EMOTES [5-8]"}</span>
             </motion.button>
           </div>
 
@@ -1576,7 +1605,9 @@ export function MissionEngine({
                 <Gauge className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                 {hudSnap.nitroCooldown > 0
                   ? `${hudSnap.nitroCooldown.toFixed(1)}s`
-                  : "TURBO [SHIFT]"}
+                  : isMobile
+                    ? "TURBO"
+                    : "TURBO [SHIFT]"}
               </motion.button>
 
               <motion.button
@@ -1591,7 +1622,7 @@ export function MissionEngine({
                 className="flex h-7 sm:h-7.5 cursor-pointer items-center gap-1 rounded-full border-2 border-rose-400 bg-rose-950/90 px-2.5 text-[9px] sm:text-[10px] font-black text-rose-200 shadow-lg hover:bg-rose-900/80"
               >
                 <Car className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                <span>SAIR [V]</span>
+                <span>{isMobile ? "SAIR" : "SAIR [V]"}</span>
               </motion.button>
             </>
           ) : (
@@ -1608,7 +1639,7 @@ export function MissionEngine({
               className="flex h-7 sm:h-7.5 cursor-pointer items-center gap-1 rounded-full border border-amber-400/50 bg-slate-950/85 px-2.5 text-[9px] sm:text-[10px] font-black text-amber-300 shadow-lg hover:border-amber-300 hover:bg-amber-500/20"
             >
               <Car className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-              <span>CARRO/MOTO [V]</span>
+              <span>{isMobile ? "CARRO/MOTO" : "CARRO/MOTO [V]"}</span>
             </motion.button>
           )}
 
@@ -1657,9 +1688,11 @@ export function MissionEngine({
                   {hudSnap.cooldowns.q.toFixed(1)}
                 </span>
               )}
-              <span className="absolute -right-1 -bottom-1 rounded-full border border-cyan-200 bg-slate-950 px-1 font-mono text-[8px] sm:text-[9px] font-black text-cyan-300">
-                Q
-              </span>
+              {!isMobile && (
+                <span className="absolute -right-1 -bottom-1 rounded-full border border-cyan-200 bg-slate-950 px-1 font-mono text-[8px] sm:text-[9px] font-black text-cyan-300">
+                  Q
+                </span>
+              )}
             </div>
           </motion.button>
 
@@ -1687,9 +1720,11 @@ export function MissionEngine({
                   {hudSnap.cooldowns.w.toFixed(1)}
                 </span>
               )}
-              <span className="absolute -right-1 -bottom-1 rounded-full border border-emerald-200 bg-slate-950 px-1.5 font-mono text-[7px] sm:text-[8px] font-black text-emerald-300">
-                SHIFT
-              </span>
+              {!isMobile && (
+                <span className="absolute -right-1 -bottom-1 rounded-full border border-emerald-200 bg-slate-950 px-1.5 font-mono text-[7px] sm:text-[8px] font-black text-emerald-300">
+                  SHIFT
+                </span>
+              )}
             </div>
           </motion.button>
 
@@ -1717,9 +1752,11 @@ export function MissionEngine({
                   {hudSnap.cooldowns.e.toFixed(1)}
                 </span>
               )}
-              <span className="absolute -right-1 -bottom-1 rounded-full border border-amber-200 bg-slate-950 px-1 font-mono text-[8px] sm:text-[9px] font-black text-amber-300">
-                E
-              </span>
+              {!isMobile && (
+                <span className="absolute -right-1 -bottom-1 rounded-full border border-amber-200 bg-slate-950 px-1 font-mono text-[8px] sm:text-[9px] font-black text-amber-300">
+                  E
+                </span>
+              )}
             </div>
           </motion.button>
 
@@ -1747,9 +1784,11 @@ export function MissionEngine({
                   {Math.ceil(hudSnap.cooldowns.r)}s
                 </span>
               )}
-              <span className="absolute -right-1 -bottom-1 rounded-full border border-amber-200 bg-slate-950 px-1 font-mono text-[8px] sm:text-[9px] font-black text-amber-300">
-                R
-              </span>
+              {!isMobile && (
+                <span className="absolute -right-1 -bottom-1 rounded-full border border-amber-200 bg-slate-950 px-1 font-mono text-[8px] sm:text-[9px] font-black text-amber-300">
+                  R
+                </span>
+              )}
             </div>
           </motion.button>
 
@@ -1765,12 +1804,14 @@ export function MissionEngine({
             className="relative flex h-16 w-16 sm:h-20 sm:w-20 cursor-pointer flex-col items-center justify-center rounded-full border-3 border-amber-200 bg-gradient-to-b from-rose-500 via-red-600 to-rose-900 text-white shadow-[0_0_28px_rgba(244,63,94,0.65)]"
           >
             {/* Keyboard Hotkey Badge */}
-            <span className="absolute -top-1 -right-1 rounded-full border-2 border-amber-300 bg-slate-950 px-1.5 py-0.5 font-mono text-[7.5px] sm:text-[8.5px] font-black text-amber-300 shadow-[0_0_10px_rgba(251,191,36,0.6)]">
-              ESPAÇO
-            </span>
+            {!isMobile && (
+              <span className="absolute -top-1 -right-1 rounded-full border-2 border-amber-300 bg-slate-950 px-1.5 py-0.5 font-mono text-[7.5px] sm:text-[8.5px] font-black text-amber-300 shadow-[0_0_10px_rgba(251,191,36,0.6)]">
+                ESPAÇO
+              </span>
+            )}
             <Swords className="h-7 w-7 sm:h-8 sm:w-8 drop-shadow" />
             <span className="mt-0.5 font-mono text-[8px] sm:text-[9px] font-black tracking-wider text-amber-200 uppercase">
-              ATACAR [ESPAÇO]
+              {isMobile ? "ATACAR" : "ATACAR [ESPAÇO]"}
             </span>
           </motion.button>
         </div>
@@ -1778,7 +1819,7 @@ export function MissionEngine({
 
       {/* PC KEYBOARD SHORTCUTS HUD BAR (GTA / LOL / CS:GO STYLE) - FLOATS CLEANLY & AUTO-HIDES */}
       <AnimatePresence>
-        {keyboardHelpVisible && (
+        {!isMobile && keyboardHelpVisible && (
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}

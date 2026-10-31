@@ -403,8 +403,8 @@ export function HeroPreview3D({
           </span>
         )}
 
-        <span className={`inline-flex items-center gap-1 rounded-full border border-slate-700/80 bg-slate-950/75 px-2 py-0.5 font-mono text-[8px] font-bold text-slate-300 backdrop-blur shadow-sm ${borderless ? "ml-auto" : ""}`}>
-          <RotateCw className="h-2 w-2 text-cyan-300" />
+        <span className={`inline-flex items-center gap-1.5 rounded-full border border-cyan-500/40 bg-slate-950 px-2.5 py-0.5 font-mono text-[8.5px] font-black text-cyan-200 shadow-md ${borderless ? "ml-auto" : ""}`}>
+          <RotateCw className="h-2.5 w-2.5 text-cyan-400" />
           GIRE 360°
         </span>
       </div>

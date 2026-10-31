@@ -382,6 +382,11 @@ export function WorldGlobe3D({
     };
     window.addEventListener("resize", onResize);
 
+    const resizeObserver = new ResizeObserver(() => {
+      onResize();
+    });
+    resizeObserver.observe(container);
+
     let animId = 0;
     const animate = (now: number) => {
       animId = requestAnimationFrame(animate);
@@ -409,6 +414,7 @@ export function WorldGlobe3D({
 
     return () => {
       cancelAnimationFrame(animId);
+      resizeObserver.disconnect();
       dom.removeEventListener("pointerdown", onPointerDown);
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);

@@ -950,7 +950,7 @@ export function MissionHub({
             </div>
 
             {/* Real WebGL 3D Interactive Planet */}
-            <div className="my-1 h-[310px] w-full sm:h-[360px]">
+            <div className="my-1 flex-1 min-h-[280px] w-full">
               <WorldGlobe3D
                 missions={allMissions}
                 selectedMissionId={selectedMission.id}
@@ -964,7 +964,7 @@ export function MissionHub({
             </div>
 
             {/* Bottom Arena Map Selector Cards with 3D Thumbnails (All 8 Cities) */}
-            <div className="grid max-h-48 grid-cols-2 gap-2 overflow-y-auto pt-1 sm:grid-cols-4 pr-0.5">
+            <div className="grid grid-cols-2 gap-2 pt-1 sm:grid-cols-4 pr-0.5 shrink-0">
               {allMissions.map((m) => {
                 const isSelected = m.id === selectedMission.id;
                 const unlocked = unlockedIds.includes(m.id);
