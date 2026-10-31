@@ -2003,6 +2003,11 @@ export function MobaGtaWorld3D({
       patrolTimer: number;
       patrolDirX: number;
       patrolDirZ: number;
+      patrolState: "idle" | "walking";
+      patrolTargetX: number;
+      patrolTargetZ: number;
+      fleeTimer: number;
+      fleeCooldown: number;
       enraged: boolean;
       // Telegraphed melee strike + ranged shadow bolts
       windup: number;
@@ -2077,6 +2082,11 @@ export function MobaGtaWorld3D({
         patrolTimer: 1.5 + (idx % 4) * 0.8,
         patrolDirX: Math.cos(angleSeed),
         patrolDirZ: Math.sin(angleSeed),
+        patrolState: "idle",
+        patrolTargetX: e.x,
+        patrolTargetZ: e.z,
+        fleeTimer: 0,
+        fleeCooldown: 0,
         enraged: false,
         windup: 0,
         windupTotal: isBossEnemy ? 1.4 : isEliteEnemy ? 0.85 : 1.5,
@@ -2291,19 +2301,38 @@ export function MobaGtaWorld3D({
       if (enemy.dead) return;
       enemy.hp = Math.max(0, enemy.hp - amount);
       enemy.hitFlash = 0.18;
-      // Aggro this enemy for relentless pursuit!
-      enemy.aggroTimer = enemy.isBoss ? 48.0 : 26.0;
+      // Controlled tactical aggro (no global map pull)
+      enemy.aggroTimer = enemy.isBoss ? 12.0 : enemy.tier === "elite" ? 8.0 : 6.0;
 
-      // Pack Mentality: Alert all allies in the district to flank the player!
-      const alertRadius = enemy.isBoss ? 45 : 30;
+      // Pack Mentality: Alert at most ONE nearby ally within 9m (prevents swarm)
+      let closestAlly: LiveEnemy | null = null;
+      let closestDist = 9.0;
       enemies.forEach((other) => {
-        if (!other.dead && other.id !== enemy.id) {
+        if (!other.dead && other.id !== enemy.id && !other.isBoss) {
           const dOther = Math.hypot(other.x - enemy.x, other.z - enemy.z);
-          if (dOther < alertRadius) {
-            other.aggroTimer = Math.max(other.aggroTimer, other.isBoss ? 36.0 : 20.0);
+          if (dOther < closestDist) {
+            closestDist = dOther;
+            closestAlly = other;
           }
         }
       });
+      if (closestAlly) {
+        (closestAlly as LiveEnemy).aggroTimer = Math.max((closestAlly as LiveEnemy).aggroTimer, 5.0);
+      }
+
+      // Cowardice / Fleeing Trigger when shadows take heavy damage!
+      if (enemy.tier === "minor" && enemy.hp > 0 && enemy.hp <= enemy.maxHp * 0.35 && enemy.fleeCooldown <= 0) {
+        enemy.fleeTimer = 4.0;
+        enemy.fleeCooldown = 15.0;
+        enemy.aggroTimer = 0;
+        soundEngine.play("dash");
+        emitPopup("💨 SOMBRA EM PÂNICO: FUGINDO DA LUZ!", "#c084fc");
+      } else if (enemy.tier === "elite" && enemy.hp > 0 && enemy.hp <= enemy.maxHp * 0.25 && enemy.fleeCooldown <= 0) {
+        enemy.fleeTimer = 2.5;
+        enemy.fleeCooldown = 16.0;
+        soundEngine.play("dash");
+        emitPopup("💨 RECUO TÁTICO DA SOMBRA DE ELITE!", "#f43f5e");
+      }
 
       // Boss Enrage at 50% HP!
       if (enemy.isBoss && !enemy.enraged && enemy.hp <= enemy.maxHp * 0.5) {
@@ -3395,12 +3424,14 @@ export function MobaGtaWorld3D({
           }
         }
 
-        // --- ENHANCED SHADOWS & DISTRICT BOSS PURSUIT & FLANKING AI ---
+        // --- ENHANCED SHADOWS & DISTRICT BOSS PURSUIT, FLEE & PATROL AI ---
         enemies.forEach((en, eIdx) => {
           if (en.dead) return;
           if (en.attackCd > 0) en.attackCd -= dt;
           if (en.chargeCd > 0) en.chargeCd -= dt;
           if (en.aggroTimer > 0) en.aggroTimer -= dt;
+          if (en.fleeTimer > 0) en.fleeTimer -= dt;
+          if (en.fleeCooldown > 0) en.fleeCooldown -= dt;
 
           const dx = heroPos.x - en.x;
           const dz = heroPos.z - en.z;
@@ -3408,20 +3439,41 @@ export function MobaGtaWorld3D({
           const distHome = Math.hypot(en.x - en.homeX, en.z - en.homeZ);
 
           let enemyMoving = false;
-          // Aggro detection: Boss 38m, Elite 28m, Minor 17m
-          const aggroRadius = en.isBoss ? 38 : en.tier === "elite" ? 28 : 17;
-          if (distHero < aggroRadius) {
+
+          // Leash distance: prevents enemies from chasing the player indefinitely across the map
+          const maxLeash = en.isBoss ? 28 : en.tier === "elite" ? 22 : 16;
+          if (distHome > maxLeash || distHero > (maxLeash + 8)) {
+            if (en.aggroTimer > 0) {
+              en.aggroTimer = 0;
+              en.telegraph.visible = false;
+              en.windup = 0;
+            }
+          }
+
+          // Tactical vision aggro radius: Boss 22m, Elite 15m, Minor 10m
+          const aggroRadius = en.isBoss ? 22 : en.tier === "elite" ? 15 : 10;
+          if (distHero < aggroRadius && distHome <= maxLeash && en.fleeTimer <= 0) {
             const wasPassive = en.aggroTimer <= 0;
-            en.aggroTimer = Math.max(en.aggroTimer, en.isBoss ? 32.0 : en.tier === "elite" ? 24.0 : 16.0);
+            en.aggroTimer = Math.max(en.aggroTimer, en.isBoss ? 12.0 : en.tier === "elite" ? 8.0 : 5.0);
             if (wasPassive && en.isBoss) {
               emitPopup(`👑 ${en.name}: 'A LUZ NÃO PASSARÁ POR ESTA FRONTEIRA!'`, "#f43f5e");
               soundEngine.play("error");
             } else if (wasPassive && en.tier === "elite") {
-              emitPopup(`⚠️ ${en.name} ENTROU EM COMBATE!`, "#f43f5e");
+              emitPopup(`⚠️ ${en.name} EM COMBATE!`, "#f43f5e");
             }
           }
 
-          if (en.aggroTimer > 0) {
+          // Branch 1: Cowardice / Tactical Fleeing (running away from light/hero)
+          if (en.fleeTimer > 0) {
+            const fleeSpd = en.tier === "minor" ? 6.2 : 5.4;
+            const awayDirX = distHero > 0.01 ? -dx / distHero : 1;
+            const awayDirZ = distHero > 0.01 ? -dz / distHero : 0;
+            en.x += awayDirX * fleeSpd * dt;
+            en.z += awayDirZ * fleeSpd * dt;
+            en.rig.root.rotation.y = Math.atan2(awayDirX, awayDirZ);
+            enemyMoving = true;
+          } else if (en.aggroTimer > 0) {
+            // Branch 2: Active Combat Pursuit & Attacks
             // Boss Dash / Rush Attack when player is at medium distance
             if (
               en.isBoss &&
@@ -3614,21 +3666,55 @@ export function MobaGtaWorld3D({
                 }
               }
             }
-          } else if (distHome > 1.8) {
-            // Calm return to spawn post
-            const hx = en.homeX - en.x;
-            const hz = en.homeZ - en.z;
-            en.x += (hx / distHome) * 3.8 * dt;
-            en.z += (hz / distHome) * 3.8 * dt;
-            en.rig.root.rotation.y = Math.atan2(hx, hz);
-            enemyMoving = true;
+          } else {
+            // Branch 3: Autonomous Patrol & Wandering across the map streets (Never frozen)
+            en.patrolTimer -= dt;
+            if (en.patrolTimer <= 0) {
+              if (en.patrolState === "idle") {
+                en.patrolState = "walking";
+                en.patrolTimer = 3.5 + Math.random() * 4.0;
+                const pAngle = Math.random() * Math.PI * 2;
+                const pDist = 3.0 + Math.random() * 8.0;
+                en.patrolTargetX = en.homeX + Math.cos(pAngle) * pDist;
+                en.patrolTargetZ = en.homeZ + Math.sin(pAngle) * pDist;
+              } else {
+                en.patrolState = "idle";
+                en.patrolTimer = 2.0 + Math.random() * 3.0;
+              }
+            }
+
+            if (en.patrolState === "walking") {
+              const toPdx = en.patrolTargetX - en.x;
+              const toPdz = en.patrolTargetZ - en.z;
+              const dPatrol = Math.hypot(toPdx, toPdz);
+              if (dPatrol > 0.8) {
+                const walkSpd = en.isBoss ? 2.4 : 1.9;
+                en.x += (toPdx / dPatrol) * walkSpd * dt;
+                en.z += (toPdz / dPatrol) * walkSpd * dt;
+                en.rig.root.rotation.y = Math.atan2(toPdx, toPdz);
+                enemyMoving = true;
+              } else {
+                en.patrolState = "idle";
+                en.patrolTimer = 2.0;
+              }
+            } else if (distHome > 1.8 && distHome > maxLeash * 0.7) {
+              // Calm return to spawn post if drifted too far
+              const hx = en.homeX - en.x;
+              const hz = en.homeZ - en.z;
+              en.x += (hx / distHome) * 2.8 * dt;
+              en.z += (hz / distHome) * 2.8 * dt;
+              en.rig.root.rotation.y = Math.atan2(hx, hz);
+              enemyMoving = true;
+            }
           }
 
           if (enemyMoving) {
-            const ph = now * 0.009 + eIdx;
-            en.rig.leftLegPivot.rotation.x = Math.sin(ph) * 0.55;
-            en.rig.rightLegPivot.rotation.x = -Math.sin(ph) * 0.55;
-            en.rig.leftArmPivot.rotation.x = -Math.sin(ph) * 0.45;
+            const strideSpeed = en.fleeTimer > 0 ? 0.018 : 0.009;
+            const ph = now * strideSpeed + eIdx;
+            const strideAmp = en.fleeTimer > 0 ? 0.85 : 0.55;
+            en.rig.leftLegPivot.rotation.x = Math.sin(ph) * strideAmp;
+            en.rig.rightLegPivot.rotation.x = -Math.sin(ph) * strideAmp;
+            en.rig.leftArmPivot.rotation.x = -Math.sin(ph) * (strideAmp * 0.8);
           }
           en.rig.rightArmPivot.rotation.x *= 0.9;
           en.rig.root.position.set(en.x, 0, en.z);

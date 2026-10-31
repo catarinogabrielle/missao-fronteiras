@@ -7,7 +7,6 @@ import React, {
   useEffect,
   useMemo,
   useState,
-  useSyncExternalStore,
 } from "react";
 import {
   AgentProfile,
@@ -150,8 +149,6 @@ function getTodayIso(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
-const emptySubscribe = () => () => {};
-
 function loadInitialGameState(): GameState {
   if (typeof window === "undefined") {
     return INITIAL_STATE;
@@ -266,12 +263,17 @@ function loadInitialGameState(): GameState {
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<GameState>(loadInitialGameState);
-  const hydrated = useSyncExternalStore(
-    emptySubscribe,
-    () => true,
-    () => false
-  );
+  const [storageLoaded, setStorageLoaded] = useState(false);
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
+
+  // Synchronously load real localStorage state upon client mount BEFORE any persistence
+  useEffect(() => {
+    try {
+      const realState = loadInitialGameState();
+      setState(realState);
+    } catch {}
+    setStorageLoaded(true);
+  }, []);
 
   const pushToast = useCallback(
     (title: string, subtitle: string, emoji = "🏆") => {
@@ -288,9 +290,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  // Persist to localStorage & sync Projector Mode class
+  // Persist to localStorage & sync Projector Mode class ONLY after client state is verified
   useEffect(() => {
-    if (!hydrated) return;
+    if (!storageLoaded) return;
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch {
@@ -303,7 +305,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         state.projectorMode
       );
     }
-  }, [state, hydrated]);
+  }, [state, storageLoaded]);
 
   const playSfx = useCallback((effect: SoundEffect) => {
     soundEngine.play(effect);
@@ -951,7 +953,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const value: GameContextValue = {
     state,
-    hydrated,
+    hydrated: storageLoaded,
     allMissions,
     level,
     levelTitle,

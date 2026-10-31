@@ -550,10 +550,10 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
           </section>
 
           {/* ZONE 2: AGENT SETUP & INSTANT JOGAR TERMINAL (Comfortable Width w-80 sm:w-88 md:w-96) */}
-          <section className="relative flex w-80 sm:w-88 md:w-96 shrink-0 flex-col min-h-0 rounded-2xl sm:rounded-3xl border border-amber-500/35 bg-slate-950/95 backdrop-blur-xl p-3 sm:p-3.5 shadow-2xl overflow-y-auto overflow-x-hidden gap-2.5 scrollbar-thin">
+          <section className="relative flex w-80 sm:w-88 md:w-96 shrink-0 flex-col min-h-0 rounded-2xl sm:rounded-3xl border border-amber-500/35 bg-slate-950/95 backdrop-blur-xl p-3 sm:p-3.5 shadow-2xl overflow-y-auto overflow-x-hidden gap-3 scrollbar-thin">
             
             {/* Top: Identity / Saved Profiles & Nickname */}
-            <div className="shrink-0 space-y-2">
+            <div className="shrink-0 flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-amber-300">
                   <Users className="h-3.5 w-3.5 text-cyan-400" />
@@ -582,7 +582,7 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
 
               {/* Saved Profiles Horizontal Cards if returning player */}
               {state.savedProfiles && state.savedProfiles.length > 0 && (
-                <div className="space-y-1">
+                <div className="flex flex-col gap-1">
                   <div className="flex items-center justify-between text-[9px] font-extrabold uppercase tracking-wider text-slate-400">
                     <span>Perfis Salvos:</span>
                   </div>
@@ -668,10 +668,10 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
               )}
 
               {/* Editable Nickname Input */}
-              <div className="space-y-1">
-                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
                   Apelido no Jogo:
-                </div>
+                </label>
                 <input
                   type="text"
                   maxLength={24}
@@ -679,14 +679,14 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder={`Ex: Agente ${activeChampion.name}`}
-                  className="w-full rounded-xl border border-slate-700 bg-slate-900/90 px-3 py-1.5 text-xs sm:text-sm font-black text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400 transition"
+                  className="block h-9 w-full rounded-xl border border-slate-700 bg-slate-900/90 px-3 text-xs sm:text-sm font-black text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400 transition"
                 />
               </div>
             </div>
 
             {/* Middle: Dom Espiritual Selection (2x2 Grid with Clean Single-Word Typography) */}
-            <div className="shrink-0 space-y-1.5">
-              <div className="text-[10px] font-black uppercase tracking-wider text-cyan-300 flex items-center justify-between">
+            <div className="shrink-0 flex flex-col gap-1.5 pt-1.5 border-t border-cyan-500/20">
+              <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-cyan-300">
                 <span>Dom Espiritual (Bônus)</span>
                 <span className="text-[9px] font-bold text-amber-300">{activeGift.name}</span>
               </div>
