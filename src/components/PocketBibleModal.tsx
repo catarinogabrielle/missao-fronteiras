@@ -130,9 +130,9 @@ export function PocketBibleModal({
         <div className="flex-1 overflow-y-auto p-5 sm:p-6">
           {tab === "gospel" && (
             <div className="space-y-4">
-              {/* Highlighted Clickable Verse Viewer */}
+              {/* Highlighted Clickable Verse Viewer (scrolls naturally with content, no sticky overlap) */}
               {selectedVerse && (
-                <div className="sticky top-0 z-10 rounded-2xl border-2 border-emerald-400/50 bg-slate-950/95 p-4 shadow-lg backdrop-blur">
+                <div className="rounded-2xl border-2 border-emerald-400/50 bg-slate-950 p-4 shadow-lg">
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-xs font-black text-emerald-400 uppercase">
                       📖 Versículo Selecionado • {selectedVerse.ref}
@@ -207,7 +207,7 @@ export function PocketBibleModal({
                                 playSfx("click");
                                 setSelectedVerse(v);
                               }}
-                              className={`rounded-lg border px-2.5 py-1 font-mono text-xs font-bold transition ${
+                              className={`cursor-pointer rounded-lg border px-2.5 py-1 font-mono text-xs font-bold transition ${
                                 active
                                   ? "border-emerald-400 bg-emerald-500/25 text-emerald-200"
                                   : "border-slate-700 bg-slate-900 text-slate-300 hover:border-emerald-400/60"
@@ -218,6 +218,28 @@ export function PocketBibleModal({
                           );
                         })}
                       </div>
+
+                      {/* Active Verse Inline for this Step */}
+                      {selectedVerse &&
+                        item.verses.some((v) => v.ref === selectedVerse.ref) && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="mt-3 rounded-xl border border-emerald-400/40 bg-slate-900/90 p-3 shadow-inner"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="font-mono text-xs font-black text-emerald-300 uppercase">
+                                📖 {selectedVerse.ref}
+                              </span>
+                              <span className="text-[10px] text-slate-400 italic">
+                                Leitura Bíblica
+                              </span>
+                            </div>
+                            <p className="mt-1 text-xs sm:text-sm font-semibold text-white italic leading-relaxed">
+                              &ldquo;{selectedVerse.text}&rdquo;
+                            </p>
+                          </motion.div>
+                        )}
                     </div>
                   );
                 })}
