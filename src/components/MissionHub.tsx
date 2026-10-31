@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   ChevronRight,
   Compass,
+  Film,
   Lock,
   MapPin,
   Radio,
@@ -120,6 +121,7 @@ interface MissionHubProps {
   onOpenTribesQuiz: () => void;
   onOpenPassport: () => void;
   onOpenWardrobe: () => void;
+  onOpenStory?: () => void;
   onSwitchUser?: () => void;
 }
 
@@ -130,6 +132,7 @@ export function MissionHub({
   onOpenTribesQuiz,
   onOpenPassport,
   onOpenWardrobe,
+  onOpenStory,
   onSwitchUser,
 }: MissionHubProps) {
   const {
@@ -247,7 +250,7 @@ export function MissionHub({
                 </div>
                 <div className="text-[8.5px] font-bold text-amber-300 uppercase truncate flex items-center justify-between">
                   <span>Fase {selectedMission.order}</span>
-                  <span className="text-cyan-400 font-mono">8 CIDADES ▾</span>
+                  <span className="text-cyan-400 font-mono">VER MAPA ▾</span>
                 </div>
               </div>
             </button>
@@ -364,16 +367,16 @@ export function MissionHub({
 
         {/* 2. CENTER STAGE (3D Champion Showcase + 8 Cities Visual Map Horizontal Strip) */}
         <main className="relative z-10 flex flex-1 min-w-0 h-full flex-col justify-between items-center px-1.5 sm:px-3 overflow-hidden">
-          {/* Top Champion Codename Banner */}
-          <div className="rounded-full border border-amber-400/40 bg-slate-950/85 px-3.5 py-1 backdrop-blur-md shadow-lg flex items-center gap-2 shrink-0">
-            <span className="text-xs font-black text-white uppercase tracking-wider truncate max-w-[140px] sm:max-w-none">
-              {state.agent.name}
+          {/* Top Champion & Skin Showcase Banner (Eliminates Duplicate Nickname!) */}
+          <div className="rounded-full border border-amber-400/50 bg-slate-950/90 px-3.5 py-1 backdrop-blur-md shadow-[0_0_15px_rgba(245,158,11,0.25)] flex items-center gap-2 shrink-0">
+            <span className="text-xs font-black text-amber-300 uppercase tracking-wider">
+              {heroMeta?.name || "CAMPEÃO"}
             </span>
-            <span className="text-[9.5px] font-bold text-amber-300 uppercase">
+            <span className="text-[9.5px] font-bold text-slate-300 uppercase">
               • {heroMeta?.codename || "EXPLORADOR"}
             </span>
-            <span className="rounded-full bg-cyan-500/20 px-2 py-0.5 text-[8px] font-black text-cyan-300 uppercase">
-              {heroMeta?.styleTag || "VANGUARDA"}
+            <span className="rounded-full bg-gradient-to-r from-amber-500/20 to-cyan-500/20 border border-cyan-400/40 px-2 py-0.5 text-[8px] font-black text-cyan-300 uppercase">
+              {skinMeta?.name || "CLÁSSICA"}
             </span>
           </div>
 
@@ -597,18 +600,20 @@ export function MissionHub({
               </button>
             )}
 
-            {/* Quick Actions: Trocar Cidade (8) & Skins 3D */}
+            {/* Quick Actions: Lore/História & Skins 3D (Clean, High-Value, Zero Redundancy) */}
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
                 onClick={() => {
                   playSfx("click");
-                  setCitySelectorOpen(true);
+                  if (onOpenStory) onOpenStory();
+                  else setCitySelectorOpen(true);
                 }}
-                className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl border border-cyan-500/40 bg-slate-900/90 text-[8.5px] font-black text-cyan-300 hover:border-cyan-400 hover:text-white transition cursor-pointer uppercase shadow-sm"
+                title="Assistir Prólogo Animado & Tutorial da Base Ide"
+                className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl border border-amber-500/40 bg-slate-900/90 text-[8.5px] font-black text-amber-300 hover:border-amber-400 hover:text-white transition cursor-pointer uppercase shadow-sm"
               >
-                <Compass className="h-3 w-3 text-cyan-300 shrink-0" />
-                <span>Cidades (8)</span>
+                <Film className="h-3 w-3 text-amber-400 shrink-0" />
+                <span>História</span>
               </button>
               <button
                 type="button"
@@ -616,9 +621,10 @@ export function MissionHub({
                   playSfx("click");
                   onOpenWardrobe();
                 }}
-                className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl border border-violet-500/40 bg-slate-900/90 text-[8.5px] font-black text-violet-300 hover:border-violet-400 hover:text-white transition cursor-pointer uppercase shadow-sm"
+                title="Vestiário e Personalização de Skins 3D"
+                className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl border border-cyan-500/40 bg-slate-900/90 text-[8.5px] font-black text-cyan-300 hover:border-cyan-400 hover:text-white transition cursor-pointer uppercase shadow-sm"
               >
-                <Sparkles className="h-3 w-3 text-amber-300 shrink-0" />
+                <Sparkles className="h-3 w-3 text-cyan-300 shrink-0" />
                 <span>Skins 3D</span>
               </button>
             </div>

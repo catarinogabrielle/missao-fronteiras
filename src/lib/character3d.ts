@@ -1293,14 +1293,15 @@ export function buildStylizedHumanRig(
     backMane.castShadow = true;
     headGroup.add(backMane);
 
-    // Front high curtain bangs (parted cleanly to left and right, NEVER covering eyes!)
-    [-0.09, 0.09].forEach((fx) => {
+    // Soft temple hairline waves (hugs skull contour, leaving forehead and eyes 100% crystal clean!)
+    [-0.13, 0.13].forEach((fx) => {
       const sweep = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.028, 0.09, 6, 10),
+        new THREE.CapsuleGeometry(0.024, 0.10, 6, 8),
         hairMat
       );
-      sweep.position.set(fx, 0.13, 0.165);
-      sweep.rotation.z = fx < 0 ? 0.70 : -0.70;
+      sweep.position.set(fx, 0.16, 0.10);
+      sweep.rotation.z = fx < 0 ? -0.38 : 0.38;
+      sweep.rotation.x = 0.12;
       headGroup.add(sweep);
     });
 

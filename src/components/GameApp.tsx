@@ -106,6 +106,7 @@ export function GameApp() {
               onOpenTribesQuiz={() => setTribesQuizOpen(true)}
               onOpenPassport={() => setPassportOpen(true)}
               onOpenWardrobe={() => setWardrobeOpen(true)}
+              onOpenStory={() => setStoryOpen(true)}
               onSwitchUser={() => {
                 setActiveMission(null);
                 switchUser();
