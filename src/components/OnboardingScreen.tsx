@@ -264,9 +264,10 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
       setSelectedSkin(skinToUse);
       setPreviewSkin(skinToUse);
     } else {
+      const champ = AVATAR_OPTIONS.find((a) => a.id === avatarId);
+      setName(`Agente_${champ?.name || "Lucas"}`);
       const def = CANONICAL_PRESETS[avatarId];
-      setName(def.name);
-      setSelectedGift(def.gift);
+      setSelectedGift(def?.gift || "acolhedor");
       setSelectedSkin("padrao");
       setPreviewSkin("padrao");
     }
@@ -549,7 +550,7 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
           </section>
 
           {/* ZONE 2: AGENT SETUP & INSTANT JOGAR TERMINAL (Comfortable Width w-80 sm:w-88 md:w-96) */}
-          <section className="relative flex w-80 sm:w-88 md:w-96 shrink-0 flex-col justify-between min-h-0 rounded-2xl sm:rounded-3xl border border-amber-500/35 bg-slate-950/90 backdrop-blur-xl p-3.5 sm:p-4 shadow-2xl overflow-hidden gap-2">
+          <section className="relative flex w-80 sm:w-88 md:w-96 shrink-0 flex-col min-h-0 rounded-2xl sm:rounded-3xl border border-amber-500/35 bg-slate-950/95 backdrop-blur-xl p-3 sm:p-3.5 shadow-2xl overflow-y-auto overflow-x-hidden gap-2.5 scrollbar-thin">
             
             {/* Top: Identity / Saved Profiles & Nickname */}
             <div className="shrink-0 space-y-2">
@@ -585,7 +586,7 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
                   <div className="flex items-center justify-between text-[9px] font-extrabold uppercase tracking-wider text-slate-400">
                     <span>Perfis Salvos:</span>
                   </div>
-                  <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
                     {state.savedProfiles.map((prof) => {
                       const isCurrentActive =
                         prof.avatarId === selectedAvatar && prof.name === name;
@@ -609,12 +610,12 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
                           >
                             <HeroPortrait
                               avatarId={prof.avatarId}
-                              size={24}
+                              size={22}
                               shape="hex"
                               active={isCurrentActive}
                             />
                             <div className="text-left leading-none">
-                              <div className="text-[10px] font-black text-white uppercase truncate max-w-[85px]">
+                              <div className="text-[10px] font-black text-white uppercase truncate max-w-[80px]">
                                 {prof.name}
                               </div>
                               <div className="text-[8px] font-bold text-amber-300 uppercase mt-0.5 flex items-center gap-1">
@@ -630,6 +631,16 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
                             onClick={(e) => {
                               e.stopPropagation();
                               deleteProfile(prof.name);
+                              if (name.toLowerCase().trim() === prof.name.toLowerCase().trim()) {
+                                const remaining = (state.savedProfiles || []).filter(
+                                  (p) => p.name.toLowerCase().trim() !== prof.name.toLowerCase().trim()
+                                );
+                                if (remaining.length > 0) {
+                                  handleSelectSavedProfile(remaining[0], false);
+                                } else {
+                                  setName(`Agente_${activeChampion.name}`);
+                                }
+                              }
                             }}
                             title={`Excluir conta ${prof.name}`}
                             className="p-1 mr-1 text-slate-500 hover:text-rose-400 hover:bg-rose-500/20 rounded transition cursor-pointer"
@@ -646,7 +657,7 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
                         playSfx("click");
                         setName(`Agente_${activeChampion.name}`);
                       }}
-                      className="shrink-0 flex items-center gap-1 rounded-xl border border-dashed border-slate-700 bg-slate-900/50 px-2.5 py-1.5 text-[9px] font-black text-slate-400 hover:text-white hover:border-amber-400 transition cursor-pointer"
+                      className="shrink-0 flex items-center gap-1 rounded-xl border border-dashed border-slate-700 bg-slate-900/50 px-2 py-1.5 text-[9px] font-black text-slate-400 hover:text-white hover:border-amber-400 transition cursor-pointer"
                       title="Criar novo perfil para este campeão"
                     >
                       <UserPlus className="h-3 w-3 text-amber-300" />
@@ -673,16 +684,25 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
               </div>
             </div>
 
-            {/* Middle: Dom Espiritual Selection (2x2 Grid with Clean Typography) */}
-            <div className="flex-1 min-h-0 flex flex-col justify-center my-1 space-y-1.5">
+            {/* Middle: Dom Espiritual Selection (2x2 Grid with Clean Single-Word Typography) */}
+            <div className="shrink-0 space-y-1.5">
               <div className="text-[10px] font-black uppercase tracking-wider text-cyan-300 flex items-center justify-between">
                 <span>Dom Espiritual (Bônus)</span>
                 <span className="text-[9px] font-bold text-amber-300">{activeGift.name}</span>
               </div>
               
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-1.5">
                 {GIFT_OPTIONS.map((gift) => {
                   const isSelected = gift.id === selectedGift;
+                  const shortName = gift.name.split(" ")[0];
+                  const shortRole =
+                    gift.id === "acolhedor"
+                      ? "Hospitalidade"
+                      : gift.id === "comunicador"
+                      ? "Comunicação"
+                      : gift.id === "tradutor"
+                      ? "Culturas"
+                      : "Oração & Fé";
                   return (
                     <button
                       key={gift.id}
@@ -691,27 +711,21 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
                         playSfx("click");
                         setSelectedGift(gift.id);
                       }}
-                      className={`flex items-center gap-2 rounded-xl border p-2 text-left transition cursor-pointer ${
+                      className={`flex items-center gap-1.5 rounded-xl border p-1.5 text-left transition cursor-pointer ${
                         isSelected
                           ? "border-cyan-300 bg-cyan-500/20 text-white shadow-[0_0_12px_rgba(34,211,238,0.4)] ring-1.5 ring-cyan-300"
                           : "border-slate-800 bg-slate-900/70 text-slate-300 hover:border-slate-600"
                       }`}
                     >
-                      <div className={`p-1.5 rounded-lg border ${gift.colorClass} shrink-0`}>
+                      <div className={`p-1 rounded-lg border ${gift.colorClass} shrink-0`}>
                         {renderGiftIcon(gift.iconName)}
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-[11px] font-black text-white">
-                          {gift.name}
+                      <div className="min-w-0 flex-1 leading-tight">
+                        <div className="truncate text-[10.5px] font-black text-white">
+                          {shortName}
                         </div>
-                        <div className="truncate text-[8.5px] text-slate-400">
-                          {gift.id === "acolhedor"
-                            ? "Hospitalidade"
-                            : gift.id === "comunicador"
-                            ? "Comunicação"
-                            : gift.id === "tradutor"
-                            ? "Culturas & Línguas"
-                            : "Oração & Fé"}
+                        <div className="truncate text-[8px] text-slate-400">
+                          {shortRole}
                         </div>
                       </div>
                     </button>
@@ -720,30 +734,30 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
               </div>
 
               {/* Selected Gift One-Liner Description */}
-              <div className="rounded-xl border border-cyan-500/20 bg-slate-900/70 px-2.5 py-1.5 text-[9.5px] text-cyan-200 leading-snug">
+              <div className="rounded-xl border border-cyan-500/20 bg-slate-900/80 px-2.5 py-1 text-[9px] text-cyan-200 leading-tight">
                 <span className="font-bold text-amber-300">Bônus: </span>
                 {activeGift.bonusDescription}
               </div>
             </div>
 
-            {/* Bottom: Giant JOGAR AGORA CTA (Echoes of Arena Style) */}
-            <div className="shrink-0 pt-1">
+            {/* Bottom: Giant JOGAR AGORA CTA (Sticky at Bottom) */}
+            <div className="shrink-0 sticky bottom-0 z-10 pt-1.5 pb-0.5 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent">
               <motion.button
                 type="button"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => handleConfirm()}
-                className="group relative w-full cursor-pointer overflow-hidden rounded-xl sm:rounded-2xl border-2 border-amber-300 bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 py-3 px-4 text-slate-950 font-black shadow-[0_0_24px_rgba(245,158,11,0.65)] hover:shadow-[0_0_36px_rgba(245,158,11,0.85)] hover:brightness-105 transition-all"
+                className="group relative w-full cursor-pointer overflow-hidden rounded-xl sm:rounded-2xl border-2 border-amber-300 bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 py-2.5 sm:py-3 px-3 sm:px-4 text-slate-950 font-black shadow-[0_0_24px_rgba(245,158,11,0.65)] hover:shadow-[0_0_36px_rgba(245,158,11,0.85)] hover:brightness-105 transition-all"
               >
                 {/* Sheen animation */}
                 <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover:translate-x-full transition-transform duration-1000" />
                 <div className="relative flex items-center justify-center gap-2">
-                  <Sparkles className="h-5 w-5 text-slate-950 animate-pulse" />
+                  <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-slate-950 animate-pulse" />
                   <div className="flex flex-col items-center">
-                    <span className="text-sm sm:text-base font-black tracking-wider uppercase">
+                    <span className="text-xs sm:text-sm font-black tracking-wider uppercase">
                       ⚔️ JOGAR AGORA
                     </span>
-                    <span className="text-[9.5px] font-extrabold text-amber-950 uppercase tracking-widest truncate max-w-[240px]">
+                    <span className="text-[8.5px] sm:text-[9.5px] font-extrabold text-amber-950 uppercase tracking-widest truncate max-w-[220px]">
                       ENTRAR COMO {name || activeChampion.name}
                     </span>
                   </div>
@@ -919,6 +933,16 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
                     onClick={(e) => {
                       e.stopPropagation();
                       deleteProfile(prof.name);
+                      if (name.toLowerCase().trim() === prof.name.toLowerCase().trim()) {
+                        const remaining = (state.savedProfiles || []).filter(
+                          (p) => p.name.toLowerCase().trim() !== prof.name.toLowerCase().trim()
+                        );
+                        if (remaining.length > 0) {
+                          handleSelectSavedProfile(remaining[0], false);
+                        } else {
+                          setName(`Agente_${activeChampion.name}`);
+                        }
+                      }
                     }}
                     title={`Excluir conta ${prof.name}`}
                     className="p-1.5 mr-1 text-slate-500 hover:text-rose-400 hover:bg-rose-500/20 rounded transition cursor-pointer"
@@ -1183,30 +1207,30 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
                 placeholder="Digite seu Nick ou Nome da Equipe..."
                 className="w-full rounded-xl border-2 border-amber-500/40 bg-slate-950/90 px-3.5 py-2.5 text-sm font-black text-white placeholder-slate-500 transition focus:border-cyan-400 focus:outline-none"
               />
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {[
-                  { name: "Kaleb_BR", hero: "Lucas" },
-                  { name: "Sofia_Ide", hero: "Sofia" },
-                  { name: "Tribo Atos", hero: "Davi" },
-                  { name: "Rede Teens", hero: "Ester" },
-                ].map((preset) => (
-                  <button
-                    key={preset.name}
-                    type="button"
-                    onClick={() => handleSelectPresetName(preset.name)}
-                    className={`cursor-pointer rounded-lg border px-2.5 py-1 text-[11px] font-bold transition flex items-center gap-1 ${
-                      name === preset.name
-                        ? "border-amber-400 bg-amber-500/25 text-amber-200 ring-1 ring-amber-300"
-                        : "border-slate-700 bg-slate-900 text-slate-300 hover:border-amber-400 hover:text-amber-200"
-                    }`}
-                  >
-                    <span>{preset.name}</span>
-                    <span className="text-[9px] text-cyan-300 font-mono uppercase">
-                      • {preset.hero}
-                    </span>
-                  </button>
-                ))}
-              </div>
+              {state.savedProfiles && state.savedProfiles.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {state.savedProfiles.map((prof) => {
+                    const champ = AVATAR_OPTIONS.find((a) => a.id === prof.avatarId);
+                    return (
+                      <button
+                        key={prof.name}
+                        type="button"
+                        onClick={() => handleSelectPresetName(prof.name)}
+                        className={`cursor-pointer rounded-lg border px-2.5 py-1 text-[11px] font-bold transition flex items-center gap-1 ${
+                          name === prof.name
+                            ? "border-amber-400 bg-amber-500/25 text-amber-200 ring-1 ring-amber-300"
+                            : "border-slate-700 bg-slate-900 text-slate-300 hover:border-amber-400 hover:text-amber-200"
+                        }`}
+                      >
+                        <span>{prof.name}</span>
+                        <span className="text-[9px] text-cyan-300 font-mono uppercase">
+                          • {champ?.name || prof.avatarId}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Passive Skill Runes */}

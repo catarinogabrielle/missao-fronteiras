@@ -188,51 +188,62 @@ function loadInitialGameState(): GameState {
           }
         : null;
 
-      const rawSaved = Array.isArray(parsed.savedProfiles)
-        ? parsed.savedProfiles
-        : [];
-      const profileMap = new Map<string, AgentProfile>();
+      let mergedSavedProfiles: AgentProfile[] = [];
 
-      // Seed with default profiles so all 4 champions always exist
-      DEFAULT_CHAMPION_PROFILES.forEach((dp) => {
-        profileMap.set(dp.name.toLowerCase(), dp);
-      });
-
-      // Overlay user saved profiles with sanitization of known champion names
-      rawSaved.forEach((prof) => {
-        const lower = prof.name.toLowerCase().trim();
-        let sanitizedAvatar = prof.avatarId;
-        if (lower === "sofia_ide" && sanitizedAvatar !== "sofia") {
-          sanitizedAvatar = "sofia";
-        } else if (lower === "kaleb_br" && sanitizedAvatar !== "lucas") {
-          sanitizedAvatar = "lucas";
-        } else if (lower === "tribo atos" && sanitizedAvatar !== "davi") {
-          sanitizedAvatar = "davi";
-        } else if (lower === "rede teens" && sanitizedAvatar !== "ester") {
-          sanitizedAvatar = "ester";
-        }
-        profileMap.set(lower, {
-          ...prof,
-          avatarId: sanitizedAvatar,
-          skinId: prof.skinId || "padrao",
+      if (Array.isArray(parsed.savedProfiles)) {
+        // User already has their saved profile collection stored.
+        // NEVER re-inject deleted default profiles!
+        const profileMap = new Map<string, AgentProfile>();
+        parsed.savedProfiles.forEach((prof) => {
+          if (!prof || !prof.name) return;
+          const lower = prof.name.toLowerCase().trim();
+          let sanitizedAvatar = prof.avatarId;
+          if (lower === "sofia_ide" && sanitizedAvatar !== "sofia") {
+            sanitizedAvatar = "sofia";
+          } else if (lower === "kaleb_br" && sanitizedAvatar !== "lucas") {
+            sanitizedAvatar = "lucas";
+          } else if (lower === "tribo atos" && sanitizedAvatar !== "davi") {
+            sanitizedAvatar = "davi";
+          } else if (lower === "rede teens" && sanitizedAvatar !== "ester") {
+            sanitizedAvatar = "ester";
+          }
+          profileMap.set(lower, {
+            ...prof,
+            avatarId: sanitizedAvatar,
+            skinId: prof.skinId || "padrao",
+          });
         });
-      });
-
-      if (migratedAgent) {
-        profileMap.set(migratedAgent.name.toLowerCase(), migratedAgent);
+        mergedSavedProfiles = Array.from(profileMap.values());
+      } else {
+        // First run ever on a fresh device without any saved profile state:
+        mergedSavedProfiles = [...DEFAULT_CHAMPION_PROFILES];
       }
 
-      const mergedSavedProfiles = Array.from(profileMap.values());
+      // Ensure active agent is only kept if it actually exists in saved profiles (unless list is empty)
+      const isAgentInSaved = migratedAgent
+        ? mergedSavedProfiles.some(
+            (p) => p.name.toLowerCase().trim() === migratedAgent.name.toLowerCase().trim()
+          )
+        : false;
+      const resolvedAgent = isAgentInSaved
+        ? migratedAgent
+        : (mergedSavedProfiles[0] || null);
+
       const resolvedLastActive =
-        migratedAgent ||
-        parsed.lastActiveAgent ||
-        mergedSavedProfiles[0] ||
-        DEFAULT_CHAMPION_PROFILES[0];
+        resolvedAgent ||
+        (parsed.lastActiveAgent &&
+        mergedSavedProfiles.some(
+          (p) =>
+            p.name.toLowerCase().trim() ===
+            parsed.lastActiveAgent!.name.toLowerCase().trim()
+        )
+          ? parsed.lastActiveAgent
+          : mergedSavedProfiles[0] || null);
 
       const merged: GameState = {
         ...INITIAL_STATE,
         ...parsed,
-        agent: migratedAgent,
+        agent: resolvedAgent,
         lastActiveAgent: resolvedLastActive,
         savedProfiles: mergedSavedProfiles,
         unlockedSkins: mergedSkins,
@@ -437,19 +448,32 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const deleteProfile = useCallback(
     (profileName: string) => {
       soundEngine.play("click");
+      const target = profileName.toLowerCase().trim();
       setState((prev) => {
         const nextSaved = (prev.savedProfiles || []).filter(
-          (p) => p.name.toLowerCase() !== profileName.toLowerCase()
+          (p) => p.name.toLowerCase().trim() !== target
         );
         const isActiveDeleted =
-          prev.agent?.name.toLowerCase() === profileName.toLowerCase();
+          prev.agent?.name.toLowerCase().trim() === target;
+        const isLastActiveDeleted =
+          prev.lastActiveAgent?.name.toLowerCase().trim() === target;
         const fallback = nextSaved[0] || null;
-        return {
+
+        const nextState: GameState = {
           ...prev,
           savedProfiles: nextSaved,
           agent: isActiveDeleted ? fallback : prev.agent,
-          lastActiveAgent: isActiveDeleted ? fallback : prev.lastActiveAgent,
+          lastActiveAgent: isLastActiveDeleted ? fallback : prev.lastActiveAgent,
         };
+
+        // Guarantee immediate synchronous persistence to localStorage
+        try {
+          if (typeof window !== "undefined" && window.localStorage) {
+            window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextState));
+          }
+        } catch {}
+
+        return nextState;
       });
       pushToast(
         "Conta Excluída",
