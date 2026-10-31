@@ -401,7 +401,9 @@ export function MobaGtaWorld3D({
     scene.fog = new THREE.FogExp2(palette.fog, 0.0044);
 
     const camera = new THREE.PerspectiveCamera(54, width / height, 0.1, 360);
-    camera.position.set(0, 9, 82);
+    // Start game immediately in AAA 3D 3rd-person street camera (Câmera 3D GTA)
+    camera.position.set(WORLD_LANDMARKS.spawn.x, 5.8, WORLD_LANDMARKS.spawn.z + 11.2);
+    camera.lookAt(WORLD_LANDMARKS.spawn.x, 2.1, WORLD_LANDMARKS.spawn.z - 4.5);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(width, height);
@@ -1294,19 +1296,27 @@ export function MobaGtaWorld3D({
     });
 
     // =========================================================================
-    // REALISTIC STREET FURNITURE: CURBS, STREETLAMPS, BENCHES, HYDRANTS & STALLS
+    // REALISTIC STREET FURNITURE: CURBS, STREETLAMPS, BENCHES & FIRE HYDRANTS
     // =========================================================================
-    // 1. Sidewalk Concrete Curbs along the Boulevard
-    [-5.9, 5.9].forEach((cx) => {
-      const curb = new THREE.Mesh(
-        new THREE.BoxGeometry(0.28, 0.16, 180),
-        curbMat
-      );
-      curb.position.set(cx, 0.08, 0);
-      scene.add(curb);
+    // 1. Sidewalk Concrete Curbs along Boulevard (ONLY along blocks, NEVER cutting across Avenues!)
+    const curbSegments = [
+      { zCenter: 36.25, len: 23.5 }, // North Block (between Ave 18 & Ave 54)
+      { zCenter: 74.0, len: 28.0 },  // Far North Block (North of Ave 54)
+      { zCenter: -36.25, len: 23.5 }, // South Block (between Ave -18 & Ave -54)
+      { zCenter: -74.0, len: 28.0 }, // Far South Block (South of Ave -54)
+    ];
+    curbSegments.forEach(({ zCenter, len }) => {
+      [-5.9, 5.9].forEach((cx) => {
+        const curb = new THREE.Mesh(
+          new THREE.BoxGeometry(0.28, 0.16, len),
+          curbMat
+        );
+        curb.position.set(cx, 0.08, zCenter);
+        scene.add(curb);
+      });
     });
 
-    // 2. Realistic Arched Swan-Neck Streetlamps with Warm Light Pools
+    // 2. Realistic Arched Swan-Neck Streetlamps with Warm Light Pools (Safely on Sidewalks)
     const lampLightPoolTex = (() => {
       const c = document.createElement("canvas");
       c.width = 128;
@@ -1322,104 +1332,193 @@ export function MobaGtaWorld3D({
       return t;
     })();
 
-    [-64, -32, 0, 32, 64].forEach((lz) => {
-      [-6.6, 6.6].forEach((lx) => {
-        const lampPost = new THREE.Group();
-        lampPost.position.set(lx, 0, lz);
+    // Lamp positions positioned in the middle of sidewalk blocks, far from intersections
+    const lampCoords: [number, number][] = [
+      [-6.6, -70], [6.6, -70],
+      [-6.6, -36], [6.6, -36],
+      [-6.6, 36], [6.6, 36],
+      [-6.6, 70], [6.6, 70],
+      // Plaza perimeter lamps
+      [-10.5, 0], [10.5, 0],
+    ];
 
-        // Vertical Post
-        const pole = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.08, 0.12, 5.2, 8),
-          trafficPoleMat
-        );
-        pole.position.y = 2.6;
-        lampPost.add(pole);
+    lampCoords.forEach(([lx, lz]) => {
+      const lampPost = new THREE.Group();
+      lampPost.position.set(lx, 0, lz);
 
-        // Curved Overhang Arm reaching toward street
-        const armDir = lx < 0 ? 1 : -1;
-        const arm = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.05, 0.05, 1.1, 6),
-          trafficPoleMat
-        );
-        arm.position.set(armDir * 0.45, 5.1, 0);
-        arm.rotation.z = armDir * 0.55;
-        lampPost.add(arm);
+      // Vertical Post
+      const pole = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.08, 0.12, 5.2, 8),
+        trafficPoleMat
+      );
+      pole.position.y = 2.6;
+      lampPost.add(pole);
 
-        // Bell Lamp Fixture
-        const fixture = new THREE.Mesh(
-          new THREE.ConeGeometry(0.26, 0.35, 10),
-          trafficPoleMat
-        );
-        fixture.position.set(armDir * 0.85, 5.15, 0);
-        fixture.rotation.x = Math.PI;
-        lampPost.add(fixture);
+      // Curved Overhang Arm reaching toward sidewalk/street
+      const armDir = lx < 0 ? 1 : -1;
+      const arm = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.05, 0.05, 1.1, 6),
+        trafficPoleMat
+      );
+      arm.position.set(armDir * 0.45, 5.1, 0);
+      arm.rotation.z = armDir * 0.55;
+      lampPost.add(arm);
 
-        // Warm Glowing LED Bulb
-        const bulb = new THREE.Mesh(
-          new THREE.SphereGeometry(0.18, 10, 8),
-          new THREE.MeshBasicMaterial({ color: 0xfef9c3 })
-        );
-        bulb.position.set(armDir * 0.85, 4.95, 0);
-        lampPost.add(bulb);
+      // Bell Lamp Fixture
+      const fixture = new THREE.Mesh(
+        new THREE.ConeGeometry(0.26, 0.35, 10),
+        trafficPoleMat
+      );
+      fixture.position.set(armDir * 0.85, 5.15, 0);
+      fixture.rotation.x = Math.PI;
+      lampPost.add(fixture);
 
-        scene.add(lampPost);
+      // Warm Glowing LED Bulb
+      const bulb = new THREE.Mesh(
+        new THREE.SphereGeometry(0.18, 10, 8),
+        new THREE.MeshBasicMaterial({ color: 0xfef9c3 })
+      );
+      bulb.position.set(armDir * 0.85, 4.95, 0);
+      lampPost.add(bulb);
 
-        // Ground Light Pool on Asphalt
-        const lightPool = new THREE.Mesh(
-          new THREE.PlaneGeometry(9.5, 9.5),
-          new THREE.MeshBasicMaterial({
-            map: lampLightPoolTex,
-            transparent: true,
-            opacity: 0.75,
-            depthWrite: false,
-          })
-        );
-        lightPool.rotation.x = -Math.PI / 2;
-        lightPool.position.set(lx + armDir * 1.5, 0.04, lz);
-        scene.add(lightPool);
-      });
+      scene.add(lampPost);
+
+      // Ground Light Pool
+      const lightPool = new THREE.Mesh(
+        new THREE.PlaneGeometry(9.5, 9.5),
+        new THREE.MeshBasicMaterial({
+          map: lampLightPoolTex,
+          transparent: true,
+          opacity: 0.75,
+          depthWrite: false,
+        })
+      );
+      lightPool.rotation.x = -Math.PI / 2;
+      lightPool.position.set(lx + armDir * 1.5, 0.04, lz);
+      scene.add(lightPool);
     });
 
-    // 3. Street Fire Hydrants & Park Benches
-    [-48, 16, 48].forEach((pz, pIdx) => {
-      // Red Fire Hydrant
+    // 3. Authentic 3D Fire Hydrants (Hidrantes) - Safely on Sidewalk Curb, NEVER in the Street!
+    const hydrantCoords: [number, number][] = [
+      [-6.5, 26],   // North sidewalk curb, clear of Ave 18
+      [6.5, 46],    // North sidewalk curb, clear of Ave 54
+      [-6.5, -26],  // South sidewalk curb, clear of Ave -18
+      [6.5, -46],   // South sidewalk curb, clear of Ave -54
+      [6.5, 64],    // Spawn area sidewalk curb
+    ];
+
+    hydrantCoords.forEach(([hx, hz]) => {
       const hydrant = new THREE.Group();
-      hydrant.position.set(pIdx % 2 === 0 ? -6.8 : 6.8, 0, pz);
-      const hydrantBody = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.14, 0.16, 0.65, 10),
-        new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.35 })
+      hydrant.position.set(hx, 0, hz);
+
+      // Heavy Flanged Cast-Iron Base Ring
+      const hBase = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.24, 0.28, 0.12, 12),
+        new THREE.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.5 })
       );
-      hydrantBody.position.y = 0.32;
+      hBase.position.y = 0.06;
+      hydrant.add(hBase);
+
+      // Main Fire Hydrant Barrel
+      const hydrantBody = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.14, 0.17, 0.56, 12),
+        new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.35, metalness: 0.15 })
+      );
+      hydrantBody.position.y = 0.38;
       hydrant.add(hydrantBody);
+
+      // Top Dome Bonnet
       const hydrantCap = new THREE.Mesh(
-        new THREE.SphereGeometry(0.14, 8, 8),
-        new THREE.MeshStandardMaterial({ color: 0xdc2626 })
+        new THREE.SphereGeometry(0.15, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.55),
+        new THREE.MeshStandardMaterial({ color: 0xb91c1c, roughness: 0.35 })
       );
       hydrantCap.position.y = 0.65;
       hydrant.add(hydrantCap);
-      scene.add(hydrant);
 
-      // Wooden Park Bench
-      const bench = new THREE.Group();
-      bench.position.set(pIdx % 2 === 0 ? -7.8 : 7.8, 0, pz + 6);
-      bench.rotation.y = pIdx % 2 === 0 ? Math.PI / 2 : -Math.PI / 2;
-      const seat = new THREE.Mesh(
-        new THREE.BoxGeometry(1.6, 0.08, 0.45),
-        new THREE.MeshStandardMaterial({ color: 0x854d0e, roughness: 0.7 })
+      // Pentagon Operating Nut on Top
+      const topNut = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.045, 0.045, 0.08, 5),
+        new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.8, roughness: 0.3 })
       );
-      seat.position.y = 0.45;
-      bench.add(seat);
-      const backrest = new THREE.Mesh(
-        new THREE.BoxGeometry(1.6, 0.35, 0.06),
-        new THREE.MeshStandardMaterial({ color: 0x854d0e, roughness: 0.7 })
-      );
-      backrest.position.set(0, 0.75, -0.2);
-      bench.add(backrest);
-      [-0.7, 0.7].forEach((legX) => {
-        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.45, 0.45), ironMat);
-        leg.position.set(legX, 0.22, 0);
-        bench.add(leg);
+      topNut.position.y = 0.74;
+      hydrant.add(topNut);
+
+      // Dual Side Pumper Nozzles with Brass Caps
+      [-0.17, 0.17].forEach((nx) => {
+        const nozzle = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.06, 0.06, 0.12, 8),
+          new THREE.MeshStandardMaterial({ color: 0xb91c1c, roughness: 0.4 })
+        );
+        nozzle.position.set(nx, 0.45, 0);
+        nozzle.rotation.z = Math.PI / 2;
+        hydrant.add(nozzle);
+
+        const cap = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.07, 0.07, 0.05, 8),
+          new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.85, roughness: 0.25 })
+        );
+        cap.position.set(nx > 0 ? nx + 0.06 : nx - 0.06, 0.45, 0);
+        cap.rotation.z = Math.PI / 2;
+        hydrant.add(cap);
       });
+
+      scene.add(hydrant);
+    });
+
+    // 4. Wooden Park Benches (Bancos de Parque) - In Central Plaza & on Sidewalks, NEVER in the Street!
+    const benchConfigs: { x: number; z: number; rotY: number }[] = [
+      // Central Plaza Park Benches (surrounding the plaza fountain, facing inward)
+      { x: -7.5, z: 5.5, rotY: Math.PI * 0.70 },
+      { x: 7.5, z: 5.5, rotY: -Math.PI * 0.70 },
+      { x: -7.5, z: -5.5, rotY: Math.PI * 0.30 },
+      { x: 7.5, z: -5.5, rotY: -Math.PI * 0.30 },
+      // Sidewalk Blocks (Facing the boulevard from well inside the sidewalk paving, |x| >= 8.2)
+      { x: -8.2, z: 36, rotY: Math.PI / 2 },
+      { x: 8.2, z: 36, rotY: -Math.PI / 2 },
+      { x: -8.2, z: -36, rotY: Math.PI / 2 },
+      { x: 8.2, z: -36, rotY: -Math.PI / 2 },
+      // Spawn Park Area
+      { x: -7.8, z: 66, rotY: Math.PI / 2 },
+      { x: 7.8, z: 66, rotY: -Math.PI / 2 },
+    ];
+
+    benchConfigs.forEach(({ x: bx, z: bz, rotY }) => {
+      const bench = new THREE.Group();
+      bench.position.set(bx, 0, bz);
+      bench.rotation.y = rotY;
+
+      // Realistic Cast-Iron Side Legs & Armrests
+      [-0.72, 0.72].forEach((legX) => {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.46, 0.48), ironMat);
+        leg.position.set(legX, 0.23, 0);
+        bench.add(leg);
+
+        const armrest = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.04, 0.38), ironMat);
+        armrest.position.set(legX, 0.54, 0.04);
+        bench.add(armrest);
+      });
+
+      // 3 Slatted Varnished Hardwood Seat Planks
+      [-0.14, 0, 0.14].forEach((sz) => {
+        const plank = new THREE.Mesh(
+          new THREE.BoxGeometry(1.65, 0.035, 0.11),
+          new THREE.MeshStandardMaterial({ color: 0x92400e, roughness: 0.65 })
+        );
+        plank.position.set(0, 0.46, sz);
+        bench.add(plank);
+      });
+
+      // 2 Slatted Wooden Backrest Planks
+      [0.66, 0.78].forEach((by, idx) => {
+        const bPlank = new THREE.Mesh(
+          new THREE.BoxGeometry(1.65, 0.10, 0.035),
+          new THREE.MeshStandardMaterial({ color: 0x92400e, roughness: 0.65 })
+        );
+        bPlank.position.set(0, by, -0.22 - idx * 0.02);
+        bPlank.rotation.x = -0.12;
+        bench.add(bPlank);
+      });
+
       scene.add(bench);
     });
 
@@ -2095,11 +2194,11 @@ export function MobaGtaWorld3D({
     }
     const vfxList: ExpandingEffect[] = [];
 
-    // --- GAMEPLAY & CAMERA STATE ---
+    // --- GAMEPLAY & CAMERA STATE (STARTS IN 3D GTA CAMERA AS REQUESTED) ---
     let hp = 120;
     const maxHp = 120;
     let activeVehicle: LiveVehicle | null = null;
-    let cameraMode: "gta" | "moba" = "moba";
+    let cameraMode: "gta" | "moba" = "gta";
     let camYaw = 0; // 0 = Camera South looking North (-Z)
     let nitroTimer = 0;
     let nitroCooldown = 0;
