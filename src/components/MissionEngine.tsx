@@ -1210,61 +1210,64 @@ export function MissionEngine({
       {/* =========================================================
           TOP-RIGHT: SCOREBOARD, AUDIO & FULLSCREEN CONTROLS (AAA ERGONOMIC POSITIONING)
          ========================================================= */}
-      <div className="pointer-events-auto absolute top-2 right-2 z-20 flex items-center gap-1.5 sm:top-3 sm:right-3">
-        {/* Quick Audio Mute / Unmute Toggle */}
-        <motion.button
-          type="button"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.94 }}
-          onClick={() => {
-            toggleMute();
-          }}
-          title={state.muted ? "Ativar Áudio e SFX" : "Mutar Áudio"}
-          className="flex h-7 sm:h-8 w-7 sm:w-8 cursor-pointer items-center justify-center rounded-xl border border-slate-700/80 bg-slate-950/90 text-slate-200 shadow-lg transition hover:border-amber-400 hover:text-white"
-        >
-          {state.muted ? (
-            <VolumeX className="h-3.5 w-3.5 text-rose-400" />
-          ) : (
-            <Volume2 className="h-3.5 w-3.5 text-emerald-400" />
-          )}
-        </motion.button>
+      <div className="pointer-events-auto absolute top-1.5 sm:top-2 right-2 z-20 flex items-start gap-1.5 sm:right-3">
+        {/* Quick Utility Action Buttons (Sound, Fullscreen, Keyboard Help) */}
+        <div className="flex items-center gap-1.5 pt-0.5">
+          {/* Quick Audio Mute / Unmute Toggle */}
+          <motion.button
+            type="button"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.94 }}
+            onClick={() => {
+              toggleMute();
+            }}
+            title={state.muted ? "Ativar Áudio e SFX" : "Mutar Áudio"}
+            className="flex h-7 sm:h-8 w-7 sm:w-8 cursor-pointer items-center justify-center rounded-xl border border-slate-700/80 bg-slate-950/90 text-slate-200 shadow-lg transition hover:border-amber-400 hover:text-white"
+          >
+            {state.muted ? (
+              <VolumeX className="h-3.5 w-3.5 text-rose-400" />
+            ) : (
+              <Volume2 className="h-3.5 w-3.5 text-emerald-400" />
+            )}
+          </motion.button>
 
-        {/* Quick Fullscreen Toggle (Web / Desktop) */}
-        <motion.button
-          type="button"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.94 }}
-          onClick={() => {
-            playSfx("click");
-            toggleLandscapeFullscreen();
-          }}
-          title="Alternar Tela Cheia / Fullscreen"
-          className="hidden sm:flex h-7 sm:h-8 w-7 sm:w-8 cursor-pointer items-center justify-center rounded-xl border border-slate-700/80 bg-slate-950/90 text-slate-200 shadow-lg transition hover:border-cyan-300 hover:text-white"
-        >
-          <Maximize2 className="h-3.5 w-3.5 text-cyan-300" />
-        </motion.button>
-
-        {/* Toggle Keyboard Controls Help Bar (Desktop PC Only - Strictly Hidden on Mobile / Touch) */}
-        {!isMobile && !isMobileDevice && !isMobileLandscape && !isCompactMobile && (
+          {/* Quick Fullscreen Toggle (Web / Desktop) */}
           <motion.button
             type="button"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.94 }}
             onClick={() => {
               playSfx("click");
-              setKeyboardHelpVisible((prev) => !prev);
+              toggleLandscapeFullscreen();
             }}
-            title="Alternar Guia de Teclas do Teclado"
-            className={`hidden lg:flex h-7 sm:h-8 cursor-pointer items-center gap-1 rounded-xl border px-2 text-[9px] sm:text-[10px] font-black shadow-lg transition ${
-              keyboardHelpVisible
-                ? "border-amber-400 bg-amber-500/25 text-amber-200"
-                : "border-slate-700/80 bg-slate-950/90 text-slate-300 hover:border-amber-400 hover:text-white"
-            }`}
+            title="Alternar Tela Cheia / Fullscreen"
+            className="hidden sm:flex h-7 sm:h-8 w-7 sm:w-8 cursor-pointer items-center justify-center rounded-xl border border-slate-700/80 bg-slate-950/90 text-slate-200 shadow-lg transition hover:border-cyan-300 hover:text-white"
           >
-            <span>⌨️</span>
-            <span>TECLAS</span>
+            <Maximize2 className="h-3.5 w-3.5 text-cyan-300" />
           </motion.button>
-        )}
+
+          {/* Toggle Keyboard Controls Help Bar (Desktop PC Only - Strictly Hidden on Mobile / Touch) */}
+          {!isMobile && !isMobileDevice && !isMobileLandscape && !isCompactMobile && (
+            <motion.button
+              type="button"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.94 }}
+              onClick={() => {
+                playSfx("click");
+                setKeyboardHelpVisible((prev) => !prev);
+              }}
+              title="Alternar Guia de Teclas do Teclado"
+              className={`hidden lg:flex h-7 sm:h-8 cursor-pointer items-center gap-1 rounded-xl border px-2 text-[9px] sm:text-[10px] font-black shadow-lg transition ${
+                keyboardHelpVisible
+                  ? "border-amber-400 bg-amber-500/25 text-amber-200"
+                  : "border-slate-700/80 bg-slate-950/90 text-slate-300 hover:border-amber-400 hover:text-white"
+              }`}
+            >
+              <span>⌨️</span>
+              <span>TECLAS</span>
+            </motion.button>
+          )}
+        </div>
 
         {isCompactMobile ? (
           <div className="moba-panel-cyan flex flex-col items-end rounded-xl px-2.5 py-1.5 shadow-xl">
