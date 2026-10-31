@@ -480,9 +480,9 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
             </div>
 
             {/* Center: Live 3D Model Stage or 2D Art */}
-            <div className="relative flex-1 min-h-0 flex items-center justify-center my-1">
+            <div className="relative flex-1 min-h-0 flex items-center justify-center my-1 w-full overflow-hidden">
               {viewMode === "3d" ? (
-                <div className="relative h-full w-full max-w-lg flex items-center justify-center">
+                <div className="relative h-full w-full max-w-lg overflow-hidden">
                   <HeroPreview3D
                     avatarId={selectedAvatar}
                     skinId={previewSkin}

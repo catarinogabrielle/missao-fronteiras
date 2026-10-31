@@ -85,23 +85,40 @@ export function useMobileViewport(): MobileViewportInfo {
   const [snap, setSnap] = useState(readViewportSnapshot);
 
   useEffect(() => {
+    let t1: NodeJS.Timeout | number | undefined;
+    let t2: NodeJS.Timeout | number | undefined;
+    let t3: NodeJS.Timeout | number | undefined;
+
     const sync = () => {
       setSnap(readViewportSnapshot());
     };
 
+    const delayedSync = () => {
+      sync();
+      if (t1) clearTimeout(t1);
+      if (t2) clearTimeout(t2);
+      if (t3) clearTimeout(t3);
+      t1 = setTimeout(sync, 100);
+      t2 = setTimeout(sync, 250);
+      t3 = setTimeout(sync, 500);
+    };
+
     sync();
-    window.addEventListener("resize", sync);
-    window.addEventListener("orientationchange", sync);
-    document.addEventListener("fullscreenchange", sync);
-    document.addEventListener("webkitfullscreenchange", sync);
-    window.visualViewport?.addEventListener("resize", sync);
+    window.addEventListener("resize", delayedSync);
+    window.addEventListener("orientationchange", delayedSync);
+    document.addEventListener("fullscreenchange", delayedSync);
+    document.addEventListener("webkitfullscreenchange", delayedSync);
+    window.visualViewport?.addEventListener("resize", delayedSync);
 
     return () => {
-      window.removeEventListener("resize", sync);
-      window.removeEventListener("orientationchange", sync);
-      document.removeEventListener("fullscreenchange", sync);
-      document.removeEventListener("webkitfullscreenchange", sync);
-      window.visualViewport?.removeEventListener("resize", sync);
+      if (t1) clearTimeout(t1);
+      if (t2) clearTimeout(t2);
+      if (t3) clearTimeout(t3);
+      window.removeEventListener("resize", delayedSync);
+      window.removeEventListener("orientationchange", delayedSync);
+      document.removeEventListener("fullscreenchange", delayedSync);
+      document.removeEventListener("webkitfullscreenchange", delayedSync);
+      window.visualViewport?.removeEventListener("resize", delayedSync);
     };
   }, []);
 

@@ -96,13 +96,16 @@ export function HeroPreview3D({
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: true,
+      powerPreference: "high-performance",
     });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(width, height, false);
     renderer.shadowMap.enabled = true;
     const canvasDom = renderer.domElement;
-    canvasDom.style.maxWidth = "100%";
-    canvasDom.style.maxHeight = "100%";
+    canvasDom.style.position = "absolute";
+    canvasDom.style.inset = "0";
+    canvasDom.style.width = "100%";
+    canvasDom.style.height = "100%";
     canvasDom.style.display = "block";
     canvasDom.style.touchAction = "none";
     container.innerHTML = "";
@@ -265,15 +268,73 @@ export function HeroPreview3D({
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", onPointerUp);
 
-    const onResize = () => {
-      if (!container) return;
-      const w = container.clientWidth || 340;
-      const h = container.clientHeight || 360;
-      camera.aspect = w / h;
+    // Dynamic & Responsive 3D Stage Sizing & Framing
+    const syncSize = () => {
+      if (!container || !renderer || !camera) return;
+      const rect = container.getBoundingClientRect();
+      const w = Math.round(rect.width || container.clientWidth || 0);
+      const h = Math.round(rect.height || container.clientHeight || 0);
+
+      // Avoid sizing if container is hidden or layout hasn't resolved
+      if (w < 20 || h < 20) return;
+
+      const aspect = w / h;
+      camera.aspect = aspect;
+
+      // Smart responsive hero framing:
+      // In mobile landscape, vertical height is shallow (e.g. 140px - 260px) while width is wide (400px - 700px).
+      // Standard camera FOV/position leaves the avatar tiny because it centers vertically with wide margins.
+      // We dynamically tune camera position, target, and FOV so the character is prominently framed and heroic:
+      if (h < 260 || (aspect > 1.35 && h < 340)) {
+        // Shallow mobile landscape / compact view:
+        camera.fov = 32;
+        camera.position.set(0, 1.25, 3.35);
+        camera.lookAt(0, 1.05, 0);
+      } else if (compact || h < 380) {
+        camera.fov = 35;
+        camera.position.set(0, 1.38, 3.85);
+        camera.lookAt(0, 1.12, 0);
+      } else {
+        camera.fov = 38;
+        camera.position.set(0, 1.45, 4.35);
+        camera.lookAt(0, 1.15, 0);
+      }
+
       camera.updateProjectionMatrix();
-      renderer.setSize(w, h);
+
+      const pr = Math.min(window.devicePixelRatio || 1, 2);
+      renderer.setPixelRatio(pr);
+      // updateStyle: false prevents inline width/height from locking the DOM element
+      renderer.setSize(w, h, false);
+      canvasDom.style.width = "100%";
+      canvasDom.style.height = "100%";
     };
-    window.addEventListener("resize", onResize);
+
+    // 1. Initial sync
+    syncSize();
+
+    // 2. Next animation frame (after CSS layout recalculates)
+    const rafId = requestAnimationFrame(syncSize);
+
+    // 3. Multi-stage timeout (to catch mobile browser orientation animations)
+    const t1 = setTimeout(syncSize, 60);
+    const t2 = setTimeout(syncSize, 180);
+    const t3 = setTimeout(syncSize, 360);
+    const t4 = setTimeout(syncSize, 700);
+
+    // 4. ResizeObserver on the container itself
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(() => {
+        syncSize();
+      });
+      ro.observe(container);
+    }
+
+    // 5. Window & Viewport Listeners
+    window.addEventListener("resize", syncSize);
+    window.addEventListener("orientationchange", syncSize);
+    window.visualViewport?.addEventListener("resize", syncSize);
 
     let lastTime = 0;
     let idleClock = 0;
@@ -367,10 +428,18 @@ export function HeroPreview3D({
 
     return () => {
       cancelAnimationFrame(animId);
+      cancelAnimationFrame(rafId);
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(t4);
+      ro?.disconnect();
+      window.removeEventListener("resize", syncSize);
+      window.removeEventListener("orientationchange", syncSize);
+      window.visualViewport?.removeEventListener("resize", syncSize);
       dom.removeEventListener("pointerdown", onPointerDown);
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);
-      window.removeEventListener("resize", onResize);
       heroHolderRef.current = null;
       rigRef.current = null;
       renderer.dispose();
@@ -439,7 +508,7 @@ export function HeroPreview3D({
       </div>
 
       {/* Live WebGL 3D Canvas */}
-      <div ref={containerRef} className="h-full w-full" />
+      <div ref={containerRef} className="absolute inset-0 h-full w-full overflow-hidden" />
 
       {/* Bottom Interactive AAA Emote Animation Bar */}
       {showEmoteBar && (

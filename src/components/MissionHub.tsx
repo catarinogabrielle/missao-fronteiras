@@ -305,7 +305,7 @@ export function MissionHub({
           </div>
 
           {/* 3D Model Display */}
-          <div className="flex-1 min-h-0 w-full flex items-center justify-center overflow-hidden">
+          <div className="relative flex-1 min-h-0 w-full overflow-hidden">
             <HeroPreview3D
               avatarId={state.agent.avatarId}
               skinId={state.agent.skinId ?? "padrao"}
@@ -741,7 +741,7 @@ export function MissionHub({
           </div>
 
           {/* 3D Turntable Centerpiece */}
-          <div className="my-0.5 flex flex-1 min-h-0 w-full items-center justify-center overflow-hidden">
+          <div className="relative my-0.5 flex-1 min-h-0 w-full overflow-hidden">
             <HeroPreview3D
               avatarId={state.agent.avatarId}
               skinId={state.agent.skinId ?? "padrao"}
