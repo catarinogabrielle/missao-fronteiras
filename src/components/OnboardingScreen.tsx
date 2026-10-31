@@ -217,12 +217,89 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
   const { isOnline, offlineReady, isStandalone, triggerInstall } = usePwa();
   const { isMobileLandscape } = useMobileViewport();
 
-  const [name, setName] = useState("");
-  const [selectedAvatar, setSelectedAvatar] = useState<AvatarId>("lucas");
-  const [selectedSkin, setSelectedSkin] = useState<SkinId>("padrao");
-  const [previewSkin, setPreviewSkin] = useState<SkinId>("padrao");
-  const [selectedGift, setSelectedGift] = useState<GiftId>("acolhedor");
+  // Smart initial character determination from active session, last active agent, or saved profile
+  const initialAgent =
+    state.agent || state.lastActiveAgent || state.savedProfiles?.[0];
+  const [selectedAvatar, setSelectedAvatar] = useState<AvatarId>(
+    initialAgent?.avatarId || "lucas"
+  );
+  const [name, setName] = useState<string>(
+    initialAgent?.name || "Kaleb_BR"
+  );
+  const [selectedSkin, setSelectedSkin] = useState<SkinId>(
+    initialAgent?.skinId || "padrao"
+  );
+  const [previewSkin, setPreviewSkin] = useState<SkinId>(
+    initialAgent?.skinId || "padrao"
+  );
+  const [selectedGift, setSelectedGift] = useState<GiftId>(
+    initialAgent?.giftId || "acolhedor"
+  );
   const [viewMode, setViewMode] = useState<"3d" | "art">("3d");
+
+  const CANONICAL_PRESETS: Record<AvatarId, { name: string; gift: GiftId }> = {
+    lucas: { name: "Kaleb_BR", gift: "acolhedor" },
+    sofia: { name: "Sofia_Ide", gift: "comunicador" },
+    davi: { name: "Tribo Atos", gift: "tradutor" },
+    ester: { name: "Rede Teens", gift: "intercessor" },
+  };
+
+  const handleSelectAvatar = (avatarId: AvatarId) => {
+    playSfx("click");
+    setSelectedAvatar(avatarId);
+
+    // Look for an existing profile for this avatar in savedProfiles
+    const existing = state.savedProfiles?.find((p) => p.avatarId === avatarId);
+    if (existing) {
+      setName(existing.name);
+      setSelectedGift(existing.giftId);
+      const skinToUse =
+        existing.skinId && isSkinUnlocked(existing.skinId)
+          ? existing.skinId
+          : "padrao";
+      setSelectedSkin(skinToUse);
+      setPreviewSkin(skinToUse);
+    } else {
+      const def = CANONICAL_PRESETS[avatarId];
+      setName(def.name);
+      setSelectedGift(def.gift);
+      setSelectedSkin("padrao");
+      setPreviewSkin("padrao");
+    }
+  };
+
+  const handleSelectSavedProfile = (
+    prof: { name: string; avatarId: AvatarId; giftId: GiftId; skinId?: SkinId },
+    instantLogin = false
+  ) => {
+    playSfx("levelUp");
+    setSelectedAvatar(prof.avatarId);
+    setName(prof.name);
+    setSelectedGift(prof.giftId);
+    const skin =
+      prof.skinId && isSkinUnlocked(prof.skinId) ? prof.skinId : "padrao";
+    setSelectedSkin(skin);
+    setPreviewSkin(skin);
+    if (instantLogin) {
+      selectProfile(prof as any);
+    }
+  };
+
+  const PRESET_MAPPINGS: Record<string, AvatarId> = {
+    Kaleb_BR: "lucas",
+    Sofia_Ide: "sofia",
+    "Tribo Atos": "davi",
+    "Rede Teens": "ester",
+  };
+
+  const handleSelectPresetName = (preset: string) => {
+    playSfx("click");
+    setName(preset);
+    const targetAvatar = PRESET_MAPPINGS[preset];
+    if (targetAvatar) {
+      handleSelectAvatar(targetAvatar);
+    }
+  };
 
   const activeChampion =
     AVATAR_OPTIONS.find((a) => a.id === selectedAvatar) || AVATAR_OPTIONS[0];
@@ -250,11 +327,12 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
 
   const handleConfirm = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    const finalSkin = isSkinUnlocked(selectedSkin) ? selectedSkin : "padrao";
     createAgent(
-      name || `Agente ${activeChampion.name}`,
+      name.trim() || `Agente ${activeChampion.name}`,
       selectedAvatar,
       selectedGift,
-      "padrao"
+      finalSkin
     );
   };
 
@@ -416,7 +494,7 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
                 <div className="relative h-full w-full max-w-md flex items-center justify-center">
                   <HeroPreview3D
                     avatarId={selectedAvatar}
-                    skinId="padrao"
+                    skinId={previewSkin}
                     agentName={name || `Agente ${activeChampion.name}`}
                     heightClass="h-full w-full"
                     showEmoteBar
@@ -446,10 +524,7 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
                     <button
                       key={av.id}
                       type="button"
-                      onClick={() => {
-                        playSfx("click");
-                        setSelectedAvatar(av.id);
-                      }}
+                      onClick={() => handleSelectAvatar(av.id)}
                       className={`relative flex items-center gap-1.5 sm:gap-2 rounded-xl border p-1 sm:p-1.5 text-left transition cursor-pointer min-h-[46px] ${
                         isSelected
                           ? "border-amber-300 bg-gradient-to-r from-amber-500/30 to-amber-600/15 shadow-[0_0_16px_rgba(245,158,11,0.55)] ring-1.5 ring-amber-300"
@@ -511,17 +586,21 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
               {/* Quick Saved Profile Chips if returning player */}
               {state.savedProfiles && state.savedProfiles.length > 0 && (
                 <div className="flex items-center gap-1 overflow-x-auto py-0.5 no-scrollbar">
-                  {state.savedProfiles.slice(0, 3).map((prof) => (
+                  {state.savedProfiles.map((prof) => (
                     <button
                       key={prof.name}
                       type="button"
-                      onClick={() => {
-                        playSfx("levelUp");
-                        selectProfile(prof);
-                      }}
-                      className="shrink-0 cursor-pointer rounded-lg border border-amber-400/40 bg-slate-900 px-2 py-0.5 text-[8.5px] font-bold text-amber-200 hover:border-amber-300"
+                      onClick={() => handleSelectSavedProfile(prof, true)}
+                      className={`shrink-0 flex items-center gap-1 cursor-pointer rounded-lg border px-2 py-0.5 text-[8.5px] font-bold transition ${
+                        prof.avatarId === selectedAvatar && prof.name === name
+                          ? "border-amber-400 bg-amber-500/25 text-amber-200 ring-1 ring-amber-300"
+                          : "border-slate-800 bg-slate-900 text-slate-300 hover:border-amber-400/50"
+                      }`}
                     >
-                      {prof.name}
+                      <span>{prof.name}</span>
+                      <span className="text-[7.5px] uppercase font-mono text-cyan-300">
+                        ({prof.avatarId})
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -718,25 +797,36 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
               <span>Conectar com Agente Salvo:</span>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              {state.savedProfiles.map((prof) => (
-                <button
-                  key={prof.name}
-                  type="button"
-                  onClick={() => {
-                    playSfx("levelUp");
-                    selectProfile(prof);
-                  }}
-                  className="flex cursor-pointer items-center gap-2 rounded-xl border border-amber-400/50 bg-slate-900/95 px-3 py-1.5 text-xs font-black text-white shadow-sm transition hover:border-amber-300 hover:bg-amber-500/25"
-                >
-                  <span className="text-amber-300">{prof.name}</span>
-                  <span className="rounded bg-cyan-500/20 px-1.5 py-0.5 text-[10px] text-cyan-200 uppercase">
-                    {prof.avatarId}
-                  </span>
-                  <span className="text-[10px] font-bold text-emerald-400">
-                    Entrar →
-                  </span>
-                </button>
-              ))}
+              {state.savedProfiles.map((prof) => {
+                const isCurrentActive =
+                  prof.avatarId === selectedAvatar && prof.name === name;
+                return (
+                  <button
+                    key={prof.name}
+                    type="button"
+                    onClick={() => handleSelectSavedProfile(prof, true)}
+                    className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-black shadow-sm transition ${
+                      isCurrentActive
+                        ? "border-amber-300 bg-amber-500/30 text-amber-200 ring-1.5 ring-amber-300"
+                        : "border-amber-400/50 bg-slate-900/95 text-white hover:border-amber-300 hover:bg-amber-500/25"
+                    }`}
+                  >
+                    <HeroPortrait
+                      avatarId={prof.avatarId}
+                      size={20}
+                      shape="hex"
+                      active={isCurrentActive}
+                    />
+                    <span className="text-amber-300">{prof.name}</span>
+                    <span className="rounded bg-cyan-500/20 px-1.5 py-0.5 text-[10px] text-cyan-200 uppercase font-mono">
+                      {prof.avatarId}
+                    </span>
+                    <span className="text-[10px] font-bold text-emerald-400">
+                      Entrar →
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -901,10 +991,7 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
                   type="button"
                   whileHover={{ scale: 1.1, y: -3 }}
                   whileTap={{ scale: 0.93 }}
-                  onClick={() => {
-                    playSfx("click");
-                    setSelectedAvatar(av.id);
-                  }}
+                  onClick={() => handleSelectAvatar(av.id)}
                   className="group flex cursor-pointer flex-col items-center focus:outline-none"
                 >
                   <HeroPortrait
@@ -996,21 +1083,28 @@ export function OnboardingScreen({ onOpenLeaderPanel }: OnboardingScreenProps) {
                 className="w-full rounded-xl border-2 border-amber-500/40 bg-slate-950/90 px-3.5 py-2.5 text-sm font-black text-white placeholder-slate-500 transition focus:border-cyan-400 focus:outline-none"
               />
               <div className="mt-2 flex flex-wrap gap-1.5">
-                {["Kaleb_BR", "Sofia_Ide", "Tribo Atos", "Rede Teens"].map(
-                  (preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() => {
-                        playSfx("click");
-                        setName(preset);
-                      }}
-                      className="cursor-pointer rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 text-[11px] font-bold text-slate-300 transition hover:border-amber-400 hover:text-amber-200"
-                    >
-                      {preset}
-                    </button>
-                  )
-                )}
+                {[
+                  { name: "Kaleb_BR", hero: "Lucas" },
+                  { name: "Sofia_Ide", hero: "Sofia" },
+                  { name: "Tribo Atos", hero: "Davi" },
+                  { name: "Rede Teens", hero: "Ester" },
+                ].map((preset) => (
+                  <button
+                    key={preset.name}
+                    type="button"
+                    onClick={() => handleSelectPresetName(preset.name)}
+                    className={`cursor-pointer rounded-lg border px-2.5 py-1 text-[11px] font-bold transition flex items-center gap-1 ${
+                      name === preset.name
+                        ? "border-amber-400 bg-amber-500/25 text-amber-200 ring-1 ring-amber-300"
+                        : "border-slate-700 bg-slate-900 text-slate-300 hover:border-amber-400 hover:text-amber-200"
+                    }`}
+                  >
+                    <span>{preset.name}</span>
+                    <span className="text-[9px] text-cyan-300 font-mono uppercase">
+                      • {preset.hero}
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
 

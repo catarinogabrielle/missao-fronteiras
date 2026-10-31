@@ -27,8 +27,41 @@ import { soundEngine, SoundEffect } from "@/lib/sound";
 
 const STORAGE_KEY = "missao_fronteiras_chamado_v1";
 
+export const DEFAULT_CHAMPION_PROFILES: AgentProfile[] = [
+  {
+    name: "Kaleb_BR",
+    avatarId: "lucas",
+    giftId: "acolhedor",
+    skinId: "padrao",
+    createdAt: "2026-01-01T00:00:00.000Z",
+  },
+  {
+    name: "Sofia_Ide",
+    avatarId: "sofia",
+    giftId: "comunicador",
+    skinId: "padrao",
+    createdAt: "2026-01-01T00:00:00.000Z",
+  },
+  {
+    name: "Tribo Atos",
+    avatarId: "davi",
+    giftId: "tradutor",
+    skinId: "padrao",
+    createdAt: "2026-01-01T00:00:00.000Z",
+  },
+  {
+    name: "Rede Teens",
+    avatarId: "ester",
+    giftId: "intercessor",
+    skinId: "padrao",
+    createdAt: "2026-01-01T00:00:00.000Z",
+  },
+];
+
 const INITIAL_STATE: GameState = {
   agent: null,
+  lastActiveAgent: DEFAULT_CHAMPION_PROFILES[0],
+  savedProfiles: [...DEFAULT_CHAMPION_PROFILES],
   xp: 0,
   wisdom: 25,
   streak: 1,
@@ -162,10 +195,53 @@ function loadInitialGameState(): GameState {
           }
         : null;
 
+      const rawSaved = Array.isArray(parsed.savedProfiles)
+        ? parsed.savedProfiles
+        : [];
+      const profileMap = new Map<string, AgentProfile>();
+
+      // Seed with default profiles so all 4 champions always exist
+      DEFAULT_CHAMPION_PROFILES.forEach((dp) => {
+        profileMap.set(dp.name.toLowerCase(), dp);
+      });
+
+      // Overlay user saved profiles with sanitization of known champion names
+      rawSaved.forEach((prof) => {
+        const lower = prof.name.toLowerCase().trim();
+        let sanitizedAvatar = prof.avatarId;
+        if (lower === "sofia_ide" && sanitizedAvatar !== "sofia") {
+          sanitizedAvatar = "sofia";
+        } else if (lower === "kaleb_br" && sanitizedAvatar !== "lucas") {
+          sanitizedAvatar = "lucas";
+        } else if (lower === "tribo atos" && sanitizedAvatar !== "davi") {
+          sanitizedAvatar = "davi";
+        } else if (lower === "rede teens" && sanitizedAvatar !== "ester") {
+          sanitizedAvatar = "ester";
+        }
+        profileMap.set(lower, {
+          ...prof,
+          avatarId: sanitizedAvatar,
+          skinId: prof.skinId || "padrao",
+        });
+      });
+
+      if (migratedAgent) {
+        profileMap.set(migratedAgent.name.toLowerCase(), migratedAgent);
+      }
+
+      const mergedSavedProfiles = Array.from(profileMap.values());
+      const resolvedLastActive =
+        migratedAgent ||
+        parsed.lastActiveAgent ||
+        mergedSavedProfiles[0] ||
+        DEFAULT_CHAMPION_PROFILES[0];
+
       const merged: GameState = {
         ...INITIAL_STATE,
         ...parsed,
         agent: migratedAgent,
+        lastActiveAgent: resolvedLastActive,
+        savedProfiles: mergedSavedProfiles,
         unlockedSkins: mergedSkins,
         leaderPin: parsed.leaderPin || "1234",
         streak: updatedStreak,
@@ -271,7 +347,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       soundEngine.play("levelUp");
       const bonusWisdom = giftId === "intercessor" ? 55 : 30;
       const profile: AgentProfile = {
-        name: name.trim() || "Agente Ide",
+        name: name.trim() || `Agente ${avatarId.toUpperCase()}`,
         avatarId,
         giftId,
         skinId,
@@ -289,6 +365,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         return {
           ...prev,
           agent: profile,
+          lastActiveAgent: profile,
           savedProfiles: nextSaved,
           wisdom: Math.max(prev.wisdom, bonusWisdom),
           unlockedSkins: Array.from(new Set([...prev.unlockedSkins, skinId])),
@@ -307,10 +384,26 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const switchUser = useCallback(() => {
     soundEngine.play("click");
-    setState((prev) => ({
-      ...prev,
-      agent: null,
-    }));
+    setState((prev) => {
+      const current = prev.agent;
+      const nextSaved = current
+        ? Array.from(
+            new Map(
+              [...(prev.savedProfiles || []), current].map((p) => [
+                p.name.toLowerCase(),
+                p,
+              ])
+            ).values()
+          )
+        : prev.savedProfiles;
+
+      return {
+        ...prev,
+        agent: null,
+        lastActiveAgent: current || prev.lastActiveAgent,
+        savedProfiles: nextSaved,
+      };
+    });
     pushToast(
       "Trocar Usuário / Agente",
       "Selecione um campeão existente ou crie uma nova identidade!",
@@ -333,6 +426,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         return {
           ...prev,
           agent: profile,
+          lastActiveAgent: profile,
           savedProfiles: nextSaved,
           unlockedSkins: Array.from(
             new Set([...prev.unlockedSkins, profile.skinId || "padrao"])
@@ -342,7 +436,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       });
       pushToast(
         `Agente Conectado: ${profile.name}`,
-        "Bem-vindo(a) de volta à Base Ide!",
+        `Campeão ${profile.avatarId.toUpperCase()} ativado com sucesso!`,
         "🚀"
       );
     },
@@ -369,16 +463,31 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           updates.name !== undefined
             ? updates.name.trim() || current.name
             : current.name;
+        const nextAvatar = updates.avatarId ?? current.avatarId;
+        const nextGift = updates.giftId ?? current.giftId;
         const nextSkin = updates.skinId ?? current.skinId ?? "padrao";
+        const updatedAgent: AgentProfile = {
+          ...current,
+          name: nextName,
+          avatarId: nextAvatar,
+          giftId: nextGift,
+          skinId: nextSkin,
+        };
+
+        const nextSaved = Array.from(
+          new Map(
+            [...(prev.savedProfiles || []), updatedAgent].map((p) => [
+              p.name.toLowerCase(),
+              p,
+            ])
+          ).values()
+        );
+
         return {
           ...prev,
-          agent: {
-            ...current,
-            name: nextName,
-            avatarId: updates.avatarId ?? current.avatarId,
-            giftId: updates.giftId ?? current.giftId,
-            skinId: nextSkin,
-          },
+          agent: updatedAgent,
+          lastActiveAgent: updatedAgent,
+          savedProfiles: nextSaved,
           unlockedSkins: Array.from(
             new Set([...prev.unlockedSkins, nextSkin])
           ),
@@ -403,9 +512,20 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         soundEngine.play("success");
         setState((prev) => {
           if (!prev.agent) return prev;
+          const updatedAgent = { ...prev.agent, skinId };
+          const nextSaved = Array.from(
+            new Map(
+              [...(prev.savedProfiles || []), updatedAgent].map((p) => [
+                p.name.toLowerCase(),
+                p,
+              ])
+            ).values()
+          );
           return {
             ...prev,
-            agent: { ...prev.agent, skinId },
+            agent: updatedAgent,
+            lastActiveAgent: updatedAgent,
+            savedProfiles: nextSaved,
             unlockedSkins: Array.from(new Set([...prev.unlockedSkins, skinId])),
           };
         });
@@ -428,12 +548,28 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       }
 
       soundEngine.play("levelUp");
-      setState((prev) => ({
-        ...prev,
-        wisdom: Math.max(0, prev.wisdom - meta.costWisdom),
-        unlockedSkins: Array.from(new Set([...prev.unlockedSkins, skinId])),
-        agent: prev.agent ? { ...prev.agent, skinId } : prev.agent,
-      }));
+      setState((prev) => {
+        const updatedAgent = prev.agent ? { ...prev.agent, skinId } : prev.agent;
+        const nextSaved = updatedAgent
+          ? Array.from(
+              new Map(
+                [...(prev.savedProfiles || []), updatedAgent].map((p) => [
+                  p.name.toLowerCase(),
+                  p,
+                ])
+              ).values()
+            )
+          : prev.savedProfiles;
+
+        return {
+          ...prev,
+          wisdom: Math.max(0, prev.wisdom - meta.costWisdom),
+          unlockedSkins: Array.from(new Set([...prev.unlockedSkins, skinId])),
+          agent: updatedAgent,
+          lastActiveAgent: updatedAgent || prev.lastActiveAgent,
+          savedProfiles: nextSaved,
+        };
+      });
       pushToast(
         `Skin ${meta.rarity} Desbloqueada!`,
         `${meta.name} agora faz parte do seu Arsenal 3D!`,

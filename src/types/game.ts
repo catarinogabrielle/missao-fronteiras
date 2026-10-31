@@ -198,6 +198,7 @@ export interface AgentProfile {
 
 export interface GameState {
   agent: AgentProfile | null;
+  lastActiveAgent?: AgentProfile;
   savedProfiles?: AgentProfile[];
   xp: number;
   wisdom: number;
