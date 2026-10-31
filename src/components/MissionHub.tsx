@@ -106,6 +106,7 @@ export function MissionHub({
     levelTitle,
     xpInCurrentLevel,
     xpForNextLevel,
+    updateAgentAppearance,
     playSfx,
   } = useGame();
   const { isMobileLandscape } = useMobileViewport();
@@ -317,7 +318,7 @@ export function MissionHub({
           </motion.button>
         </aside>
 
-        {/* 2. CENTER STAGE (3D Champion Showcase - Seamless, No Overflow) */}
+        {/* 2. CENTER STAGE (3D Champion Showcase + 4 Cities Visual Map Grid) */}
         <main className="relative z-10 flex flex-1 min-w-0 h-full flex-col justify-between items-center px-1 py-0.5 overflow-hidden">
           {/* Top Champion Codename Banner */}
           <div className="rounded-full border border-amber-400/40 bg-slate-950/85 px-3 py-0.5 backdrop-blur-md shadow-lg flex items-center gap-1.5 shrink-0">
@@ -332,7 +333,7 @@ export function MissionHub({
             </span>
           </div>
 
-          {/* 3D Turntable Centerpiece (Taking Full Height, No Extra Bottom Pill to Prevent Overlap) */}
+          {/* 3D Turntable Centerpiece */}
           <div className="my-0.5 flex flex-1 min-h-0 w-full items-center justify-center overflow-hidden">
             <HeroPreview3D
               avatarId={state.agent.avatarId}
@@ -344,20 +345,81 @@ export function MissionHub({
               borderless
             />
           </div>
+
+          {/* 4 Cities Visual Map Carousel / Grid (The actual cities with map photos!) */}
+          <div className="grid grid-cols-4 gap-1.5 w-full shrink-0 pt-0.5">
+            {allMissions.map((m) => {
+              const isSelected = m.id === selectedMission.id;
+              const unlocked = unlockedIds.includes(m.id);
+              const done = completedIds.includes(m.id);
+              const splash = getMissionSplash(m.id, m.biomeId);
+
+              return (
+                <motion.button
+                  key={m.id}
+                  type="button"
+                  whileHover={unlocked ? { scale: 1.04 } : {}}
+                  whileTap={unlocked ? { scale: 0.96 } : {}}
+                  onClick={() => {
+                    if (unlocked) {
+                      playSfx("click");
+                      setSelectedId(m.id);
+                    }
+                  }}
+                  className={`group relative h-13 sm:h-15 overflow-hidden rounded-xl border-2 text-left transition cursor-pointer select-none ${
+                    isSelected
+                      ? "border-amber-300 ring-2 ring-amber-300 shadow-[0_0_16px_rgba(245,158,11,0.55)]"
+                      : unlocked
+                        ? "border-slate-700/80 hover:border-cyan-400/80 opacity-90 hover:opacity-100"
+                        : "border-slate-800/80 opacity-45 grayscale cursor-not-allowed"
+                  }`}
+                >
+                  {/* City Map Background Image */}
+                  <img
+                    src={splash}
+                    alt={m.title}
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/45 to-transparent" />
+
+                  {/* Top Status Badge */}
+                  <div className="absolute top-1 right-1 left-1 flex items-center justify-between pointer-events-none">
+                    <span className="text-xs">{m.emoji}</span>
+                    <span
+                      className={`rounded px-1 py-0.2 font-mono text-[7.5px] font-black uppercase ${
+                        done
+                          ? "bg-emerald-500/90 text-white"
+                          : unlocked
+                            ? "bg-amber-500/90 text-slate-950"
+                            : "bg-slate-900/90 text-slate-400"
+                      }`}
+                    >
+                      {done ? "✓" : unlocked ? `F.${m.order}` : "🔒"}
+                    </span>
+                  </div>
+
+                  {/* Bottom City Name */}
+                  <div className="absolute right-1 bottom-1 left-1 pointer-events-none">
+                    <div className="truncate text-[9.5px] font-black uppercase text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] leading-tight">
+                      {m.title
+                        .replace("Amazônia Ribeirinha", "Amazônia")
+                        .replace("Metrópole Digital", "Tóquio")
+                        .replace("Savana & Vilas", "Savana")}
+                    </div>
+                    <div className="text-[7.5px] font-bold text-amber-300 truncate">
+                      {m.regionName}
+                    </div>
+                  </div>
+                </motion.button>
+              );
+            })}
+          </div>
         </main>
 
-        {/* 3. RIGHT HUD DOCK (The Battle & Mission Pod - Fits 100% In Viewport) */}
+        {/* 3. RIGHT HUD DOCK (Tactical Intel, 1-Tap Champion Switcher & AAA JOGAR Button) */}
         <aside className="relative z-20 flex w-52 sm:w-56 shrink-0 flex-col justify-between h-full py-0.5 gap-1 overflow-hidden">
-          {/* Active Mission Card (Tap to Change City) */}
-          <motion.div
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => {
-              playSfx("click");
-              setCitySelectorOpen(true);
-            }}
-            className="flex-1 min-h-0 flex flex-col justify-between rounded-2xl border-2 border-amber-400/50 bg-slate-900/95 p-2 shadow-xl cursor-pointer hover:border-amber-300 transition"
-          >
+          {/* Top: Active City Tactical Intel Card */}
+          <div className="flex-1 min-h-0 flex flex-col justify-between rounded-2xl border-2 border-amber-400/50 bg-slate-900/95 p-2 shadow-xl">
             {/* City Title & Phase */}
             <div className="flex items-center justify-between border-b border-amber-500/25 pb-1">
               <div className="min-w-0 flex-1">
@@ -369,16 +431,22 @@ export function MissionHub({
                   Fase {selectedMission.order} • {selectedMission.difficulty}
                 </div>
               </div>
-              <span className="rounded-full bg-emerald-500/20 px-1.5 py-0.5 font-mono text-[8.5px] font-black text-emerald-300 shrink-0">
-                {selectedRecord?.completed ? "✓ FEITA" : "ATIVA"}
+              <span
+                className={`rounded-full px-1.5 py-0.5 font-mono text-[8.5px] font-black shrink-0 ${
+                  selectedRecord?.completed
+                    ? "bg-emerald-500/25 text-emerald-300"
+                    : "bg-amber-500/25 text-amber-300"
+                }`}
+              >
+                {selectedRecord?.completed ? "✓ CONCLUÍDA" : "ATIVA"}
               </span>
             </div>
 
-            {/* NPC Ally Dialogue Bubble */}
-            <div className="my-1 flex items-center gap-2 rounded-xl bg-slate-950/75 p-1.5 border border-slate-800">
+            {/* Visual NPC Contact Bubble */}
+            <div className="my-1 flex items-center gap-2 rounded-xl bg-slate-950/80 p-1.5 border border-slate-800">
               <NpcPortrait
                 avatarKey={selectedMission.npc.avatarKey}
-                size={30}
+                size={34}
                 shape="hex"
               />
               <div className="min-w-0 flex-1">
@@ -391,77 +459,108 @@ export function MissionHub({
               </div>
             </div>
 
-            {/* Recompensas */}
+            {/* Rewards Pill */}
             <div className="flex items-center justify-between text-[9px] font-bold text-slate-400 bg-slate-950/60 px-2 py-0.5 rounded-lg">
               <span>Recompensa:</span>
               <span className="text-amber-300 font-mono font-black">
                 +{selectedMission.rewardXp} XP • +{selectedMission.rewardWisdom} 💎
               </span>
             </div>
-          </motion.div>
+          </div>
 
-          {/* Battle Action Section (Play Button + Quick City Switcher) */}
+          {/* Middle: 1-Tap Instant Champion Switcher */}
+          <div className="rounded-xl border border-slate-800 bg-slate-900/90 p-1.5 shrink-0">
+            <div className="flex items-center justify-between mb-1 px-0.5">
+              <span className="text-[8.5px] font-black tracking-widest text-cyan-400 uppercase">
+                HERÓIS DA BASE IDE
+              </span>
+              <span className="text-[8px] font-bold text-amber-300 uppercase">
+                {heroMeta?.name}
+              </span>
+            </div>
+            <div className="grid grid-cols-4 gap-1">
+              {AVATAR_OPTIONS.map((av) => {
+                const isCurrent = av.id === state.agent?.avatarId;
+                return (
+                  <motion.button
+                    key={av.id}
+                    type="button"
+                    whileHover={{ scale: 1.08 }}
+                    whileTap={{ scale: 0.94 }}
+                    onClick={() => {
+                      playSfx("click");
+                      updateAgentAppearance({ avatarId: av.id });
+                    }}
+                    title={`Equipar ${av.name}`}
+                    className={`flex flex-col items-center justify-center rounded-lg p-1 transition cursor-pointer ${
+                      isCurrent
+                        ? "bg-amber-500/25 border-2 border-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
+                        : "bg-slate-950/80 border border-slate-800 hover:border-slate-600"
+                    }`}
+                  >
+                    <HeroPortrait
+                      avatarId={av.id}
+                      size={28}
+                      shape="hex"
+                      active={isCurrent}
+                    />
+                    <span
+                      className={`mt-0.5 text-[8px] font-black uppercase truncate max-w-full ${
+                        isCurrent ? "text-amber-300" : "text-slate-400"
+                      }`}
+                    >
+                      {av.name}
+                    </span>
+                  </motion.button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Bottom: AAA MOBA JOGAR Button & Wardrobe Shortcut */}
           <div className="shrink-0 space-y-1">
             {selectedUnlocked ? (
               <motion.button
                 type="button"
                 whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.95 }}
+                whileTap={{ scale: 0.96 }}
                 onClick={() => {
                   playSfx("ult");
                   onSelectMission(selectedMission);
                 }}
-                className="w-full h-11 sm:h-12 flex flex-col items-center justify-center rounded-2xl border-2 border-amber-300 bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 text-slate-950 font-black shadow-[0_0_24px_rgba(245,158,11,0.6)] cursor-pointer transition"
+                className="w-full py-2.5 sm:py-3 flex flex-col items-center justify-center rounded-2xl border-2 border-amber-300 bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 text-slate-950 font-black shadow-[0_0_25px_rgba(245,158,11,0.6)] cursor-pointer transition"
               >
-                <div className="flex items-center gap-1.5 text-xs sm:text-sm tracking-wider uppercase">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  <span>
-                    {selectedRecord?.completed
-                      ? "REENTRAR NA CIDADE"
-                      : "JOGAR • ENTRAR NA CIDADE"}
-                  </span>
+                <div className="flex items-center justify-center gap-2 text-base sm:text-lg font-black tracking-widest uppercase">
+                  <Swords className="h-4.5 w-4.5 fill-slate-950 text-slate-950 shrink-0" />
+                  <span>JOGAR</span>
                 </div>
-                <div className="text-[8.5px] font-bold text-amber-950 tracking-wider">
-                  MISSÃO 3D • MAPA MUNDIAL
+                <div className="text-[8.5px] font-extrabold uppercase tracking-wider text-amber-950/90 truncate max-w-[95%]">
+                  {selectedMission.title} • FASE {selectedMission.order}
                 </div>
               </motion.button>
             ) : (
               <button
                 type="button"
                 disabled
-                className="w-full h-11 flex items-center justify-center gap-2 rounded-2xl border border-slate-800 bg-slate-900/60 text-slate-500 text-[11px] font-black uppercase cursor-not-allowed"
+                className="w-full py-2.5 flex items-center justify-center gap-1.5 rounded-2xl border border-slate-800 bg-slate-900/60 text-slate-500 text-[10px] font-black uppercase cursor-not-allowed"
               >
                 <Lock className="h-3.5 w-3.5" />
-                <span>Bloqueado • Conclua Fase {selectedMission.order - 1}</span>
+                <span>Bloqueado • Fase {selectedMission.order - 1}</span>
               </button>
             )}
 
-            {/* City Selector Pill Button */}
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => {
-                  playSfx("click");
-                  setCitySelectorOpen(true);
-                }}
-                className="flex-1 flex items-center justify-center gap-1 py-1 rounded-lg border border-cyan-500/30 bg-slate-900/80 text-[8.5px] font-bold text-cyan-300 hover:border-amber-400 hover:text-white transition cursor-pointer uppercase truncate"
-              >
-                <MapPin className="h-2.5 w-2.5 text-cyan-400 shrink-0" />
-                <span className="truncate">Trocar Cidade ▾</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  playSfx("click");
-                  onOpenWardrobe();
-                }}
-                className="flex items-center justify-center gap-1 py-1 px-2 rounded-lg border border-violet-500/30 bg-slate-900/80 text-[8.5px] font-bold text-violet-300 hover:border-violet-400 hover:text-white transition cursor-pointer uppercase shrink-0"
-              >
-                <Sparkles className="h-2.5 w-2.5 text-amber-300 shrink-0" />
-                <span>Skins</span>
-              </button>
-            </div>
+            {/* Quick Wardrobe/Skins Link */}
+            <button
+              type="button"
+              onClick={() => {
+                playSfx("click");
+                onOpenWardrobe();
+              }}
+              className="w-full flex items-center justify-center gap-1 py-1 rounded-lg border border-violet-500/35 bg-slate-900/80 text-[8.5px] font-bold text-violet-300 hover:border-violet-400 hover:text-white transition cursor-pointer uppercase"
+            >
+              <Sparkles className="h-3 w-3 text-amber-300 shrink-0" />
+              <span>Vestiário de Skins 3D & Emotes</span>
+            </button>
           </div>
         </aside>
 

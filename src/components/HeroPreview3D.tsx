@@ -212,6 +212,16 @@ export function HeroPreview3D({
     stageGroup.add(heroHolder);
     heroHolderRef.current = heroHolder;
 
+    // Immediately instantiate and add the initial champion rig!
+    const initialRig = createPlayableChampion3D(
+      avatarId,
+      agentName,
+      skinId,
+      false
+    );
+    heroHolder.add(initialRig.root);
+    rigRef.current = initialRig;
+
     // Drag to Rotate 360° Interaction
     let isDragging = false;
     let prevX = 0;
@@ -340,6 +350,8 @@ export function HeroPreview3D({
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);
       window.removeEventListener("resize", onResize);
+      heroHolderRef.current = null;
+      rigRef.current = null;
       renderer.dispose();
     };
   }, [compact]);

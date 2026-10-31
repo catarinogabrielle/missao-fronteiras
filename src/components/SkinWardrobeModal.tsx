@@ -55,6 +55,14 @@ export function SkinWardrobeModal({ open, onClose }: SkinWardrobeModalProps) {
     state.agent?.name ?? "Agente Ide"
   );
 
+  // Synchronize preview skin and nick whenever modal opens or equipped appearance changes
+  useEffect(() => {
+    if (open && state.agent) {
+      setPreviewSkin(state.agent.skinId ?? "padrao");
+      setNameDraft(state.agent.name);
+    }
+  }, [open, state.agent?.skinId, state.agent?.name]);
+
   // Close with Esc key
   useEffect(() => {
     if (!open) return;
