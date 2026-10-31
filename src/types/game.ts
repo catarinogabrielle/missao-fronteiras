@@ -39,7 +39,8 @@ export interface SkinOption {
   id: SkinId;
   name: string;
   rarity: SkinRarity;
-  costWisdom: number;
+  /** Player level required to unlock and equip this skin */
+  unlockLevel: number;
   tagline: string;
   accentHex: string;
   badgeEmoji: string;
@@ -209,6 +210,8 @@ export interface GameState {
   studiedGospelSteps: number[];
   unlockedAchievements: string[];
   unlockedSkins: SkinId[];
+  /** Lower-cased profile names that already watched the story/tutorial */
+  tutorialSeenProfiles?: string[];
   customMissions: Mission[];
   muted: boolean;
   projectorMode: boolean;

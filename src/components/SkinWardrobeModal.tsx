@@ -39,6 +39,7 @@ const RARITY_BADGE_STYLE: Record<SkinRarity, string> = {
 export function SkinWardrobeModal({ open, onClose }: SkinWardrobeModalProps) {
   const {
     state,
+    level,
     isSkinUnlocked,
     unlockAndEquipSkin,
     updateAgentAppearance,
@@ -198,7 +199,7 @@ export function SkinWardrobeModal({ open, onClose }: SkinWardrobeModalProps) {
                         </span>
                       ) : (
                         <span className="font-mono text-[11px] font-black text-amber-300">
-                          {selectedSkinMeta.costWisdom} Cristais 💎
+                          🔒 REQUER NÍVEL {selectedSkinMeta.unlockLevel} ⚡
                         </span>
                       )}
                     </div>
@@ -229,25 +230,24 @@ export function SkinWardrobeModal({ open, onClose }: SkinWardrobeModalProps) {
                           variant="gold"
                           size="md"
                           shape="hex"
-                          onClick={() =>
-                            unlockAndEquipSkin(selectedSkinMeta.id, true)
-                          }
+                          onClick={() => {
+                            playSfx("click");
+                            unlockAndEquipSkin(selectedSkinMeta.id);
+                          }}
                           className="w-full !py-2 !text-xs font-black shadow-[0_0_15px_rgba(245,158,11,0.35)]"
                         >
                           <Sparkles className="h-4 w-4" />
                           <span>EQUIPAR SKIN 3D AGORA</span>
                         </MobaButton>
                       ) : (
-                        <MobaButton
-                          variant="cyan"
-                          size="md"
-                          shape="hex"
-                          onClick={() => unlockAndEquipSkin(selectedSkinMeta.id)}
-                          className="w-full !py-2 !text-xs font-black shadow-[0_0_15px_rgba(34,211,238,0.35)]"
+                        <button
+                          type="button"
+                          disabled
+                          className="w-full py-2 px-3 rounded-xl border border-slate-700 bg-slate-900/80 text-slate-400 text-xs font-black flex items-center justify-center gap-1.5 cursor-not-allowed opacity-80"
                         >
-                          <Gem className="h-4 w-4" />
-                          <span>DESBLOQUEAR & EQUIPAR ({selectedSkinMeta.costWisdom}💎)</span>
-                        </MobaButton>
+                          <Lock className="h-4 w-4 text-amber-400" />
+                          <span>BLOQUEADA • REQUER NÍVEL {selectedSkinMeta.unlockLevel}</span>
+                        </button>
                       )}
                     </div>
                   </div>
@@ -326,7 +326,7 @@ export function SkinWardrobeModal({ open, onClose }: SkinWardrobeModalProps) {
                                 playSfx("click");
                                 setPreviewSkin(sk.id);
                                 if (unlocked && currentSkin !== sk.id) {
-                                  unlockAndEquipSkin(sk.id, true);
+                                  unlockAndEquipSkin(sk.id);
                                 }
                               }}
                               className={`relative flex flex-col justify-between rounded-xl border-2 p-2 text-left transition cursor-pointer ${
@@ -350,8 +350,8 @@ export function SkinWardrobeModal({ open, onClose }: SkinWardrobeModalProps) {
                                 ) : unlocked ? (
                                   <CheckCircle2 className="h-4 w-4 text-cyan-300" />
                                 ) : (
-                                  <span className="font-mono text-[9px] font-black text-amber-300 bg-slate-950/80 px-1.5 py-0.2 rounded">
-                                    {sk.costWisdom}💎
+                                  <span className="font-mono text-[8.5px] font-black text-amber-300 bg-slate-950/80 px-1.5 py-0.5 rounded border border-amber-400/30 flex items-center gap-0.5">
+                                    <Lock className="h-2.5 w-2.5" /> Nív.{sk.unlockLevel}
                                   </span>
                                 )}
                               </div>
@@ -527,8 +527,8 @@ export function SkinWardrobeModal({ open, onClose }: SkinWardrobeModalProps) {
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 font-mono text-xs font-black text-amber-300">
-                        <Gem className="h-3.5 w-3.5 text-cyan-300" />
-                        {selectedSkinMeta.costWisdom} Cristais
+                        <Lock className="h-3.5 w-3.5 text-amber-400" />
+                        REQUER NÍVEL {selectedSkinMeta.unlockLevel} ⚡
                       </span>
                     )}
                   </div>
@@ -557,25 +557,24 @@ export function SkinWardrobeModal({ open, onClose }: SkinWardrobeModalProps) {
                         variant="gold"
                         size="md"
                         shape="hex"
-                        onClick={() =>
-                          unlockAndEquipSkin(selectedSkinMeta.id, true)
-                        }
+                        onClick={() => {
+                          playSfx("click");
+                          unlockAndEquipSkin(selectedSkinMeta.id);
+                        }}
                         className="w-full"
                       >
                         <Sparkles className="h-4 w-4" />
                         EQUIPAR SKIN 3D AGORA
                       </MobaButton>
                     ) : (
-                      <MobaButton
-                        variant="cyan"
-                        size="md"
-                        shape="hex"
-                        onClick={() => unlockAndEquipSkin(selectedSkinMeta.id)}
-                        className="w-full"
+                      <button
+                        type="button"
+                        disabled
+                        className="w-full py-2.5 px-3 rounded-xl border border-slate-700 bg-slate-900/80 text-slate-400 text-xs font-black flex items-center justify-center gap-1.5 cursor-not-allowed opacity-80"
                       >
-                        <Gem className="h-4 w-4" />
-                        DESBLOQUEAR & EQUIPAR ({selectedSkinMeta.costWisdom} 💎)
-                      </MobaButton>
+                        <Lock className="h-4 w-4 text-amber-400" />
+                        <span>DESBLOQUEIA NO NÍVEL {selectedSkinMeta.unlockLevel} (SEU NÍVEL: {level})</span>
+                      </button>
                     )}
                   </div>
                 </div>
@@ -692,7 +691,7 @@ export function SkinWardrobeModal({ open, onClose }: SkinWardrobeModalProps) {
                             playSfx("click");
                             setPreviewSkin(sk.id);
                             if (unlocked && currentSkin !== sk.id) {
-                              unlockAndEquipSkin(sk.id, true);
+                              unlockAndEquipSkin(sk.id);
                             }
                           }}
                           className={`relative flex cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border-2 bg-gradient-to-br p-3 text-left transition ${
@@ -716,9 +715,9 @@ export function SkinWardrobeModal({ open, onClose }: SkinWardrobeModalProps) {
                             ) : unlocked ? (
                               <CheckCircle2 className="h-4 w-4 text-cyan-300" />
                             ) : (
-                              <span className="inline-flex items-center gap-0.5 rounded-full bg-slate-950/85 px-2 py-0.5 font-mono text-[10px] font-black text-amber-300">
+                              <span className="inline-flex items-center gap-0.5 rounded-full bg-slate-950/85 px-2 py-0.5 font-mono text-[10px] font-black text-amber-300 border border-amber-400/30">
                                 <Lock className="h-2.5 w-2.5" />
-                                {sk.costWisdom}💎
+                                Nív.{sk.unlockLevel}
                               </span>
                             )}
                           </div>

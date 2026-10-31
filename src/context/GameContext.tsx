@@ -71,6 +71,7 @@ const INITIAL_STATE: GameState = {
   studiedGospelSteps: [],
   unlockedAchievements: [],
   unlockedSkins: [...DEFAULT_FREE_SKINS],
+  tutorialSeenProfiles: [],
   customMissions: [],
   muted: false,
   projectorMode: false,
@@ -128,6 +129,7 @@ interface GameContextValue {
   switchUser: () => void;
   selectProfile: (profile: AgentProfile) => void;
   deleteProfile: (profileName: string) => void;
+  markTutorialSeen: (profileName?: string) => void;
   isMissionUnlocked: (mission: Mission) => boolean;
 }
 
@@ -247,6 +249,9 @@ function loadInitialGameState(): GameState {
         lastActiveAgent: resolvedLastActive,
         savedProfiles: mergedSavedProfiles,
         unlockedSkins: mergedSkins,
+        tutorialSeenProfiles: Array.isArray(parsed.tutorialSeenProfiles)
+          ? parsed.tutorialSeenProfiles
+          : [],
         streak: updatedStreak,
         lastActiveDate: today,
       };
@@ -333,10 +338,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const isSkinUnlocked = useCallback(
     (skinId: SkinId) => {
       const meta = SKIN_OPTIONS.find((s) => s.id === skinId);
-      if (meta && meta.costWisdom === 0) return true;
-      return state.unlockedSkins.includes(skinId);
+      if (!meta) return false;
+      const currentLevel = Math.floor(state.xp / xpPerLevel) + 1;
+      return (
+        currentLevel >= meta.unlockLevel ||
+        state.unlockedSkins.includes(skinId)
+      );
     },
-    [state.unlockedSkins]
+    [state.xp, state.unlockedSkins, xpPerLevel]
   );
 
   const createAgent = useCallback(
@@ -543,9 +552,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const meta = SKIN_OPTIONS.find((s) => s.id === skinId);
       if (!meta) return false;
 
+      const currentLevel = Math.floor(state.xp / xpPerLevel) + 1;
       const alreadyUnlocked =
         forceFree ||
-        meta.costWisdom === 0 ||
+        currentLevel >= meta.unlockLevel ||
         state.unlockedSkins.includes(skinId);
 
       if (alreadyUnlocked) {
@@ -577,52 +587,36 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         return true;
       }
 
-      if (state.wisdom < meta.costWisdom) {
-        soundEngine.play("error");
-        pushToast(
-          "Cristais de Sabedoria Insuficientes",
-          `Você precisa de ${meta.costWisdom} 💎 para desbloquear ${meta.name}.`,
-          "💎"
-        );
-        return false;
-      }
-
-      soundEngine.play("levelUp");
-      setState((prev) => {
-        const updatedAgent = prev.agent ? { ...prev.agent, skinId } : prev.agent;
-        const nextSaved = updatedAgent
-          ? Array.from(
-              new Map(
-                [...(prev.savedProfiles || []), updatedAgent].map((p) => [
-                  p.name.toLowerCase(),
-                  p,
-                ])
-              ).values()
-            )
-          : prev.savedProfiles;
-
-        return {
-          ...prev,
-          wisdom: Math.max(0, prev.wisdom - meta.costWisdom),
-          unlockedSkins: Array.from(new Set([...prev.unlockedSkins, skinId])),
-          agent: updatedAgent,
-          lastActiveAgent: updatedAgent || prev.lastActiveAgent,
-          savedProfiles: nextSaved,
-        };
-      });
+      soundEngine.play("error");
       pushToast(
-        `Skin ${meta.rarity} Desbloqueada!`,
-        `${meta.name} agora faz parte do seu Arsenal 3D!`,
-        meta.badgeEmoji
+        "Nível Insuficiente",
+        `Esta skin requer Nível ${meta.unlockLevel} ⚡ (Você está no Nível ${currentLevel}). Continue jogando e completando missões!`,
+        "🔒"
       );
-      return true;
+      return false;
     },
-    [
-      pushToast,
-      state.unlockedSkins,
-      state.wisdom,
-    ]
+    [pushToast, state.xp, state.unlockedSkins, xpPerLevel]
   );
+
+  const markTutorialSeen = useCallback((profileName?: string) => {
+    setState((prev) => {
+      const target = (profileName || prev.agent?.name || "").toLowerCase().trim();
+      if (!target) return prev;
+      const list = prev.tutorialSeenProfiles || [];
+      if (list.includes(target)) return prev;
+      const nextList = [...list, target];
+      const nextState: GameState = {
+        ...prev,
+        tutorialSeenProfiles: nextList,
+      };
+      try {
+        if (typeof window !== "undefined" && window.localStorage) {
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextState));
+        }
+      } catch {}
+      return nextState;
+    });
+  }, []);
 
   const completeMission = useCallback(
     (mission: Mission, finalTrust: number, dialogueXp: number) => {
@@ -986,6 +980,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     switchUser,
     selectProfile,
     deleteProfile,
+    markTutorialSeen,
     isMissionUnlocked,
   };
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { RotateCw, Smartphone } from "lucide-react";
 import { Mission } from "@/types/game";
 import { getDynamicMissionInstance } from "@/lib/dynamicMissions";
@@ -19,7 +19,7 @@ import { StoryPrologueModal } from "./StoryPrologueModal";
 import { ToastOverlay } from "./ToastOverlay";
 
 export function GameApp() {
-  const { state, hydrated, switchUser } = useGame();
+  const { state, hydrated, switchUser, markTutorialSeen } = useGame();
   const {
     isCompactMobile,
     isMobilePortrait,
@@ -36,6 +36,24 @@ export function GameApp() {
   const [prayerRadarOpen, setPrayerRadarOpen] = useState(false);
   const [tribesQuizOpen, setTribesQuizOpen] = useState(false);
   const [wardrobeOpen, setWardrobeOpen] = useState(false);
+
+  // Auto-trigger story tutorial on first entry to lobby with this profile
+  useEffect(() => {
+    if (!hydrated || !state.agent || activeMission) return;
+    const profileKey = (state.agent.name || "").toLowerCase().trim();
+    if (!profileKey) return;
+    const seen = state.tutorialSeenProfiles || [];
+    if (!seen.includes(profileKey)) {
+      setStoryOpen(true);
+      markTutorialSeen(profileKey);
+    }
+  }, [
+    hydrated,
+    state.agent?.name,
+    activeMission,
+    state.tutorialSeenProfiles,
+    markTutorialSeen,
+  ]);
 
   const anyTopModalOpen =
     passportOpen ||

@@ -157,18 +157,21 @@ export function StoryPrologueModal({ open, onClose }: StoryPrologueModalProps) {
   useEffect(() => {
     if (currentChapter !== 4) return;
 
+    let hitTimer: ReturnType<typeof setTimeout> | null = null;
     const interval = setInterval(() => {
       setSimDodgeActive(true);
       setSimDodgeSuccess(false);
 
-      const hitTimer = setTimeout(() => {
+      if (hitTimer) clearTimeout(hitTimer);
+      hitTimer = setTimeout(() => {
         setSimDodgeActive(false);
       }, 2600);
-
-      return () => clearTimeout(hitTimer);
     }, 4500);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      if (hitTimer) clearTimeout(hitTimer);
+    };
   }, [currentChapter]);
 
   if (!open) return null;
@@ -219,7 +222,7 @@ export function StoryPrologueModal({ open, onClose }: StoryPrologueModalProps) {
     HEROES_DATA.find((h) => h.id === selectedHeroTab) || HEROES_DATA[0];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/90 backdrop-blur-2xl select-none overflow-hidden touch-manipulation">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-slate-950/90 backdrop-blur-2xl select-none overflow-hidden touch-manipulation">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -296,6 +299,18 @@ export function StoryPrologueModal({ open, onClose }: StoryPrologueModalProps) {
             >
               <span>Pular História</span>
               <SkipForward className="h-3.5 w-3.5" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                playSfx("click");
+                onClose();
+              }}
+              className="flex h-7 w-7 items-center justify-center rounded-xl border border-slate-700 bg-slate-900/90 text-slate-400 hover:text-white hover:border-slate-500 transition cursor-pointer"
+              title="Fechar história"
+            >
+              <X className="h-4 w-4" />
             </button>
           </div>
         </div>

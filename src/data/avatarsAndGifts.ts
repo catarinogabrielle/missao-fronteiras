@@ -6,7 +6,10 @@ import {
   SkinOption,
 } from "@/types/game";
 
-export const DEFAULT_FREE_SKINS: SkinId[] = [
+export const DEFAULT_FREE_SKINS: SkinId[] = ["padrao"];
+
+/** Skins that were free before the level-gating system (cannot be told apart from purchases). */
+export const LEGACY_FREE_SKINS: SkinId[] = [
   "padrao",
   "cyber_neon",
   "explorador_selva",
@@ -18,7 +21,7 @@ export const SKIN_OPTIONS: SkinOption[] = [
     id: "padrao",
     name: "Agente Tático Ide",
     rarity: "CLÁSSICA",
-    costWisdom: 0,
+    unlockLevel: 1,
     tagline: "Traje oficial de campo da Base Ide com mochila e lâmina de luz.",
     accentHex: "#34d399",
     badgeEmoji: "🛡️",
@@ -28,7 +31,7 @@ export const SKIN_OPTIONS: SkinOption[] = [
     id: "cyber_neon",
     name: "Cyber Neon Tóquio",
     rarity: "ÉPICA",
-    costWisdom: 0,
+    unlockLevel: 4,
     tagline: "Jaqueta obsidiana futurista, viseira LED holográfica e plasma ciano.",
     accentHex: "#22d3ee",
     badgeEmoji: "⚡",
@@ -38,7 +41,7 @@ export const SKIN_OPTIONS: SkinOption[] = [
     id: "explorador_selva",
     name: "Guardião da Floresta",
     rarity: "ÉPICA",
-    costWisdom: 0,
+    unlockLevel: 2,
     tagline: "Visual expedicionário amazônico com chapéu tático e aura esmeralda.",
     accentHex: "#10b981",
     badgeEmoji: "🌿",
@@ -48,7 +51,7 @@ export const SKIN_OPTIONS: SkinOption[] = [
     id: "street_gta",
     name: "Lenda Streetwear",
     rarity: "ÉPICA",
-    costWisdom: 0,
+    unlockLevel: 3,
     tagline: "Jaqueta bomber urbana roxa & ouro, headphones neon e tênis especiais.",
     accentHex: "#c084fc",
     badgeEmoji: "🎧",
@@ -58,7 +61,7 @@ export const SKIN_OPTIONS: SkinOption[] = [
     id: "deserto_1040",
     name: "Nômade da Janela 10/40",
     rarity: "ÉPICA",
-    costWisdom: 30,
+    unlockLevel: 5,
     tagline: "Manto areia dourada & turquesa real com capuz e capa de viagem.",
     accentHex: "#f59e0b",
     badgeEmoji: "🏜️",
@@ -68,7 +71,7 @@ export const SKIN_OPTIONS: SkinOption[] = [
     id: "embaixador_ouro",
     name: "Embaixador Real Dourado",
     rarity: "LENDÁRIA",
-    costWisdom: 45,
+    unlockLevel: 6,
     tagline: "Armadura branca imperial & ouro 24k, coroa real, capa e Espada Solar!",
     accentHex: "#fbbf24",
     badgeEmoji: "👑",
@@ -78,7 +81,7 @@ export const SKIN_OPTIONS: SkinOption[] = [
     id: "sentinela_fogo",
     name: "Chama do Avivamento",
     rarity: "LENDÁRIA",
-    costWisdom: 60,
+    unlockLevel: 8,
     tagline: "Armadura carmesim vulcânica, ombreiras de fogo, capa rubi e Lâmina Ígnea!",
     accentHex: "#fb7185",
     badgeEmoji: "🔥",
@@ -88,7 +91,7 @@ export const SKIN_OPTIONS: SkinOption[] = [
     id: "celestial_mitico",
     name: "Arcanjo Cyber Celestial",
     rarity: "MÍTICA",
-    costWisdom: 85,
+    unlockLevel: 10,
     tagline: "Armadura platina estelar, asas holográficas de luz, halo giratório e Lâmina Astral!",
     accentHex: "#38bdf8",
     badgeEmoji: "🪽",

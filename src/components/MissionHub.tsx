@@ -8,6 +8,8 @@ import {
   ChevronRight,
   Compass,
   Film,
+  Flame,
+  Gem,
   Lock,
   MapPin,
   Radio,
@@ -146,7 +148,9 @@ export function MissionHub({
     updateAgentAppearance,
     playSfx,
   } = useGame();
-  const { isMobileLandscape } = useMobileViewport();
+  const { isMobileLandscape, isMobilePortrait, isCompactMobile, isLandscape } = useMobileViewport();
+  const isLandscapeMode = isMobileLandscape || (isCompactMobile && isLandscape);
+  const isPortraitMode = isMobilePortrait || (isCompactMobile && !isLandscape);
 
   const defaultMissionId = useMemo(() => {
     const nextIncomplete = allMissions.find(
@@ -195,6 +199,362 @@ export function MissionHub({
   );
 
   /* =========================================================================
+     MOBILE PORTRAIT: 100% NO-SCROLL MODERN GAMER LOBBY (BRAWL STARS / WILD RIFT STYLE)
+     - Strictly fits 100% in viewport (h-dvh) without scrolling.
+     - Top bar: Profile Avatar + Nick, Level Badge, Crystals & Streak, Tutorial/History button.
+     - Center: 3D Champion on glowing pedestal with Level/Skin badge & Emote chips.
+     - Bottom: Active Mission Card (Tap to pick from 8 cities) + Giant glowing JOGAR button + Navigation dock.
+     ========================================================================= */
+  if (isPortraitMode) {
+    return (
+      <div className="relative flex-1 min-h-0 w-full flex flex-col justify-between overflow-hidden bg-slate-950 p-2 sm:p-2.5 select-none touch-manipulation">
+        {/* Fullscreen Atmospheric Arena Splash with Vignette */}
+        <AnimatePresence mode="wait">
+          <motion.img
+            key={selectedSplash}
+            src={selectedSplash}
+            alt=""
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.3 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.35 }}
+            className="pointer-events-none fixed inset-0 h-full w-full object-cover blur-xs"
+          />
+        </AnimatePresence>
+        <div className="pointer-events-none fixed inset-0 bg-radial from-transparent via-slate-950/60 to-slate-950/95" />
+
+        {/* 1. TOP MOBILE GAMER HUD */}
+        <header className="relative z-20 flex items-center justify-between gap-1.5 shrink-0 px-2 py-1.5 rounded-2xl border border-cyan-500/30 bg-slate-950/85 backdrop-blur-xl shadow-lg">
+          {/* Left: Player Profile Pill */}
+          <button
+            type="button"
+            onClick={() => {
+              playSfx("click");
+              if (onSwitchUser) onSwitchUser();
+              else onOpenWardrobe();
+            }}
+            className="flex items-center gap-2 min-w-0 flex-1 text-left cursor-pointer"
+          >
+            <div className="relative shrink-0">
+              <HeroPortrait
+                avatarId={state.agent.avatarId}
+                size={34}
+                shape="hex"
+                active
+              />
+              <span className="absolute -right-1 -bottom-0.5 flex h-4 min-w-4 items-center justify-center rounded border border-amber-300 bg-gradient-to-b from-amber-400 to-amber-600 px-0.5 text-[8.5px] font-black text-slate-950 shadow">
+                {level}
+              </span>
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-xs font-black text-white uppercase leading-tight">
+                {state.agent.name}
+              </div>
+              <div className="text-[9px] font-bold text-amber-300 truncate leading-none mt-0.5">
+                {levelTitle}
+              </div>
+            </div>
+          </button>
+
+          {/* Right: Currencies & Quick Story/Tutorial Button */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* Story / Tutorial Button */}
+            <button
+              type="button"
+              onClick={() => {
+                playSfx("click");
+                if (onOpenStory) onOpenStory();
+              }}
+              title="Ver História & Tutorial"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-xl border border-amber-400/60 bg-amber-500/20 text-[9.5px] font-black text-amber-300 hover:bg-amber-500/30 transition cursor-pointer shadow-sm active:scale-95"
+            >
+              <Film className="h-3.5 w-3.5 text-amber-400" />
+              <span>História</span>
+            </button>
+
+            {/* Streak */}
+            <div className="flex items-center gap-1 rounded-xl border border-orange-500/40 bg-slate-900/90 px-2 py-1 font-mono text-[10px] font-black text-orange-400">
+              <Flame className="h-3 w-3 text-orange-400 fill-orange-400" />
+              <span>{state.streak}</span>
+            </div>
+
+            {/* Diamonds */}
+            <div className="flex items-center gap-1 rounded-xl border border-cyan-500/40 bg-slate-900/90 px-2 py-1 font-mono text-[10px] font-black text-cyan-300">
+              <Gem className="h-3 w-3 text-cyan-400" />
+              <span>{state.wisdom}</span>
+            </div>
+          </div>
+        </header>
+
+        {/* 2. CENTER STAGE: 3D CHAMPION TURNTABLE (Fits tightly in viewport) */}
+        <main className="relative z-10 flex-1 min-h-0 flex flex-col items-center justify-center overflow-hidden my-1">
+          {/* Champion & Skin Pill */}
+          <div className="rounded-full border border-amber-400/50 bg-slate-950/90 px-3 py-1 backdrop-blur-md shadow-md flex items-center gap-2 mb-1 shrink-0">
+            <span className="text-xs font-black text-amber-300 uppercase">
+              {heroMeta?.name || "CAMPEÃO"}
+            </span>
+            <span className="text-[9.5px] font-bold text-slate-300 uppercase">
+              • {heroMeta?.codename || "EXPLORADOR"}
+            </span>
+            <span
+              className="rounded-full bg-slate-900 border border-slate-700 px-2 py-0.5 text-[8.5px] font-black uppercase"
+              style={{ color: skinMeta.accentHex }}
+            >
+              {skinMeta.name} (Nív. {skinMeta.unlockLevel})
+            </span>
+          </div>
+
+          {/* 3D Model Display */}
+          <div className="flex-1 min-h-0 w-full flex items-center justify-center overflow-hidden">
+            <HeroPreview3D
+              avatarId={state.agent.avatarId}
+              skinId={state.agent.skinId ?? "padrao"}
+              agentName={state.agent.name}
+              heightClass="h-full w-full"
+              showEmoteBar
+              compact
+              borderless
+            />
+          </div>
+        </main>
+
+        {/* 3. BOTTOM GAMER DOCK: Mission Selector Card + Giant JOGAR Button + Actions */}
+        <footer className="relative z-20 shrink-0 space-y-1.5">
+          {/* Selected City Card (Tappable to pick from 8 cities) */}
+          <button
+            type="button"
+            onClick={() => {
+              playSfx("click");
+              setCitySelectorOpen(true);
+            }}
+            className="w-full flex items-center justify-between rounded-2xl border-2 border-amber-400/60 bg-gradient-to-r from-slate-950/95 via-slate-900/95 to-slate-950/95 p-2 shadow-lg hover:border-amber-300 transition text-left cursor-pointer"
+          >
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <span className="text-2xl shrink-0">{selectedMission.emoji}</span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="truncate text-xs font-black text-white uppercase">
+                    {selectedMission.title}
+                  </span>
+                  <span className="rounded bg-amber-500/25 px-1.5 py-0.2 font-mono text-[8.5px] font-black text-amber-300 uppercase shrink-0">
+                    Fase {selectedMission.order}
+                  </span>
+                </div>
+                <div className="text-[9px] font-bold text-amber-300 truncate">
+                  {selectedMission.difficulty} • {selectedMission.regionName}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0 pl-2 border-l border-slate-800">
+              <div className="text-right">
+                <div className="text-[8px] font-bold text-slate-400 uppercase">Recompensa</div>
+                <div className="font-mono text-[9px] font-black text-emerald-400">
+                  +{selectedMission.rewardXp} XP • +{selectedMission.rewardWisdom} 💎
+                </div>
+              </div>
+              <ChevronRight className="h-4 w-4 text-cyan-400" />
+            </div>
+          </button>
+
+          {/* Giant JOGAR Button */}
+          {selectedUnlocked ? (
+            <motion.button
+              type="button"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.96 }}
+              onClick={() => {
+                playSfx("ult");
+                onSelectMission(selectedMission);
+              }}
+              className="w-full py-3 flex items-center justify-center gap-2 rounded-2xl border-2 border-amber-300 bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 text-slate-950 font-black shadow-[0_0_24px_rgba(245,158,11,0.65)] hover:shadow-[0_0_36px_rgba(245,158,11,0.85)] cursor-pointer transition active:scale-95"
+            >
+              <Swords className="h-5 w-5 fill-slate-950 text-slate-950 shrink-0" />
+              <div className="text-center">
+                <div className="text-base font-black tracking-widest uppercase leading-tight">
+                  JOGAR AGORA
+                </div>
+                <div className="text-[9px] font-extrabold uppercase text-amber-950/90 leading-none">
+                  ENTRAR NA CIDADE • FASE {selectedMission.order}
+                </div>
+              </div>
+            </motion.button>
+          ) : (
+            <button
+              type="button"
+              disabled
+              className="w-full py-3 flex items-center justify-center gap-1.5 rounded-2xl border border-slate-800 bg-slate-900/60 text-slate-500 text-xs font-black uppercase cursor-not-allowed"
+            >
+              <Lock className="h-4 w-4" />
+              <span>Bloqueado • Conclua a Fase {selectedMission.order - 1}</span>
+            </button>
+          )}
+
+          {/* Bottom Quick Actions Row (4 Essential Navigation Icons) */}
+          <div className="grid grid-cols-4 gap-1.5 pt-0.5">
+            <button
+              type="button"
+              onClick={() => {
+                playSfx("click");
+                setCitySelectorOpen(true);
+              }}
+              className="flex flex-col items-center justify-center py-1.5 rounded-xl border border-amber-500/40 bg-slate-900/90 text-amber-300 hover:border-amber-400 transition cursor-pointer text-[8px] font-black uppercase shadow-sm"
+            >
+              <Compass className="h-3.5 w-3.5 mb-0.5 text-amber-400" />
+              <span>8 Cidades</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                playSfx("click");
+                onOpenWardrobe();
+              }}
+              className="flex flex-col items-center justify-center py-1.5 rounded-xl border border-cyan-500/40 bg-slate-900/90 text-cyan-300 hover:border-cyan-400 transition cursor-pointer text-[8px] font-black uppercase shadow-sm"
+            >
+              <Sparkles className="h-3.5 w-3.5 mb-0.5 text-cyan-400" />
+              <span>Skins 3D</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                playSfx("click");
+                if (onOpenStory) onOpenStory();
+              }}
+              className="flex flex-col items-center justify-center py-1.5 rounded-xl border border-emerald-500/40 bg-slate-900/90 text-emerald-300 hover:border-emerald-400 transition cursor-pointer text-[8px] font-black uppercase shadow-sm"
+            >
+              <Film className="h-3.5 w-3.5 mb-0.5 text-emerald-400" />
+              <span>Tutorial</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                playSfx("click");
+                onOpenPassport();
+              }}
+              className="flex flex-col items-center justify-center py-1.5 rounded-xl border border-fuchsia-500/40 bg-slate-900/90 text-fuchsia-300 hover:border-fuchsia-400 transition cursor-pointer text-[8px] font-black uppercase shadow-sm"
+            >
+              <Trophy className="h-3.5 w-3.5 mb-0.5 text-fuchsia-400" />
+              <span>Coleção</span>
+            </button>
+          </div>
+        </footer>
+
+        {/* 8 Dynamic City Selector Modal Sheet */}
+        <AnimatePresence>
+          {citySelectorOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-3 select-none"
+            >
+              <motion.div
+                initial={{ scale: 0.92, y: 15 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.92, y: 15 }}
+                transition={{ type: "spring", damping: 25, stiffness: 350 }}
+                className="flex h-full max-h-[92dvh] w-full max-w-lg flex-col justify-between rounded-3xl border-2 border-amber-400/50 bg-slate-950 p-4 shadow-[0_0_60px_rgba(245,158,11,0.3)]"
+              >
+                <div className="flex items-center justify-between border-b border-amber-500/25 pb-2">
+                  <div className="flex items-center gap-2">
+                    <Compass className="h-5 w-5 text-amber-300" />
+                    <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                      Selecione a Cidade Missionária
+                    </h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCitySelectorOpen(false)}
+                    className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-slate-300 hover:text-white"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 my-2 flex-1 min-h-0 overflow-y-auto pr-1">
+                  {allMissions.map((m) => {
+                    const isSelected = m.id === selectedMission.id;
+                    const unlocked = unlockedIds.includes(m.id);
+                    const done = completedIds.includes(m.id);
+                    const splash = getMissionSplash(m.id, m.biomeId);
+
+                    return (
+                      <motion.button
+                        key={m.id}
+                        type="button"
+                        whileHover={unlocked ? { scale: 1.02 } : {}}
+                        whileTap={unlocked ? { scale: 0.98 } : {}}
+                        onClick={() => {
+                          if (unlocked) {
+                            playSfx("click");
+                            setSelectedId(m.id);
+                            setCitySelectorOpen(false);
+                          }
+                        }}
+                        className={`group relative flex flex-col justify-between rounded-2xl border-2 p-2.5 text-left transition overflow-hidden min-h-[120px] ${
+                          isSelected
+                            ? "border-amber-300 bg-amber-500/20 shadow-[0_0_20px_rgba(245,158,11,0.5)] ring-2 ring-amber-300"
+                            : unlocked
+                              ? "border-slate-700 bg-slate-900/90 hover:border-cyan-400 cursor-pointer"
+                              : "border-slate-800 bg-slate-950/70 opacity-50 grayscale cursor-not-allowed"
+                        }`}
+                      >
+                        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                          <img
+                            src={splash}
+                            alt=""
+                            className="h-full w-full object-cover opacity-25"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/85 to-slate-950/50" />
+                        </div>
+
+                        <div className="relative z-10 flex items-center justify-between">
+                          <span className="text-xl">{m.emoji}</span>
+                          <span
+                            className={`rounded-full px-1.5 py-0.2 text-[8px] font-mono font-black ${
+                              done
+                                ? "bg-emerald-500/30 text-emerald-300 border border-emerald-400/40"
+                                : unlocked
+                                  ? "bg-amber-500/30 text-amber-300 border border-amber-400/40"
+                                  : "bg-slate-800 text-slate-400"
+                            }`}
+                          >
+                            {done ? "✓" : unlocked ? `F.${m.order}` : "🔒"}
+                          </span>
+                        </div>
+
+                        <div className="relative z-10 my-0.5">
+                          <div className="text-xs font-black text-white uppercase truncate">
+                            {m.title}
+                          </div>
+                          <div className="text-[8.5px] font-bold text-amber-300 truncate">
+                            {m.regionName}
+                          </div>
+                        </div>
+
+                        <div className="relative z-10 border-t border-slate-800/80 pt-1 text-[8.5px] font-mono font-black text-emerald-400">
+                          +{m.rewardXp} XP • +{m.rewardWisdom} 💎
+                        </div>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+
+                <div className="text-center text-[10px] font-bold text-slate-400 border-t border-slate-800/80 pt-1.5">
+                  Toque para escolher sua próxima fronteira 3D!
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  }
+
+  /* =========================================================================
      MOBILE LANDSCAPE: 100% WIDESCREEN CONSOLE (ECHOES OF ARENA IMAGE 1 & 2 STYLE)
      - Fits 100% in viewport (h-dvh) without scrolling.
      - Top bar: Echoes of Arena tabs (Jogar, Heróis, Aprender) & resource pills.
@@ -202,7 +562,7 @@ export function MissionHub({
      - Center (5 cols): Atmospheric arena with 3D Champion/Globe & 4 city buttons.
      - Right (4 cols): NPC contact card, mission rewards, and giant JOGAR button.
      ========================================================================= */
-  if (isMobileLandscape) {
+  if (isLandscapeMode) {
     const tacticalIntel =
       MISSION_TACTICAL_OBJECTIVES[selectedMission.id] ||
       MISSION_TACTICAL_OBJECTIVES.amazonia;
@@ -376,7 +736,7 @@ export function MissionHub({
               • {heroMeta?.codename || "EXPLORADOR"}
             </span>
             <span className="rounded-full bg-gradient-to-r from-amber-500/20 to-cyan-500/20 border border-cyan-400/40 px-2 py-0.5 text-[8px] font-black text-cyan-300 uppercase">
-              {skinMeta?.name || "CLÁSSICA"}
+              {skinMeta?.name || "CLÁSSICA"} (NÍV. {skinMeta?.unlockLevel ?? 1})
             </span>
           </div>
 
@@ -607,7 +967,6 @@ export function MissionHub({
                 onClick={() => {
                   playSfx("click");
                   if (onOpenStory) onOpenStory();
-                  else setCitySelectorOpen(true);
                 }}
                 title="Assistir Prólogo Animado & Tutorial da Base Ide"
                 className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl border border-amber-500/40 bg-slate-900/90 text-[8.5px] font-black text-amber-300 hover:border-amber-400 hover:text-white transition cursor-pointer uppercase shadow-sm"
@@ -808,7 +1167,7 @@ export function MissionHub({
                 className="text-[11px] font-black"
                 style={{ color: skinMeta.accentHex }}
               >
-                {skinMeta.badgeEmoji} {skinMeta.name}
+                {skinMeta.badgeEmoji} {skinMeta.name} (Nível {skinMeta.unlockLevel})
               </div>
 
               {giftMeta && (

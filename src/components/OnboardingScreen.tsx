@@ -1146,8 +1146,8 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
                 👕 Skin 3D: {activeSkinMeta.name}
               </span>
               {!previewUnlocked && (
-                <span className="text-[9px] font-bold text-cyan-300">
-                  Desbloqueie no jogo ({activeSkinMeta.costWisdom}💎)
+                <span className="text-[9px] font-bold text-amber-300">
+                  Desbloqueia no Nível {activeSkinMeta.unlockLevel} ⚡
                 </span>
               )}
             </div>
