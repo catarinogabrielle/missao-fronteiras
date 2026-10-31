@@ -2248,9 +2248,8 @@ export function MobaGtaWorld3D({
     const garageUnits = { car: VEHICLE_RULES.car.units, moto: VEHICLE_RULES.moto.units };
     const fuelRemaining = { car: VEHICLE_RULES.car.seconds, moto: VEHICLE_RULES.moto.seconds };
 
-    // --- ATTACK CHARGES (ENERGY RECHARGES OVER TIME) ---
-    let attackCharges = ATTACK_MAX_CHARGES;
-    let attackRechargeTimer = 0;
+    // --- BASIC ATTACK STATE (UNLIMITED AT WILL) ---
+    let lastBasicAttackTime = 0;
     let hurtFlash = 0;
 
     let score = 0;
@@ -2614,14 +2613,13 @@ export function MobaGtaWorld3D({
       const fwdZ = Math.cos(heroAngle);
 
       if (action === "attack") {
-        if (attackCharges <= 0) {
-          soundEngine.play("click");
-          emitPopup("⚡ Recarregando energia de ataque!", "#f59e0b");
+        const now = performance.now();
+        if (now - lastBasicAttackTime < 160) {
           return;
         }
-        attackCharges = Math.max(0, attackCharges - 1);
+        lastBasicAttackTime = now;
         soundEngine.play("slash");
-        attackAnimTimer = 0.28;
+        attackAnimTimer = 0.24;
 
         let closest: LiveEnemy | null = null;
         let bestD = 5.4;
@@ -3040,17 +3038,6 @@ export function MobaGtaWorld3D({
         if (attackAnimTimer > 0) attackAnimTimer -= dt;
         if (shieldTimer > 0) shieldTimer -= dt;
         if (hurtFlash > 0) hurtFlash = Math.max(0, hurtFlash - dt);
-
-        // Attack energy recharge
-        if (attackCharges < ATTACK_MAX_CHARGES) {
-          attackRechargeTimer += dt;
-          if (attackRechargeTimer >= ATTACK_RECHARGE_SECONDS) {
-            attackRechargeTimer = 0;
-            attackCharges = Math.min(ATTACK_MAX_CHARGES, attackCharges + 1);
-          }
-        } else {
-          attackRechargeTimer = 0;
-        }
 
         // Vehicle Fuel countdown & Recall
         if (activeVehicle) {
@@ -4082,12 +4069,9 @@ export function MobaGtaWorld3D({
           preferredVehicle,
           garage: { ...garageUnits },
           fuel: { ...fuelRemaining },
-          attackCharges,
-          attackMaxCharges: ATTACK_MAX_CHARGES,
-          attackRechargePct:
-            attackCharges < ATTACK_MAX_CHARGES
-              ? Math.min(1, attackRechargeTimer / ATTACK_RECHARGE_SECONDS)
-              : 1,
+          attackCharges: 999,
+          attackMaxCharges: 999,
+          attackRechargePct: 1,
           hurtFlash,
         });
       }

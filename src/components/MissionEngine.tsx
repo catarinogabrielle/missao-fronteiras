@@ -1851,7 +1851,7 @@ export function MissionEngine({
             </div>
           </motion.button>
 
-          {/* GIANT PRIMARY MELEE COMBO ATTACK BUTTON WITH ENERGY CHARGES */}
+          {/* PRIMARY MELEE ATTACK BUTTON (UNLIMITED / FREE AT WILL) */}
           <motion.button
             type="button"
             whileHover={{ scale: 1.05 }}
@@ -1860,41 +1860,18 @@ export function MissionEngine({
             onPointerUp={stopContinuousAttack}
             onPointerLeave={stopContinuousAttack}
             onPointerCancel={stopContinuousAttack}
-            className={`relative flex h-16 w-16 sm:h-20 sm:w-20 cursor-pointer flex-col items-center justify-center rounded-full border-3 transition ${
-              hudSnap.attackCharges > 0
-                ? "border-amber-200 bg-gradient-to-b from-rose-500 via-red-600 to-rose-900 text-white shadow-[0_0_28px_rgba(244,63,94,0.65)]"
-                : "border-slate-700 bg-slate-900/90 text-slate-400 opacity-80"
-            }`}
+            title="Golpe de Luz (Ataque Básico Ilimitado) [ESPAÇO]"
+            className="group relative flex h-16 w-16 sm:h-20 sm:w-20 cursor-pointer flex-col items-center justify-center rounded-full border-3 border-amber-300 bg-gradient-to-b from-rose-500 via-red-600 to-rose-900 text-white shadow-[0_0_28px_rgba(244,63,94,0.7)] active:scale-95 transition select-none"
           >
-            {/* Energy Charges Numeric Badge */}
-            <span
-              className={`absolute -top-1.5 -right-1 rounded-full border-2 px-1.5 py-0.2 font-mono text-[7.5px] sm:text-[8.5px] font-black shadow-md ${
-                hudSnap.attackCharges > 0
-                  ? "border-amber-300 bg-slate-950 text-amber-300 shadow-[0_0_10px_rgba(251,191,36,0.6)]"
-                  : "border-rose-400 bg-slate-950 text-rose-300 animate-pulse"
-              }`}
-            >
-              ⚡ {hudSnap.attackCharges}/{hudSnap.attackMaxCharges}
+            {/* Glowing outer sheen ring */}
+            <div className="absolute inset-0 rounded-full border-2 border-amber-200/40 animate-pulse pointer-events-none" />
+            <Swords className="h-6 w-6 sm:h-7.5 sm:w-7.5 drop-shadow group-hover:scale-110 transition-transform" />
+            <span className="mt-0.5 font-mono text-[8px] sm:text-[9.5px] font-black tracking-wider text-amber-200 uppercase drop-shadow">
+              ATACAR
             </span>
-
-            <Swords className="h-6 w-6 sm:h-7.5 sm:w-7.5 drop-shadow" />
-            <span className="mt-0.5 font-mono text-[7.5px] sm:text-[8.5px] font-black tracking-wider text-amber-200 uppercase">
-              {hudSnap.attackCharges > 0 ? (isMobile ? "ATACAR" : "ATACAR") : "RECARREGANDO"}
+            <span className="font-mono text-[7px] text-amber-300/80 font-bold uppercase tracking-tight">
+              LIVRE ∞
             </span>
-
-            {/* 6 Visual Energy Pips */}
-            <div className="mt-0.5 flex items-center gap-0.5">
-              {[0, 1, 2, 3, 4, 5].map((i) => (
-                <span
-                  key={i}
-                  className={`h-1 sm:h-1.5 w-1 sm:w-1.5 rounded-full transition-all ${
-                    i < hudSnap.attackCharges
-                      ? "bg-amber-300 shadow-[0_0_5px_#f59e0b]"
-                      : "bg-slate-800"
-                  }`}
-                />
-              ))}
-            </div>
           </motion.button>
         </div>
       </div>
