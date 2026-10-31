@@ -2471,9 +2471,9 @@ export function MobaGtaWorld3D({
         cameraMode = cameraMode === "gta" ? "moba" : "gta";
         if (cameraMode === "moba") {
           camYaw = 0;
-          emitPopup("🎥 CÂMERA TÁTICA MOBA", "#fbbf24");
+          emitPopup("🎥 VISÃO ALTA (Panorâmica)", "#fbbf24");
         } else {
-          emitPopup("🎥 CÂMERA GTA 3ª PESSOA (Arraste p/ Girar)", "#38bdf8");
+          emitPopup("🎥 3ª PESSOA (Visão de Rua)", "#38bdf8");
         }
         return;
       }

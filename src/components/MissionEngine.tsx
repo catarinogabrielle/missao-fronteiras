@@ -1105,7 +1105,7 @@ export function MissionEngine({
                 playSfx("click");
                 fireAction("camera");
               }}
-              title="Alternar Ângulo da Câmera (3D GTA / Tática MOBA) [C]"
+              title="Alternar Ângulo da Câmera (3ª Pessoa / Visão Alta) [C]"
               className={`flex-1 h-6.5 sm:h-7 flex cursor-pointer items-center justify-between rounded-md border-t border-x border-b-2 px-1.5 transition active:translate-y-0.5 select-none ${
                 hudSnap.cameraMode === "gta"
                   ? "border-t-amber-300/80 border-x-amber-500/60 border-b-amber-700 bg-gradient-to-r from-amber-500/30 via-slate-950/90 to-slate-950/90 text-amber-300 shadow-[0_1px_6px_rgba(245,158,11,0.25)] hover:border-amber-300"
@@ -1115,7 +1115,7 @@ export function MissionEngine({
               <div className="flex items-center gap-1 truncate min-w-0">
                 <Camera className="h-2.5 w-2.5 text-amber-300 shrink-0" />
                 <span className="text-[8.5px] font-black uppercase tracking-tight truncate">
-                  {hudSnap.cameraMode === "gta" ? "3D GTA" : "MOBA"}
+                  {hudSnap.cameraMode === "gta" ? "3ª PESSOA" : "VISÃO ALTA"}
                 </span>
               </div>
               <div className="flex items-center gap-0.5 font-mono text-[7.5px] font-black text-amber-300 shrink-0">
@@ -1520,7 +1520,7 @@ export function MissionEngine({
                 🔥 {state.streak}
               </span>
               <span className="rounded bg-slate-900/90 px-1.5 py-0.5 text-[8.5px] text-slate-400 font-sans">
-                {hudSnap.cameraMode === "gta" ? "CAM GTA" : "CAM MOBA"}
+                {hudSnap.cameraMode === "gta" ? "3ª PESSOA" : "VISÃO ALTA"}
               </span>
             </div>
           </div>
