@@ -14,6 +14,8 @@ import {
   Monitor,
   ShieldCheck,
   Sparkles,
+  Trash2,
+  Film,
   UserPlus,
   Users,
   Volume2,
@@ -34,6 +36,7 @@ import { useMobileViewport } from "@/lib/useMobileViewport";
 import { MobaButton } from "./MobaButton";
 import { HeroPortrait } from "./GamePortrait";
 import { HeroPreview3D } from "./HeroPreview3D";
+import { StoryPrologueModal } from "./StoryPrologueModal";
 
 interface OnboardingScreenProps {}
 
@@ -207,6 +210,7 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
   const {
     createAgent,
     selectProfile,
+    deleteProfile,
     isSkinUnlocked,
     playSfx,
     state,
@@ -215,6 +219,7 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
   } = useGame();
   const { isOnline, offlineReady, isStandalone, triggerInstall } = usePwa();
   const { isMobileLandscape } = useMobileViewport();
+  const [storyOpen, setStoryOpen] = useState(false);
 
   // Smart initial character determination from active session, last active agent, or saved profile
   const initialAgent =
@@ -551,18 +556,32 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
                   <Users className="h-3 w-3 text-cyan-400" />
                   <span>Identidade do Agente</span>
                 </span>
-                {state.savedProfiles && state.savedProfiles.length > 0 && (
-                  <span className="rounded-full bg-cyan-500/15 border border-cyan-400/35 px-1.5 py-0.2 font-mono text-[8px] font-black text-cyan-300">
-                    {state.savedProfiles.length} CONTA{state.savedProfiles.length > 1 ? "S" : ""}
-                  </span>
-                )}
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playSfx("click");
+                      setStoryOpen(true);
+                    }}
+                    className="flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-500/20 px-2 py-0.5 text-[8px] font-black text-amber-300 hover:bg-amber-500/30 transition cursor-pointer"
+                    title="Ver História & Tutorial"
+                  >
+                    <Film className="h-2.5 w-2.5" />
+                    <span>História</span>
+                  </button>
+                  {state.savedProfiles && state.savedProfiles.length > 0 && (
+                    <span className="rounded-full bg-cyan-500/15 border border-cyan-400/35 px-1.5 py-0.2 font-mono text-[8px] font-black text-cyan-300">
+                      {state.savedProfiles.length} CONTA{state.savedProfiles.length > 1 ? "S" : ""}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Saved Profiles Horizontal Cards if returning player */}
               {state.savedProfiles && state.savedProfiles.length > 0 && (
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-[8px] font-extrabold uppercase tracking-wider text-slate-400">
-                    <span>Perfis Salvos (Toque para carregar):</span>
+                    <span>Perfis Salvos:</span>
                   </div>
                   <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
                     {state.savedProfiles.map((prof) => {
@@ -570,37 +589,52 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
                         prof.avatarId === selectedAvatar && prof.name === name;
                       const champ = AVATAR_OPTIONS.find((a) => a.id === prof.avatarId);
                       return (
-                        <button
+                        <div
                           key={prof.name}
-                          type="button"
-                          onClick={() => {
-                            playSfx("click");
-                            handleSelectSavedProfile(prof, false);
-                          }}
-                          className={`shrink-0 flex items-center gap-1.5 cursor-pointer rounded-xl border p-1 pr-2 transition ${
+                          className={`shrink-0 flex items-center rounded-xl border transition ${
                             isCurrentActive
                               ? "border-amber-300 bg-gradient-to-r from-amber-500/30 to-amber-600/20 text-white ring-1.5 ring-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.4)]"
                               : "border-slate-800 bg-slate-900/90 text-slate-300 hover:border-slate-600"
                           }`}
                         >
-                          <HeroPortrait
-                            avatarId={prof.avatarId}
-                            size={22}
-                            shape="hex"
-                            active={isCurrentActive}
-                          />
-                          <div className="text-left leading-none">
-                            <div className="text-[9.5px] font-black text-white uppercase truncate max-w-[85px]">
-                              {prof.name}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              playSfx("click");
+                              handleSelectSavedProfile(prof, false);
+                            }}
+                            className="flex items-center gap-1.5 p-1 pr-1.5 cursor-pointer"
+                          >
+                            <HeroPortrait
+                              avatarId={prof.avatarId}
+                              size={22}
+                              shape="hex"
+                              active={isCurrentActive}
+                            />
+                            <div className="text-left leading-none">
+                              <div className="text-[9.5px] font-black text-white uppercase truncate max-w-[70px]">
+                                {prof.name}
+                              </div>
+                              <div className="text-[7.5px] font-bold text-amber-300 uppercase mt-0.5 flex items-center gap-1">
+                                <span>{champ?.name || prof.avatarId}</span>
+                                {isCurrentActive && (
+                                  <span className="text-emerald-400 font-black">✓</span>
+                                )}
+                              </div>
                             </div>
-                            <div className="text-[7.5px] font-bold text-amber-300 uppercase mt-0.5 flex items-center gap-1">
-                              <span>{champ?.name || prof.avatarId}</span>
-                              {isCurrentActive && (
-                                <span className="text-emerald-400 font-black">✓ ATIVO</span>
-                              )}
-                            </div>
-                          </div>
-                        </button>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteProfile(prof.name);
+                            }}
+                            title={`Excluir conta ${prof.name}`}
+                            className="p-1 mr-1 text-slate-500 hover:text-rose-400 hover:bg-rose-500/20 rounded transition cursor-pointer"
+                          >
+                            <Trash2 className="h-2.5 w-2.5" />
+                          </button>
+                        </div>
                       );
                     })}
 
@@ -807,32 +841,48 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
         </div>
       </header>
 
-      {/* QUICK AGENT SWITCHER FOR SAVED PROFILES */}
+      {/* QUICK AGENT SWITCHER FOR SAVED PROFILES & STORY BUTTON */}
       {state.savedProfiles && state.savedProfiles.length > 0 && (
         <div className="relative z-20 mx-auto w-full max-w-7xl px-4 pt-3 sm:px-8">
-          <div className="moba-panel-cyan moba-clip-panel flex flex-wrap items-center justify-between gap-2.5 p-3">
-            <div className="flex items-center gap-2 text-xs font-black text-cyan-300 uppercase">
+        <div className="moba-panel-cyan moba-clip-panel flex flex-wrap items-center justify-between gap-2.5 p-3">
+          <div className="flex items-center gap-3 text-xs font-black text-cyan-300 uppercase">
+            <span className="flex items-center gap-1.5 text-amber-300">
               <Users className="h-4 w-4 text-amber-300" />
               <span>Contas & Perfis Salvos:</span>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {state.savedProfiles.map((prof) => {
-                const isCurrentActive =
-                  prof.avatarId === selectedAvatar && prof.name === name;
-                const champ = AVATAR_OPTIONS.find((a) => a.id === prof.avatarId);
-                return (
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                playSfx("click");
+                setStoryOpen(true);
+              }}
+              className="flex items-center gap-1.5 rounded-xl border border-amber-400/50 bg-amber-500/20 px-3 py-1 text-xs font-black text-amber-300 hover:bg-amber-500/30 transition cursor-pointer shadow-sm"
+            >
+              <Film className="h-3.5 w-3.5" />
+              <span>🎬 Ver História & Tutorial</span>
+            </button>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {state.savedProfiles && state.savedProfiles.map((prof) => {
+              const isCurrentActive =
+                prof.avatarId === selectedAvatar && prof.name === name;
+              const champ = AVATAR_OPTIONS.find((a) => a.id === prof.avatarId);
+              return (
+                <div
+                  key={prof.name}
+                  className={`flex items-center rounded-xl border shadow-sm transition ${
+                    isCurrentActive
+                      ? "border-amber-300 bg-amber-500/30 text-amber-200 ring-2 ring-amber-300"
+                      : "border-amber-400/50 bg-slate-900/95 text-white hover:border-amber-300"
+                  }`}
+                >
                   <button
-                    key={prof.name}
                     type="button"
                     onClick={() => {
                       playSfx("click");
                       handleSelectSavedProfile(prof, false);
                     }}
-                    className={`flex cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-1.5 text-xs font-black shadow-sm transition ${
-                      isCurrentActive
-                        ? "border-amber-300 bg-amber-500/30 text-amber-200 ring-2 ring-amber-300"
-                        : "border-amber-400/50 bg-slate-900/95 text-white hover:border-amber-300 hover:bg-amber-500/25"
-                    }`}
+                    className="flex cursor-pointer items-center gap-2.5 px-3 py-1.5 text-xs font-black"
                   >
                     <HeroPortrait
                       avatarId={prof.avatarId}
@@ -856,8 +906,20 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
                       </span>
                     )}
                   </button>
-                );
-              })}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteProfile(prof.name);
+                    }}
+                    title={`Excluir conta ${prof.name}`}
+                    className="p-1.5 mr-1 text-slate-500 hover:text-rose-400 hover:bg-rose-500/20 rounded transition cursor-pointer"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              );
+            })}
             </div>
           </div>
         </div>
@@ -1210,6 +1272,12 @@ export function OnboardingScreen({}: OnboardingScreenProps = {}) {
         MUNDO ABERTO 3D • SKINS & ANIMAÇÕES EM TEMPO REAL • JUNIORES &
         ADOLESCENTES
       </footer>
+
+      {/* Cinematic Story & Tutorial Animated Modal */}
+      <StoryPrologueModal
+        open={storyOpen}
+        onClose={() => setStoryOpen(false)}
+      />
     </div>
   );
 }

@@ -139,8 +139,10 @@ export function buildStylizedHumanRig(
 
   const skinMat = new THREE.MeshStandardMaterial({
     color: cfg.skin,
-    roughness: isFemale ? 0.42 : 0.5,
-    metalness: 0.04,
+    emissive: cfg.skin,
+    emissiveIntensity: 0.35,
+    roughness: 0.44,
+    metalness: 0.02,
   });
   const jacketMat = new THREE.MeshStandardMaterial({
     color: cfg.shirt,
@@ -465,10 +467,10 @@ export function buildStylizedHumanRig(
   headGroup.position.set(0, 1.97, 0);
 
   const cranium = new THREE.Mesh(
-    new THREE.SphereGeometry(isFemale ? 0.202 : 0.21, 24, 20),
+    new THREE.SphereGeometry(isFemale ? 0.208 : 0.216, 24, 20),
     skinMat
   );
-  cranium.scale.set(0.92, 1.08, 0.96);
+  cranium.scale.set(0.94, 1.08, 0.98);
   cranium.castShadow = true;
   headGroup.add(cranium);
 
@@ -482,77 +484,117 @@ export function buildStylizedHumanRig(
     headGroup.add(ear);
   });
 
+  // Cute stylized button nose (centered, clean, well-proportioned)
   const nose = new THREE.Mesh(
-    new THREE.ConeGeometry(isFemale ? 0.022 : 0.026, isFemale ? 0.068 : 0.075, 10),
+    new THREE.SphereGeometry(isFemale ? 0.020 : 0.024, 14, 12),
     skinMat
   );
-  nose.rotation.x = Math.PI * 0.42;
-  nose.position.set(0, -0.015, 0.205);
+  nose.scale.set(1.0, 0.85, 1.3);
+  nose.position.set(0, -0.010, isFemale ? 0.218 : 0.224);
   headGroup.add(nose);
 
-  const scleraMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-  const irisMat = new THREE.MeshBasicMaterial({ color: cfg.eye });
-  const pupilMat = new THREE.MeshBasicMaterial({ color: 0x090d16 });
+  // High-Quality Stylized Pixar / Anime Eyes
+  const scleraMat = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    roughness: 0.15,
+    metalness: 0.0,
+    emissive: 0xffffff,
+    emissiveIntensity: 0.35,
+  });
+  const irisMat = new THREE.MeshStandardMaterial({
+    color: cfg.eye,
+    emissive: cfg.eye,
+    emissiveIntensity: 0.55,
+    roughness: 0.2,
+  });
+  const pupilMat = new THREE.MeshBasicMaterial({ color: 0x07090e });
+  const eyelidMat = new THREE.MeshBasicMaterial({ color: 0x18181b });
 
-  [-0.072, 0.072].forEach((ex) => {
+  [-0.076, 0.076].forEach((ex) => {
     const eyeSocket = new THREE.Group();
-    eyeSocket.position.set(ex, 0.028, 0.184);
-    eyeSocket.rotation.y = ex < 0 ? -0.16 : 0.16;
+    eyeSocket.position.set(ex, 0.038, isFemale ? 0.206 : 0.212);
+    eyeSocket.rotation.y = ex < 0 ? -0.10 : 0.10;
 
+    // Sclera (White eye background, arched and clear)
     const sclera = new THREE.Mesh(
-      new THREE.SphereGeometry(0.032, 12, 10),
+      new THREE.SphereGeometry(0.046, 16, 14),
       scleraMat
     );
-    sclera.scale.set(1.18, 0.84, 0.35);
+    sclera.scale.set(1.24, 0.95, 0.42);
     eyeSocket.add(sclera);
 
-    const iris = new THREE.Mesh(new THREE.CircleGeometry(0.02, 14), irisMat);
-    iris.position.z = 0.013;
+    // Eyelid line (subtle top contour for expressive cartoon character)
+    const upperEyelid = new THREE.Mesh(
+      new THREE.TorusGeometry(0.048, 0.0065, 8, 18, Math.PI * 0.74),
+      eyelidMat
+    );
+    upperEyelid.rotation.z = ex < 0 ? -0.08 : 0.08;
+    upperEyelid.position.set(0, 0.016, 0.022);
+    eyeSocket.add(upperEyelid);
+
+    // Large, vibrant colorful Iris (alive and expressive)
+    const iris = new THREE.Mesh(new THREE.CircleGeometry(0.029, 20), irisMat);
+    iris.position.z = 0.022;
     eyeSocket.add(iris);
 
-    const pupil = new THREE.Mesh(new THREE.CircleGeometry(0.01, 12), pupilMat);
-    pupil.position.z = 0.015;
+    // Deep dark Pupil
+    const pupil = new THREE.Mesh(new THREE.CircleGeometry(0.0145, 16), pupilMat);
+    pupil.position.z = 0.024;
     eyeSocket.add(pupil);
 
-    const glint = new THREE.Mesh(
-      new THREE.CircleGeometry(0.005, 8),
+    // Dual anime/Pixar catchlights (life in the eyes!)
+    const glintMain = new THREE.Mesh(
+      new THREE.CircleGeometry(0.0075, 12),
       scleraMat
     );
-    glint.position.set(-0.005, 0.006, 0.017);
-    eyeSocket.add(glint);
+    glintMain.position.set(-0.008, 0.010, 0.026);
+    eyeSocket.add(glintMain);
 
+    const glintSub = new THREE.Mesh(
+      new THREE.CircleGeometry(0.0038, 10),
+      scleraMat
+    );
+    glintSub.position.set(0.009, -0.008, 0.026);
+    eyeSocket.add(glintSub);
+
+    // Expressive eyebrow safely positioned ABOVE the eye
     const brow = new THREE.Mesh(
-      new THREE.BoxGeometry(0.065, isFemale ? 0.013 : 0.016, 0.02),
+      new THREE.BoxGeometry(0.072, isFemale ? 0.014 : 0.017, 0.024),
       hairMat
     );
-    brow.position.set(0, 0.042, 0.008);
+    brow.position.set(0, 0.056, 0.022);
     brow.rotation.z = ex < 0 ? 0.08 : -0.08;
     eyeSocket.add(brow);
 
     headGroup.add(eyeSocket);
   });
 
-  // Cheerful smile
+  // Cheerful, warm friendly smile
   const smile = new THREE.Mesh(
-    new THREE.TorusGeometry(0.034, 0.0065, 8, 14, Math.PI * 0.72),
-    new THREE.MeshStandardMaterial({ color: 0x7c2d12, roughness: 0.5 })
+    new THREE.TorusGeometry(0.038, 0.0075, 8, 18, Math.PI * 0.76),
+    new THREE.MeshStandardMaterial({
+      color: isFemale ? 0xe11d48 : 0x991b1b,
+      emissive: isFemale ? 0xbe123c : 0x7f1d1d,
+      emissiveIntensity: 0.45,
+      roughness: 0.35,
+    })
   );
-  smile.rotation.z = Math.PI * 1.14;
-  smile.position.set(0, -0.07, 0.184);
+  smile.rotation.z = Math.PI * 1.12;
+  smile.position.set(0, -0.062, isFemale ? 0.208 : 0.218);
   headGroup.add(smile);
 
-  // Soft Rosy Cheeks for Girls (Sofia & Ester)
+  // Soft Rosy Cheeks for Girls (Sofia & Ester) - Safely on the outer cheek, NEVER over eyes!
   if (isFemale) {
-    [-0.105, 0.105].forEach((bx) => {
+    [-0.130, 0.130].forEach((bx) => {
       const blush = new THREE.Mesh(
-        new THREE.CircleGeometry(0.035, 14),
+        new THREE.CircleGeometry(0.032, 16),
         new THREE.MeshBasicMaterial({
           color: 0xf43f5e,
           transparent: true,
-          opacity: 0.36,
+          opacity: 0.42,
         })
       );
-      blush.position.set(bx, -0.02, 0.198);
+      blush.position.set(bx, -0.036, 0.204);
       headGroup.add(blush);
     });
   }
@@ -562,7 +604,7 @@ export function buildStylizedHumanRig(
   // =========================================================================
   const avatarKey = cfg.avatarId || (isFemale ? "sofia" : "lucas");
 
-  // 1. SOFIA: Long flowing wavy shoulder-length brunette hair + cascading locks
+  // 1. SOFIA: Long flowing wavy brunette hair framing the sides cleanly
   if (avatarKey === "sofia") {
     // Full crown and occipital hair dome covering entire head
     const crownHair = new THREE.Mesh(
@@ -574,33 +616,34 @@ export function buildStylizedHumanRig(
     crownHair.castShadow = true;
     headGroup.add(crownHair);
 
-    // Front parted soft wavy bangs framing forehead
-    [-0.072, 0.072].forEach((fx) => {
+    // Front high curtain bangs (kept safely above the forehead, never covering eyes)
+    [-0.076, 0.076].forEach((fx) => {
       const sweep = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.038, 0.15, 6, 12),
+        new THREE.CapsuleGeometry(0.028, 0.08, 6, 10),
         hairMat
       );
-      sweep.position.set(fx, 0.08, 0.17);
-      sweep.rotation.z = fx < 0 ? 0.42 : -0.42;
+      sweep.position.set(fx, 0.13, 0.168);
+      sweep.rotation.z = fx < 0 ? 0.72 : -0.72;
       headGroup.add(sweep);
     });
 
-    // Cascading shoulder-length wavy locks (left and right)
-    [-0.165, 0.165].forEach((lx) => {
+    // Cascading side locks kept cleanly on the SIDES of the head and behind shoulders
+    [-0.205, 0.205].forEach((lx) => {
       const lockUpper = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.052, 0.22, 8, 12),
+        new THREE.CapsuleGeometry(0.046, 0.20, 8, 12),
         hairMat
       );
-      lockUpper.position.set(lx, -0.09, 0.07);
-      lockUpper.rotation.z = lx < 0 ? -0.14 : 0.14;
+      lockUpper.position.set(lx, -0.07, 0.02);
+      lockUpper.rotation.z = lx < 0 ? -0.18 : 0.18;
+      lockUpper.rotation.y = lx < 0 ? 0.22 : -0.22;
       headGroup.add(lockUpper);
 
       const lockLower = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.046, 0.2, 8, 12),
+        new THREE.CapsuleGeometry(0.042, 0.18, 8, 12),
         hairMat
       );
-      lockLower.position.set(lx * 0.94, -0.25, 0.11);
-      lockLower.rotation.x = -0.2;
+      lockLower.position.set(lx * 0.96, -0.23, -0.01);
+      lockLower.rotation.x = 0.12;
       headGroup.add(lockLower);
     });
 
@@ -848,38 +891,40 @@ export function buildStylizedHumanRig(
       headGroup.add(napeTuft);
     });
 
-    // C. Layered messy bangs / fringe across the forehead
-    const centerBang = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.038, 0.15, 6, 10),
-      hairMat
-    );
-    centerBang.rotation.z = Math.PI / 2 - 0.22;
-    centerBang.position.set(0.01, 0.075, 0.188);
-    headGroup.add(centerBang);
-
-    const leftBang = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.036, 0.13, 6, 10),
-      hairMat
-    );
-    leftBang.position.set(-0.08, 0.085, 0.176);
-    leftBang.rotation.z = -0.42;
-    headGroup.add(leftBang);
-
-    const rightBang = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.036, 0.13, 6, 10),
-      hairMat
-    );
-    rightBang.position.set(0.09, 0.07, 0.176);
-    rightBang.rotation.z = 0.52;
-    headGroup.add(rightBang);
-
-    // D. Sideburns & temple tufts framing ears
-    [-0.165, 0.165].forEach((tx) => {
-      const sideTuft = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.04, 0.13, 6, 10),
+    // C. Front bangs (only if not wearing cap, so they don't clip through visor)
+    if (cfg.hatType !== "cap") {
+      const centerBang = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.032, 0.10, 6, 10),
         hairMat
       );
-      sideTuft.position.set(tx, -0.04, 0.08);
+      centerBang.rotation.z = Math.PI / 2 - 0.22;
+      centerBang.position.set(0.01, 0.125, 0.172);
+      headGroup.add(centerBang);
+
+      const leftBang = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.030, 0.09, 6, 10),
+        hairMat
+      );
+      leftBang.position.set(-0.08, 0.13, 0.165);
+      leftBang.rotation.z = -0.42;
+      headGroup.add(leftBang);
+
+      const rightBang = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.030, 0.09, 6, 10),
+        hairMat
+      );
+      rightBang.position.set(0.09, 0.12, 0.165);
+      rightBang.rotation.z = 0.52;
+      headGroup.add(rightBang);
+    }
+
+    // D. Sideburns & temple tufts framing ears (cleanly at the sides)
+    [-0.175, 0.175].forEach((tx) => {
+      const sideTuft = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.036, 0.13, 6, 10),
+        hairMat
+      );
+      sideTuft.position.set(tx, -0.04, 0.05);
       sideTuft.rotation.z = tx < 0 ? -0.28 : 0.28;
       headGroup.add(sideTuft);
     });
@@ -967,21 +1012,23 @@ export function buildStylizedHumanRig(
   if (cfg.hatType === "cap") {
     const capMat = new THREE.MeshStandardMaterial({
       color: 0x15803d,
-      roughness: 0.6,
+      roughness: 0.55,
+      metalness: 0.1,
     });
     const capDome = new THREE.Mesh(
-      new THREE.SphereGeometry(0.234, 22, 16, 0, Math.PI * 2, 0, Math.PI * 0.52),
+      new THREE.SphereGeometry(0.234, 22, 16, 0, Math.PI * 2, 0, Math.PI * 0.50),
       capMat
     );
-    capDome.position.y = 0.04;
+    capDome.position.y = 0.05;
     headGroup.add(capDome);
 
+    // Visor tilted UPWARD so it never obstructs or shadows the eyes
     const visor = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.228, 0.228, 0.025, 16, 1, false, -Math.PI * 0.35, Math.PI * 0.7),
-      new THREE.MeshStandardMaterial({ color: 0x14532d, roughness: 0.6 })
+      new THREE.CylinderGeometry(0.224, 0.224, 0.024, 16, 1, false, -Math.PI * 0.35, Math.PI * 0.7),
+      new THREE.MeshStandardMaterial({ color: 0x14532d, roughness: 0.55 })
     );
-    visor.position.set(0, 0.095, 0.13);
-    visor.rotation.x = 0.16;
+    visor.position.set(0, 0.125, 0.11);
+    visor.rotation.x = -0.12;
     headGroup.add(visor);
 
     // Golden Mission Compass Pin on front of cap
@@ -990,11 +1037,11 @@ export function buildStylizedHumanRig(
       new THREE.MeshStandardMaterial({
         color: 0xfbbf24,
         emissive: 0xd97706,
-        emissiveIntensity: 0.55,
+        emissiveIntensity: 0.75,
         metalness: 0.85,
       })
     );
-    pin.position.set(0, 0.13, 0.202);
+    pin.position.set(0, 0.155, 0.198);
     pin.scale.set(1, 1, 0.4);
     headGroup.add(pin);
   }
@@ -1694,14 +1741,14 @@ export function createPlayableChampion3D(
 ): ArticulatedRig {
   const baseByAvatar: Record<AvatarId, CharacterVisualConfig> = {
     lucas: {
-      skin: "#d89260",
-      eye: "#3d2314",
+      skin: "#f6caa7",
+      eye: "#b45309",
       shirt: 0x15803d,
       innerShirt: 0x1f2937,
       secondary: 0x22c55e,
       pants: 0x1e293b,
       shoeColor: 0x451a03,
-      hair: 0x2e1a0f,
+      hair: 0x3d2112,
       gender: "male",
       avatarId: "lucas",
       hatType: "cap",
@@ -1712,14 +1759,14 @@ export function createPlayableChampion3D(
       labelColor: "#34d399",
     },
     sofia: {
-      skin: "#fad0b1",
+      skin: "#fee0cb",
       eye: "#0284c7",
       shirt: 0x0284c7,
       innerShirt: 0xf8fafc,
       secondary: 0x38bdf8,
       pants: 0x1e1b4b,
       shoeColor: 0xf8fafc,
-      hair: 0x422014,
+      hair: 0x451e0e,
       gender: "female",
       avatarId: "sofia",
       hatType: "headphones",
@@ -1730,14 +1777,14 @@ export function createPlayableChampion3D(
       labelColor: "#22d3ee",
     },
     davi: {
-      skin: "#784421",
+      skin: "#bd835a",
       eye: "#f59e0b",
       shirt: 0xf59e0b,
       innerShirt: 0x0f172a,
       secondary: 0xfbbf24,
       pants: 0x0f172a,
       shoeColor: 0x1e293b,
-      hair: 0x111827,
+      hair: 0x18181b,
       gender: "male",
       avatarId: "davi",
       hatType: "glasses",
@@ -1748,14 +1795,14 @@ export function createPlayableChampion3D(
       labelColor: "#fbbf24",
     },
     ester: {
-      skin: "#965b32",
+      skin: "#cb8d63",
       eye: "#a855f7",
       shirt: 0x6b21a8,
       innerShirt: 0xfde047,
       secondary: 0xfbbf24,
       pants: 0x2e1065,
       shoeColor: 0xfbbf24,
-      hair: 0x1a1008,
+      hair: 0x1f140d,
       gender: "female",
       avatarId: "ester",
       hatType: "curls",
@@ -1892,14 +1939,15 @@ export function createShadowEnemyRig(
   name: string,
   isBoss = false
 ): ArticulatedRig {
-  const scale = isBoss ? 2.05 : 1.08;
+  const scale = isBoss ? 2.35 : 1.22;
   const root = new THREE.Group();
   const bodyGroup = new THREE.Group();
   bodyGroup.scale.setScalar(scale);
   root.add(bodyGroup);
 
+  // Ground Dark Energy Aura
   const aura = new THREE.Mesh(
-    new THREE.RingGeometry(0.7 * scale, 0.98 * scale, 32),
+    new THREE.RingGeometry(0.65 * scale, 0.98 * scale, 32),
     new THREE.MeshBasicMaterial({
       color: isBoss ? 0xf43f5e : 0xa855f7,
       side: THREE.DoubleSide,
@@ -1911,160 +1959,313 @@ export function createShadowEnemyRig(
   aura.position.y = 0.04;
   root.add(aura);
 
+  // Inner pulsing dark ring
+  const innerAura = new THREE.Mesh(
+    new THREE.RingGeometry(0.25 * scale, 0.52 * scale, 24),
+    new THREE.MeshBasicMaterial({
+      color: isBoss ? 0x9f1239 : 0x6b21a8,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.6,
+    })
+  );
+  innerAura.rotation.x = -Math.PI / 2;
+  innerAura.position.y = 0.05;
+  root.add(innerAura);
+
+  // Materials
   const armorMat = new THREE.MeshStandardMaterial({
-    color: 0x120a24,
-    emissive: isBoss ? 0x4c0519 : 0x2e1065,
-    emissiveIntensity: 0.58,
-    roughness: 0.22,
-    metalness: 0.75,
+    color: isBoss ? 0x0a0512 : 0x0f0b1a,
+    emissive: isBoss ? 0x58081a : 0x2e1065,
+    emissiveIntensity: isBoss ? 0.65 : 0.45,
+    roughness: 0.25,
+    metalness: 0.82,
   });
 
   const energyMat = new THREE.MeshStandardMaterial({
     color: isBoss ? 0xf43f5e : 0xc084fc,
     emissive: isBoss ? 0xe11d48 : 0x9333ea,
-    emissiveIntensity: 1.45,
+    emissiveIntensity: 1.85,
+    roughness: 0.1,
   });
 
+  const goldAccentMat = new THREE.MeshStandardMaterial({
+    color: 0xf59e0b,
+    emissive: 0xd97706,
+    emissiveIntensity: 0.5,
+    metalness: 0.9,
+    roughness: 0.2,
+  });
+
+  // Legs with armored greaves
   const buildShadowLeg = (ox: number) => {
     const legPivot = new THREE.Group();
     legPivot.position.set(ox, 0.95, 0);
     const greave = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.11, 0.55, 8, 12),
+      new THREE.CapsuleGeometry(0.12, 0.58, 8, 12),
       armorMat
     );
     greave.position.y = -0.38;
     greave.castShadow = true;
     legPivot.add(greave);
+
+    // Knee spike
+    const kneeSpike = new THREE.Mesh(
+      new THREE.ConeGeometry(0.045, 0.14, 6),
+      energyMat
+    );
+    kneeSpike.rotation.x = Math.PI / 2;
+    kneeSpike.position.set(0, -0.22, 0.14);
+    legPivot.add(kneeSpike);
+
     bodyGroup.add(legPivot);
     return legPivot;
   };
-  const leftLegPivot = buildShadowLeg(-0.18);
-  const rightLegPivot = buildShadowLeg(0.18);
+  const leftLegPivot = buildShadowLeg(-0.19);
+  const rightLegPivot = buildShadowLeg(0.19);
 
+  // Heavy armored torso
   const chest = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.34, 0.22, 0.72, 12),
+    new THREE.CylinderGeometry(0.36, 0.24, 0.76, 12),
     armorMat
   );
-  chest.scale.set(1.18, 1, 0.78);
-  chest.position.y = 1.35;
+  chest.scale.set(1.22, 1, 0.82);
+  chest.position.y = 1.36;
   chest.castShadow = true;
   bodyGroup.add(chest);
 
-  const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.14, 0), energyMat);
-  core.position.set(0, 1.4, 0.24);
+  // Pulsing Abyssal Core in the chest
+  const core = new THREE.Mesh(
+    new THREE.OctahedronGeometry(isBoss ? 0.20 : 0.13, 0),
+    energyMat
+  );
+  core.position.set(0, 1.42, 0.26);
   bodyGroup.add(core);
 
   if (isBoss) {
-    // Boss Dark Flowing Mantle Cape
+    // Outer core cage
+    const coreRing = new THREE.Mesh(
+      new THREE.TorusGeometry(0.24, 0.024, 8, 20),
+      goldAccentMat
+    );
+    coreRing.position.set(0, 1.42, 0.24);
+    bodyGroup.add(coreRing);
+
+    // Floating Orbiting Abyssal Shards around the Boss!
+    for (let i = 0; i < 4; i++) {
+      const ang = (i / 4) * Math.PI * 2;
+      const shard = new THREE.Mesh(
+        new THREE.OctahedronGeometry(0.08, 0),
+        energyMat
+      );
+      shard.position.set(Math.cos(ang) * 0.85, 1.4 + (i % 2) * 0.15, Math.sin(ang) * 0.85);
+      shard.scale.set(0.6, 1.6, 0.6);
+      bodyGroup.add(shard);
+    }
+
+    // Imperial Flowing Abyssal Cape with Dual Layers
     const bossCape = new THREE.Mesh(
       new THREE.CylinderGeometry(
-        0.28,
-        0.58,
-        1.28,
+        0.32,
+        0.72,
+        1.45,
         14,
+        1,
+        true,
+        Math.PI * 0.68,
+        Math.PI * 0.64
+      ),
+      new THREE.MeshStandardMaterial({
+        color: 0x4c0519,
+        emissive: 0x9f1239,
+        emissiveIntensity: 0.55,
+        side: THREE.DoubleSide,
+        roughness: 0.4,
+      })
+    );
+    bossCape.position.set(0, 1.05, -0.28);
+    bossCape.rotation.x = 0.18;
+    bodyGroup.add(bossCape);
+  } else {
+    // Minion Tattered Shadow Cape
+    const minionCape = new THREE.Mesh(
+      new THREE.CylinderGeometry(
+        0.22,
+        0.44,
+        0.95,
+        10,
         1,
         true,
         Math.PI * 0.7,
         Math.PI * 0.6
       ),
       new THREE.MeshStandardMaterial({
-        color: 0x4c0519,
-        emissive: 0x881337,
+        color: 0x1e1b4b,
+        emissive: 0x3b0764,
         emissiveIntensity: 0.4,
         side: THREE.DoubleSide,
       })
     );
-    bossCape.position.set(0, 1.05, -0.24);
-    bossCape.rotation.x = 0.16;
-    bodyGroup.add(bossCape);
+    minionCape.position.set(0, 1.15, -0.22);
+    minionCape.rotation.x = 0.16;
+    bodyGroup.add(minionCape);
   }
 
-  [-0.44, 0.44].forEach((sx) => {
-    const pauldron = new THREE.Mesh(
-      new THREE.ConeGeometry(0.22, 0.48, 8),
+  // Heavy Spiked Demon Pauldrons
+  [-0.46, 0.46].forEach((sx) => {
+    const pauldronBase = new THREE.Mesh(
+      new THREE.SphereGeometry(isBoss ? 0.24 : 0.18, 12, 10),
+      armorMat
+    );
+    pauldronBase.position.set(sx, 1.68, 0);
+    bodyGroup.add(pauldronBase);
+
+    // Upward Spike
+    const pauldronSpike = new THREE.Mesh(
+      new THREE.ConeGeometry(isBoss ? 0.12 : 0.08, isBoss ? 0.55 : 0.38, 8),
       energyMat
     );
-    pauldron.position.set(sx, 1.66, 0);
-    pauldron.rotation.z = sx < 0 ? 0.55 : -0.55;
-    bodyGroup.add(pauldron);
+    pauldronSpike.position.set(sx * 1.12, 1.88, 0);
+    pauldronSpike.rotation.z = sx < 0 ? 0.45 : -0.45;
+    bodyGroup.add(pauldronSpike);
   });
 
+  // Head with Demonic Horned Helm
   const headGroup = new THREE.Group();
-  headGroup.position.set(0, 1.95, 0);
+  headGroup.position.set(0, 1.98, 0);
 
   const helm = new THREE.Mesh(
     new THREE.SphereGeometry(0.24, 16, 14),
     armorMat
   );
-  helm.scale.set(0.95, 1.12, 1.02);
+  helm.scale.set(0.96, 1.12, 1.04);
   headGroup.add(helm);
 
+  // Menacing Glowing Eyes
   [-0.08, 0.08].forEach((ex) => {
     const eye = new THREE.Mesh(
-      new THREE.BoxGeometry(0.08, 0.028, 0.04),
-      new THREE.MeshBasicMaterial({ color: 0xfda4af })
+      new THREE.BoxGeometry(0.085, 0.032, 0.045),
+      new THREE.MeshBasicMaterial({ color: isBoss ? 0xff0040 : 0xe879f9 })
     );
-    eye.position.set(ex, 0.02, 0.22);
-    eye.rotation.z = ex < 0 ? -0.22 : 0.22;
+    eye.position.set(ex, 0.03, 0.23);
+    eye.rotation.z = ex < 0 ? -0.24 : 0.24;
     headGroup.add(eye);
   });
 
-  [-0.19, 0.19].forEach((hx) => {
-    const horn = new THREE.Mesh(
-      new THREE.ConeGeometry(0.065, 0.38, 8),
-      energyMat
-    );
-    horn.position.set(hx, 0.28, -0.02);
-    horn.rotation.z = hx < 0 ? 0.35 : -0.35;
-    headGroup.add(horn);
-  });
+  // Horns
+  if (isBoss) {
+    // 5-Spike Crown of Demon Horns
+    [-0.24, -0.12, 0, 0.12, 0.24].forEach((hx, idx) => {
+      const hHeight = idx === 2 ? 0.62 : Math.abs(idx - 2) === 1 ? 0.52 : 0.42;
+      const horn = new THREE.Mesh(
+        new THREE.ConeGeometry(0.065, hHeight, 8),
+        energyMat
+      );
+      horn.position.set(hx, 0.32 + (idx === 2 ? 0.08 : 0), -0.02);
+      horn.rotation.z = -hx * 1.4;
+      headGroup.add(horn);
+    });
+  } else {
+    // Dual Minion Spiked Horns
+    [-0.19, 0.19].forEach((hx) => {
+      const horn = new THREE.Mesh(
+        new THREE.ConeGeometry(0.065, 0.42, 8),
+        energyMat
+      );
+      horn.position.set(hx, 0.30, -0.02);
+      horn.rotation.z = hx < 0 ? 0.40 : -0.40;
+      headGroup.add(horn);
+    });
+  }
   bodyGroup.add(headGroup);
 
-  const buildShadowArm = (ox: number, withSword: boolean) => {
+  // Arms and Weapon
+  const buildShadowArm = (ox: number, withWeapon: boolean) => {
     const pivot = new THREE.Group();
     pivot.position.set(ox, 1.58, 0);
     const arm = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.085, 0.42, 6, 10),
+      new THREE.CapsuleGeometry(0.09, 0.44, 6, 10),
       armorMat
     );
     arm.position.y = -0.26;
     pivot.add(arm);
 
-    if (withSword) {
-      const darkBlade = new THREE.Mesh(
-        new THREE.BoxGeometry(0.095, 1.02, 0.045),
-        energyMat
-      );
-      darkBlade.position.set(0, -0.58, 0.35);
-      darkBlade.rotation.x = Math.PI * 0.4;
-      pivot.add(darkBlade);
+    if (withWeapon) {
+      if (isBoss) {
+        // Colossal Abyssal Greatsword
+        const swordGroup = new THREE.Group();
+        swordGroup.position.set(0, -0.58, 0.38);
+        swordGroup.rotation.x = Math.PI * 0.38;
+
+        // Crossguard
+        const guard = new THREE.Mesh(
+          new THREE.BoxGeometry(0.38, 0.06, 0.08),
+          goldAccentMat
+        );
+        swordGroup.add(guard);
+
+        // Blade core
+        const blade = new THREE.Mesh(
+          new THREE.BoxGeometry(0.14, 1.45, 0.05),
+          armorMat
+        );
+        blade.position.y = 0.72;
+        swordGroup.add(blade);
+
+        // Glowing red energy edges
+        const edgeLeft = new THREE.Mesh(
+          new THREE.BoxGeometry(0.03, 1.42, 0.055),
+          energyMat
+        );
+        edgeLeft.position.set(-0.08, 0.72, 0);
+        swordGroup.add(edgeLeft);
+
+        const edgeRight = new THREE.Mesh(
+          new THREE.BoxGeometry(0.03, 1.42, 0.055),
+          energyMat
+        );
+        edgeRight.position.set(0.08, 0.72, 0);
+        swordGroup.add(edgeRight);
+
+        pivot.add(swordGroup);
+      } else {
+        // Minion Shadow Scythe / Blade
+        const darkBlade = new THREE.Mesh(
+          new THREE.BoxGeometry(0.10, 1.15, 0.045),
+          energyMat
+        );
+        darkBlade.position.set(0, -0.58, 0.35);
+        darkBlade.rotation.x = Math.PI * 0.40;
+        pivot.add(darkBlade);
+      }
     }
     bodyGroup.add(pivot);
     return pivot;
   };
-  const leftArmPivot = buildShadowArm(-0.44, false);
-  const rightArmPivot = buildShadowArm(0.44, true);
+  const leftArmPivot = buildShadowArm(-0.46, false);
+  const rightArmPivot = buildShadowArm(0.46, true);
 
+  // HP Bar Floating over Head
   const hpBg = new THREE.Mesh(
-    new THREE.PlaneGeometry(1.5 * scale, 0.17 * scale),
+    new THREE.PlaneGeometry(1.6 * scale, 0.18 * scale),
     new THREE.MeshBasicMaterial({ color: 0x090d16, side: THREE.DoubleSide })
   );
-  hpBg.position.y = 2.52 * scale;
+  hpBg.position.y = 2.62 * scale;
   root.add(hpBg);
 
   const hpBarFill = new THREE.Mesh(
-    new THREE.PlaneGeometry(1.42 * scale, 0.12 * scale),
+    new THREE.PlaneGeometry(1.52 * scale, 0.13 * scale),
     new THREE.MeshBasicMaterial({
       color: isBoss ? 0xf43f5e : 0xc084fc,
       side: THREE.DoubleSide,
     })
   );
-  hpBarFill.position.set(0, 2.52 * scale, 0.02);
+  hpBarFill.position.set(0, 2.62 * scale, 0.02);
   root.add(hpBarFill);
 
   if (isBoss) {
     const bossTag = createNameplateSprite(`👑 ${name}`, "#f43f5e");
-    bossTag.position.y = 2.98 * scale;
+    bossTag.position.y = 3.12 * scale;
     root.add(bossTag);
   }
 

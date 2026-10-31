@@ -15,6 +15,7 @@ import { PocketBibleModal } from "./PocketBibleModal";
 import { PrayerRadarModal } from "./PrayerRadarModal";
 import { TribesQuizModal } from "./TribesQuizModal";
 import { SkinWardrobeModal } from "./SkinWardrobeModal";
+import { StoryPrologueModal } from "./StoryPrologueModal";
 import { ToastOverlay } from "./ToastOverlay";
 
 export function GameApp() {
@@ -27,6 +28,7 @@ export function GameApp() {
 
   const [activeMission, setActiveMission] = useState<Mission | null>(null);
   const [passportOpen, setPassportOpen] = useState(false);
+  const [storyOpen, setStoryOpen] = useState(false);
   const [bibleOpen, setBibleOpen] = useState(false);
   const [bibleTab, setBibleTab] = useState<"gospel" | "dictionary" | "school">(
     "gospel"
@@ -37,6 +39,7 @@ export function GameApp() {
 
   const anyTopModalOpen =
     passportOpen ||
+    storyOpen ||
     bibleOpen ||
     prayerRadarOpen ||
     tribesQuizOpen ||
@@ -67,6 +70,7 @@ export function GameApp() {
             <HeaderBar
               onOpenPassport={() => setPassportOpen(true)}
               onOpenWardrobe={() => setWardrobeOpen(true)}
+              onOpenStory={() => setStoryOpen(true)}
               onOpenBible={() => {
                 setBibleTab("gospel");
                 setBibleOpen(true);
@@ -112,6 +116,11 @@ export function GameApp() {
       )}
 
       {/* AAA Modals */}
+      <StoryPrologueModal
+        open={storyOpen}
+        onClose={() => setStoryOpen(false)}
+      />
+
       <PassportModal
         open={passportOpen}
         onClose={() => setPassportOpen(false)}

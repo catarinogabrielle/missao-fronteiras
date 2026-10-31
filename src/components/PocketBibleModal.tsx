@@ -137,9 +137,19 @@ export function PocketBibleModal({
                     <span className="font-mono text-xs font-black text-emerald-400 uppercase">
                       📖 Versículo Selecionado • {selectedVerse.ref}
                     </span>
-                    <span className="text-[11px] text-slate-400">
-                      Toque em qualquer referência abaixo para ler
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-slate-400 hidden sm:inline">
+                        Toque em qualquer referência abaixo para ler
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedVerse(null)}
+                        className="rounded-lg p-1 text-slate-400 hover:bg-slate-800 hover:text-white transition cursor-pointer"
+                        title="Fechar versículo"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
                   <p className="mt-1.5 text-sm leading-relaxed font-semibold text-white italic sm:text-base">
                     &ldquo;{selectedVerse.text}&rdquo;

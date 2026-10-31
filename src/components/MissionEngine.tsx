@@ -153,6 +153,14 @@ const INITIAL_HUD_SNAPSHOT: WorldHudSnapshot = {
   cooldowns: { q: 0, w: 0, e: 0, r: 0 },
   nearby: null,
   dots: [],
+  vehicleKind: null,
+  preferredVehicle: "car",
+  garage: { car: 2, moto: 3 },
+  fuel: { car: 45, moto: 30 },
+  attackCharges: 6,
+  attackMaxCharges: 6,
+  attackRechargePct: 1,
+  hurtFlash: 0,
 };
 
 export function MissionEngine({
@@ -747,6 +755,14 @@ export function MissionEngine({
     <div className="relative h-full w-full overflow-hidden bg-slate-950 select-none touch-none">
       <ConfettiCanvas active={overlay === "victory"} durationMs={5500} />
 
+      {/* Screen Hurt Vignette Flash Effect */}
+      {hudSnap.hurtFlash > 0 && (
+        <div
+          style={{ opacity: hudSnap.hurtFlash }}
+          className="pointer-events-none fixed inset-0 z-30 bg-radial from-transparent via-rose-500/10 to-rose-600/40 transition-opacity duration-150"
+        />
+      )}
+
       {/* =========================================================
           FULL-SCREEN 220x220 REALISTIC GTA + MOBA 3D ENGINE
          ========================================================= */}
@@ -1067,7 +1083,7 @@ export function MissionEngine({
       {/* =========================================================
           TOP-CENTER: HP, PONTE, LIVE RACE TIMER & BOSS BAR
          ========================================================= */}
-      <div className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 z-20 w-[94%] max-w-sm sm:max-w-md lg:max-w-lg">
+      <div className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 z-20 w-auto max-w-[calc(100%-190px)] sm:max-w-md lg:max-w-lg">
         <div className="moba-panel-gold moba-clip-panel pointer-events-auto px-2.5 py-1.5 sm:px-4 sm:py-2">
           <div className="flex flex-wrap items-center justify-between gap-1">
             <div className="flex items-center gap-1.5 truncate">
@@ -1223,25 +1239,27 @@ export function MissionEngine({
           <Maximize2 className="h-3.5 w-3.5 text-cyan-300" />
         </motion.button>
 
-        {/* Toggle Keyboard Controls Help Bar */}
-        <motion.button
-          type="button"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.94 }}
-          onClick={() => {
-            playSfx("click");
-            setKeyboardHelpVisible((prev) => !prev);
-          }}
-          title="Alternar Guia de Teclas do Teclado"
-          className={`hidden sm:flex h-7 sm:h-8 cursor-pointer items-center gap-1 rounded-xl border px-2 text-[9px] sm:text-[10px] font-black shadow-lg transition ${
-            keyboardHelpVisible
-              ? "border-amber-400 bg-amber-500/25 text-amber-200"
-              : "border-slate-700/80 bg-slate-950/90 text-slate-300 hover:border-amber-400 hover:text-white"
-          }`}
-        >
-          <span>⌨️</span>
-          <span>TECLAS</span>
-        </motion.button>
+        {/* Toggle Keyboard Controls Help Bar (Desktop PC Only) */}
+        {!isMobile && (
+          <motion.button
+            type="button"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.94 }}
+            onClick={() => {
+              playSfx("click");
+              setKeyboardHelpVisible((prev) => !prev);
+            }}
+            title="Alternar Guia de Teclas do Teclado"
+            className={`hidden sm:flex h-7 sm:h-8 cursor-pointer items-center gap-1 rounded-xl border px-2 text-[9px] sm:text-[10px] font-black shadow-lg transition ${
+              keyboardHelpVisible
+                ? "border-amber-400 bg-amber-500/25 text-amber-200"
+                : "border-slate-700/80 bg-slate-950/90 text-slate-300 hover:border-amber-400 hover:text-white"
+            }`}
+          >
+            <span>⌨️</span>
+            <span>TECLAS</span>
+          </motion.button>
+        )}
 
         {isCompactMobile ? (
           <div className="moba-panel-cyan flex flex-col items-end rounded-xl px-2.5 py-1.5 shadow-xl">
@@ -1427,39 +1445,27 @@ export function MissionEngine({
             }}
             className="relative flex touch-none items-center justify-center rounded-full border-3 border-amber-400/60 bg-slate-950/85 shadow-[0_0_35px_rgba(245,158,11,0.45)] backdrop-blur-md h-36 w-36 sm:h-40 sm:w-40"
           >
-            {/* Inner aesthetic guide ring & cardinal notches with WASD keys (hidden on mobile) */}
+            {/* Inner aesthetic guide ring & cardinal directional notches (clean console style) */}
             <div className="pointer-events-none absolute inset-3 rounded-full border border-cyan-400/35 bg-radial from-slate-900/50 to-transparent" />
             
-            {/* CIMA [W] */}
-            <span className="pointer-events-none absolute top-1.5 flex flex-col items-center font-mono text-[9px] font-black text-amber-300">
-              {!isMobile && (
-                <span className="rounded border border-amber-400/70 bg-slate-950/95 px-1 py-0.2 text-[8px] text-amber-200 shadow-sm">W</span>
-              )}
-              <span className="leading-none text-[9px] text-amber-300 drop-shadow">▲</span>
+            {/* CIMA */}
+            <span className="pointer-events-none absolute top-2 flex flex-col items-center font-mono text-[11px] font-black text-amber-300 drop-shadow">
+              ▲
             </span>
 
-            {/* BAIXO [S] */}
-            <span className="pointer-events-none absolute bottom-1.5 flex flex-col items-center font-mono text-[9px] font-black text-amber-300">
-              <span className="leading-none text-[9px] text-amber-300 drop-shadow">▼</span>
-              {!isMobile && (
-                <span className="rounded border border-amber-400/70 bg-slate-950/95 px-1 py-0.2 text-[8px] text-amber-200 shadow-sm">S</span>
-              )}
+            {/* BAIXO */}
+            <span className="pointer-events-none absolute bottom-2 flex flex-col items-center font-mono text-[11px] font-black text-amber-300 drop-shadow">
+              ▼
             </span>
 
-            {/* ESQUERDA [A] */}
-            <span className="pointer-events-none absolute left-1.5 flex items-center gap-0.5 font-mono text-[9px] font-black text-amber-300">
-              {!isMobile && (
-                <span className="rounded border border-amber-400/70 bg-slate-950/95 px-1 py-0.2 text-[8px] text-amber-200 shadow-sm">A</span>
-              )}
-              <span className="leading-none text-[9px] text-amber-300 drop-shadow">◄</span>
+            {/* ESQUERDA */}
+            <span className="pointer-events-none absolute left-2 flex items-center font-mono text-[11px] font-black text-amber-300 drop-shadow">
+              ◄
             </span>
 
-            {/* DIREITA [D] */}
-            <span className="pointer-events-none absolute right-1.5 flex items-center gap-0.5 font-mono text-[9px] font-black text-amber-300">
-              <span className="leading-none text-[9px] text-amber-300 drop-shadow">►</span>
-              {!isMobile && (
-                <span className="rounded border border-amber-400/70 bg-slate-950/95 px-1 py-0.2 text-[8px] text-amber-200 shadow-sm">D</span>
-              )}
+            {/* DIREITA */}
+            <span className="pointer-events-none absolute right-2 flex items-center font-mono text-[11px] font-black text-amber-300 drop-shadow">
+              ►
             </span>
 
             {/* Large Ergonomic Thumb Knob */}
@@ -1470,10 +1476,8 @@ export function MissionEngine({
               className="pointer-events-none flex h-16 w-16 sm:h-18 sm:w-18 items-center justify-center rounded-full border-2 border-amber-200 bg-gradient-to-b from-amber-300 via-amber-500 to-orange-600 text-[10px] sm:text-[11px] font-black text-slate-950 shadow-[0_0_24px_rgba(251,191,36,0.85)] active:scale-95"
             >
               <div className="flex flex-col items-center justify-center rounded-full border border-amber-950/40 bg-amber-400/30 h-11 w-11 sm:h-12 sm:w-12">
-                <span className="leading-none text-[9.5px] sm:text-[10.5px] font-black tracking-wide">MOVER</span>
-                {!isMobile && (
-                  <span className="text-[7.5px] font-extrabold text-amber-950 tracking-tighter mt-0.5">WASD</span>
-                )}
+                <span className="leading-none text-[10px] sm:text-[11px] font-black tracking-wide">MOVER</span>
+                <span className="mt-1 h-1.5 w-1.5 rounded-full bg-slate-950/50" />
               </div>
             </div>
           </div>
@@ -1587,29 +1591,49 @@ export function MissionEngine({
           {/* Vehicle Controls */}
           {hudSnap.inVehicle ? (
             <>
+              {/* Active Vehicle Fuel Countdown Meter */}
+              <div className="flex h-7 sm:h-7.5 items-center gap-1.5 rounded-full border border-sky-400/60 bg-slate-950/90 px-3 text-[9px] sm:text-[10px] font-mono font-black text-sky-200 shadow-lg">
+                <span>{hudSnap.vehicleKind === "moto" ? "🏍️" : "🚙"}</span>
+                <span>{Math.ceil(hudSnap.fuel[hudSnap.vehicleKind || "car"])}s</span>
+                <div className="h-1.5 w-10 sm:w-14 overflow-hidden rounded-full bg-slate-800">
+                  <div
+                    style={{
+                      width: `${Math.max(
+                        0,
+                        Math.min(
+                          100,
+                          (hudSnap.fuel[hudSnap.vehicleKind || "car"] /
+                            (hudSnap.vehicleKind === "moto" ? 30 : 45)) *
+                            100
+                        )
+                      )}%`,
+                    }}
+                    className="h-full bg-gradient-to-r from-amber-400 to-sky-400"
+                  />
+                </div>
+              </div>
+
+              {/* Nitro Turbo */}
               <motion.button
                 type="button"
                 whileHover={{ scale: 1.08 }}
-                whileTap={{ scale: 0.9 }}
+                whileTap={{ scale: 0.92 }}
                 onPointerDown={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   fireAction("nitro");
                 }}
-                className={`flex h-7 sm:h-7.5 cursor-pointer items-center gap-1 rounded-full border-2 px-2.5 text-[9px] sm:text-[10px] font-black shadow-lg ${
+                className={`flex h-7 sm:h-7.5 cursor-pointer items-center gap-1 rounded-full border px-2.5 text-[9px] sm:text-[10px] font-black shadow-lg ${
                   hudSnap.nitroCooldown > 0
-                    ? "border-slate-700 bg-slate-900 text-slate-400"
-                    : "border-sky-200 bg-gradient-to-r from-sky-400 to-blue-600 text-slate-950 shadow-[0_0_18px_#38bdf8]"
+                    ? "border-slate-700 bg-slate-900 text-slate-500"
+                    : "border-sky-300 bg-sky-500/30 text-sky-200 hover:bg-sky-500/40"
                 }`}
               >
-                <Gauge className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                {hudSnap.nitroCooldown > 0
-                  ? `${hudSnap.nitroCooldown.toFixed(1)}s`
-                  : isMobile
-                    ? "TURBO"
-                    : "TURBO [SHIFT]"}
+                <Zap className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-sky-300" />
+                <span>{isMobile ? "NITRO" : "NITRO [SHIFT]"}</span>
               </motion.button>
 
+              {/* Dismount Button */}
               <motion.button
                 type="button"
                 whileHover={{ scale: 1.08 }}
@@ -1626,21 +1650,51 @@ export function MissionEngine({
               </motion.button>
             </>
           ) : (
-            <motion.button
-              type="button"
-              whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 0.92 }}
-              onPointerDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                fireAction("vehicle");
-              }}
-              title="Entrar ou Chamar Veículo [V]"
-              className="flex h-7 sm:h-7.5 cursor-pointer items-center gap-1 rounded-full border border-amber-400/50 bg-slate-950/85 px-2.5 text-[9px] sm:text-[10px] font-black text-amber-300 shadow-lg hover:border-amber-300 hover:bg-amber-500/20"
-            >
-              <Car className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-              <span>{isMobile ? "CARRO/MOTO" : "CARRO/MOTO [V]"}</span>
-            </motion.button>
+            <div className="flex items-center gap-1 sm:gap-1.5">
+              {/* Summon Preferred Vehicle Button with Available Tanks */}
+              <motion.button
+                type="button"
+                whileHover={{ scale: 1.06 }}
+                whileTap={{ scale: 0.92 }}
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  fireAction("vehicle");
+                }}
+                title="Entrar ou Chamar Veículo [V]"
+                disabled={hudSnap.garage[hudSnap.preferredVehicle] <= 0}
+                className={`flex h-7 sm:h-7.5 cursor-pointer items-center gap-1.5 rounded-full border px-2.5 text-[9px] sm:text-[10px] font-black shadow-lg transition ${
+                  hudSnap.garage[hudSnap.preferredVehicle] > 0
+                    ? "border-amber-400/60 bg-slate-950/90 text-amber-300 hover:border-amber-300 hover:bg-amber-500/20"
+                    : "border-slate-800 bg-slate-950/60 text-slate-500 cursor-not-allowed opacity-60"
+                }`}
+              >
+                <span>{hudSnap.preferredVehicle === "moto" ? "🏍️" : "🚙"}</span>
+                <span>
+                  {hudSnap.preferredVehicle === "moto" ? "MOTO" : "CARRO"}
+                </span>
+                <span className="rounded-full bg-amber-500/20 border border-amber-400/30 px-1 py-0.2 font-mono text-[8px] text-amber-200">
+                  {hudSnap.garage[hudSnap.preferredVehicle]} disp.
+                </span>
+              </motion.button>
+
+              {/* Quick Vehicle Switch / Selector */}
+              <motion.button
+                type="button"
+                whileHover={{ scale: 1.08 }}
+                whileTap={{ scale: 0.92 }}
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  fireAction("vehicleSwap");
+                }}
+                title="Alternar entre Carro (4x4) e Moto (Ágil)"
+                className="flex h-7 sm:h-7.5 cursor-pointer items-center gap-1 rounded-full border border-sky-400/50 bg-slate-950/85 px-2 text-[8.5px] sm:text-[9.5px] font-black text-sky-300 hover:border-sky-300 hover:bg-sky-500/20"
+              >
+                <span>🔄</span>
+                <span>{hudSnap.preferredVehicle === "car" ? "P/ Moto" : "P/ Carro"}</span>
+              </motion.button>
+            </div>
           )}
 
           {dialogueCompleted && (
@@ -1792,27 +1846,50 @@ export function MissionEngine({
             </div>
           </motion.button>
 
-          {/* GIANT PRIMARY MELEE COMBO ATTACK BUTTON (AUTO-REPEAT ON HOLD!) */}
+          {/* GIANT PRIMARY MELEE COMBO ATTACK BUTTON WITH ENERGY CHARGES */}
           <motion.button
             type="button"
-            whileHover={{ scale: 1.06 }}
-            whileTap={{ scale: 0.88 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.90 }}
             onPointerDown={startContinuousAttack}
             onPointerUp={stopContinuousAttack}
             onPointerLeave={stopContinuousAttack}
             onPointerCancel={stopContinuousAttack}
-            className="relative flex h-16 w-16 sm:h-20 sm:w-20 cursor-pointer flex-col items-center justify-center rounded-full border-3 border-amber-200 bg-gradient-to-b from-rose-500 via-red-600 to-rose-900 text-white shadow-[0_0_28px_rgba(244,63,94,0.65)]"
+            className={`relative flex h-16 w-16 sm:h-20 sm:w-20 cursor-pointer flex-col items-center justify-center rounded-full border-3 transition ${
+              hudSnap.attackCharges > 0
+                ? "border-amber-200 bg-gradient-to-b from-rose-500 via-red-600 to-rose-900 text-white shadow-[0_0_28px_rgba(244,63,94,0.65)]"
+                : "border-slate-700 bg-slate-900/90 text-slate-400 opacity-80"
+            }`}
           >
-            {/* Keyboard Hotkey Badge */}
-            {!isMobile && (
-              <span className="absolute -top-1 -right-1 rounded-full border-2 border-amber-300 bg-slate-950 px-1.5 py-0.5 font-mono text-[7.5px] sm:text-[8.5px] font-black text-amber-300 shadow-[0_0_10px_rgba(251,191,36,0.6)]">
-                ESPAÇO
-              </span>
-            )}
-            <Swords className="h-7 w-7 sm:h-8 sm:w-8 drop-shadow" />
-            <span className="mt-0.5 font-mono text-[8px] sm:text-[9px] font-black tracking-wider text-amber-200 uppercase">
-              {isMobile ? "ATACAR" : "ATACAR [ESPAÇO]"}
+            {/* Energy Charges Numeric Badge */}
+            <span
+              className={`absolute -top-1.5 -right-1 rounded-full border-2 px-1.5 py-0.2 font-mono text-[7.5px] sm:text-[8.5px] font-black shadow-md ${
+                hudSnap.attackCharges > 0
+                  ? "border-amber-300 bg-slate-950 text-amber-300 shadow-[0_0_10px_rgba(251,191,36,0.6)]"
+                  : "border-rose-400 bg-slate-950 text-rose-300 animate-pulse"
+              }`}
+            >
+              ⚡ {hudSnap.attackCharges}/{hudSnap.attackMaxCharges}
             </span>
+
+            <Swords className="h-6 w-6 sm:h-7.5 sm:w-7.5 drop-shadow" />
+            <span className="mt-0.5 font-mono text-[7.5px] sm:text-[8.5px] font-black tracking-wider text-amber-200 uppercase">
+              {hudSnap.attackCharges > 0 ? (isMobile ? "ATACAR" : "ATACAR") : "RECARREGANDO"}
+            </span>
+
+            {/* 6 Visual Energy Pips */}
+            <div className="mt-0.5 flex items-center gap-0.5">
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <span
+                  key={i}
+                  className={`h-1 sm:h-1.5 w-1 sm:w-1.5 rounded-full transition-all ${
+                    i < hudSnap.attackCharges
+                      ? "bg-amber-300 shadow-[0_0_5px_#f59e0b]"
+                      : "bg-slate-800"
+                  }`}
+                />
+              ))}
+            </div>
           </motion.button>
         </div>
       </div>

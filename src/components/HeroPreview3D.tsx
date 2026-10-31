@@ -124,6 +124,11 @@ export function HeroPreview3D({
     goldRim.position.set(3.2, 1.4, -2.2);
     scene.add(goldRim);
 
+    // Front-Fill Face Light (Ensures expressive eyes and warm face without dark cap shadows)
+    const faceLight = new THREE.DirectionalLight(0xfff8ee, 1.9);
+    faceLight.position.set(0, 1.9, 3.8);
+    scene.add(faceLight);
+
     // AAA Holographic Pedestal Base
     const stageGroup = new THREE.Group();
     scene.add(stageGroup);

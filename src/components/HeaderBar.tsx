@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import {
   BookMarked,
   Download,
+  Film,
   Flame,
   Gem,
   Maximize2,
@@ -27,6 +28,7 @@ interface HeaderBarProps {
   onOpenPassport: () => void;
   onOpenWardrobe: () => void;
   onOpenBible?: () => void;
+  onOpenStory?: () => void;
   onSwitchUser?: () => void;
   onGoHome?: () => void;
 }
@@ -35,6 +37,7 @@ export function HeaderBar({
   onOpenPassport,
   onOpenWardrobe,
   onOpenBible,
+  onOpenStory,
   onSwitchUser,
   onGoHome,
 }: HeaderBarProps) {
@@ -112,6 +115,19 @@ export function HeaderBar({
             >
               <span>Heróis</span>
             </button>
+
+            {onOpenStory && (
+              <button
+                type="button"
+                onClick={() => {
+                  playSfx("click");
+                  onOpenStory();
+                }}
+                className="px-2 py-0.5 text-xs font-black uppercase text-amber-300 hover:text-amber-200 tracking-wider transition cursor-pointer"
+              >
+                <span>História</span>
+              </button>
+            )}
 
             <button
               type="button"
@@ -352,6 +368,20 @@ export function HeaderBar({
             <Sparkles className="h-3.5 w-3.5 text-amber-300" />
             <span>Skins</span>
           </MobaButton>
+
+          {/* História e Tutorial Button */}
+          {onOpenStory && (
+            <MobaButton
+              variant="gold"
+              size="sm"
+              shape="slant"
+              onClick={onOpenStory}
+              title="Ver História & Tutorial da Base Ide"
+            >
+              <Film className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">História</span>
+            </MobaButton>
+          )}
 
           {/* Passaporte / Coleção Button */}
           <MobaButton

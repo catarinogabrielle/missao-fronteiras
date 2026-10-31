@@ -37,6 +37,9 @@ export type CombatActionType =
   | "skillE"
   | "skillR"
   | "vehicle"
+  | "vehicleSwap"
+  | "vehicleCar"
+  | "vehicleMoto"
   | "nitro"
   | "camera"
   | "interact"
@@ -112,7 +115,37 @@ export interface WorldHudSnapshot {
   cooldowns: { q: number; w: number; e: number; r: number };
   nearby: NearbyInteractionInfo | null;
   dots: RadarEntityDot[];
+  /** Garage system: which vehicle class is being driven right now */
+  vehicleKind: VehicleClass | null;
+  /** Next vehicle class that will be summoned with the Vehicle button */
+  preferredVehicle: VehicleClass;
+  /** Remaining vehicle units (tanks) per class, including the one in use */
+  garage: { car: number; moto: number };
+  /** Seconds remaining in the current tank of each class */
+  fuel: { car: number; moto: number };
+  /** Basic attack energy charges (recharge over time) */
+  attackCharges: number;
+  attackMaxCharges: number;
+  /** 0..1 progress until the next attack charge returns */
+  attackRechargePct: number;
+  /** >0 while the hero is flashing from taking damage */
+  hurtFlash: number;
 }
+
+export type VehicleClass = "car" | "moto";
+
+/** Garage rules: how many vehicles of each class and how long each one lasts */
+export const VEHICLE_RULES: Record<
+  VehicleClass,
+  { units: number; seconds: number; label: string; emoji: string }
+> = {
+  car: { units: 2, seconds: 45, label: "Carro", emoji: "🚙" },
+  moto: { units: 3, seconds: 30, label: "Moto", emoji: "🏍️" },
+};
+
+/** Basic attack energy rules */
+export const ATTACK_MAX_CHARGES = 6;
+export const ATTACK_RECHARGE_SECONDS = 1.2;
 
 export const WORLD_LANDMARKS = {
   spawn: { x: 0, z: 68 },
@@ -395,6 +428,9 @@ export function MobaGtaWorld3D({
     // Rich GTA Atmospheric Lighting
     const hemi = new THREE.HemisphereLight(0xe0f2fe, 0x334155, 1.12);
     scene.add(hemi);
+
+    const ambientFill = new THREE.AmbientLight(0xfff7ed, 0.45);
+    scene.add(ambientFill);
 
     const sun = new THREE.DirectionalLight(palette.sun, 2.05);
     sun.position.set(45, 70, 42);
@@ -1862,6 +1898,12 @@ export function MobaGtaWorld3D({
       patrolDirX: number;
       patrolDirZ: number;
       enraged: boolean;
+      // Telegraphed melee strike + ranged shadow bolts
+      windup: number;
+      windupTotal: number;
+      boltCd: number;
+      isCaster: boolean;
+      telegraph: THREE.Mesh;
     }
 
     const enemies: LiveEnemy[] = worldCfg.enemies.map((e, idx) => {
@@ -1869,6 +1911,21 @@ export function MobaGtaWorld3D({
       rig.root.position.set(e.x, 0, e.z);
       scene.add(rig.root);
       const angleSeed = (idx * 1.37) % (Math.PI * 2);
+      const isBossEnemy = Boolean(e.isBoss);
+      // Red ground telegraph: "get out of the circle!" before every strike
+      const telegraph = new THREE.Mesh(
+        new THREE.CircleGeometry(isBossEnemy ? 4.4 : 3.1, 28),
+        new THREE.MeshBasicMaterial({
+          color: isBossEnemy ? 0xf43f5e : 0xd946ef,
+          transparent: true,
+          opacity: 0,
+          depthWrite: false,
+        })
+      );
+      telegraph.rotation.x = -Math.PI / 2;
+      telegraph.position.set(e.x, 0.09, e.z);
+      telegraph.visible = false;
+      scene.add(telegraph);
       return {
         id: e.id,
         name: e.name,
@@ -1894,10 +1951,15 @@ export function MobaGtaWorld3D({
         patrolDirX: Math.cos(angleSeed),
         patrolDirZ: Math.sin(angleSeed),
         enraged: false,
+        windup: 0,
+        windupTotal: 0.6,
+        boltCd: 2.5 + (idx % 5) * 0.7,
+        isCaster: !isBossEnemy && idx % 2 === 1,
+        telegraph,
       };
     });
 
-    // --- 3 PARKED DRIVABLE REALISTIC GTA VEHICLES ---
+    // --- PARKED DRIVABLE REALISTIC GTA VEHICLES (CAR & MOTO GARAGE) ---
     interface LiveVehicle {
       cfg: VehicleSpawnConfig;
       mesh: THREE.Group;
@@ -1906,7 +1968,34 @@ export function MobaGtaWorld3D({
       rotY: number;
     }
 
-    const vehicles: LiveVehicle[] = worldCfg.vehicles.map((vCfg) => {
+    const vehicleConfigs: VehicleSpawnConfig[] = [...worldCfg.vehicles];
+    // Guarantee at least one car and one moto exist so the player can always swap
+    if (!vehicleConfigs.some((v) => v.kind === "moto")) {
+      vehicleConfigs.push({
+        id: "garage-moto",
+        kind: "moto",
+        name: "Moto Turbo",
+        color: 0xf97316,
+        x: WORLD_LANDMARKS.spawn.x - 6,
+        z: WORLD_LANDMARKS.spawn.z - 4,
+        rotY: Math.PI,
+        topSpeed: 21,
+      });
+    }
+    if (!vehicleConfigs.some((v) => v.kind !== "moto")) {
+      vehicleConfigs.push({
+        id: "garage-car",
+        kind: "suv",
+        name: "SUV Tático 4x4",
+        color: 0x0ea5e9,
+        x: WORLD_LANDMARKS.spawn.x + 6,
+        z: WORLD_LANDMARKS.spawn.z - 4,
+        rotY: Math.PI,
+        topSpeed: 18,
+      });
+    }
+
+    const vehicles: LiveVehicle[] = vehicleConfigs.map((vCfg) => {
       const mesh = createGtaVehicle3D(vCfg.kind, vCfg.color, vCfg.name);
       mesh.position.set(vCfg.x, 0, vCfg.z);
       mesh.rotation.y = vCfg.rotY;
@@ -1990,6 +2079,14 @@ export function MobaGtaWorld3D({
     }
     const projectiles: LightProjectile[] = [];
 
+    interface ShadowProjectile {
+      mesh: THREE.Mesh;
+      vx: number;
+      vz: number;
+      life: number;
+    }
+    const shadowProjectiles: ShadowProjectile[] = [];
+
     interface ExpandingEffect {
       mesh: THREE.Mesh;
       age: number;
@@ -2006,6 +2103,16 @@ export function MobaGtaWorld3D({
     let camYaw = 0; // 0 = Camera South looking North (-Z)
     let nitroTimer = 0;
     let nitroCooldown = 0;
+
+    // --- GARAGE & FUEL STATE ---
+    let preferredVehicle: VehicleClass = "car";
+    const garageUnits = { car: VEHICLE_RULES.car.units, moto: VEHICLE_RULES.moto.units };
+    const fuelRemaining = { car: VEHICLE_RULES.car.seconds, moto: VEHICLE_RULES.moto.seconds };
+
+    // --- ATTACK CHARGES (ENERGY RECHARGES OVER TIME) ---
+    let attackCharges = ATTACK_MAX_CHARGES;
+    let attackRechargeTimer = 0;
+    let hurtFlash = 0;
 
     let score = 0;
     let combo = 0;
@@ -2094,6 +2201,7 @@ export function MobaGtaWorld3D({
       if (enemy.hp <= 0) {
         enemy.dead = true;
         enemy.rig.root.visible = false;
+        enemy.telegraph.visible = false;
         enemiesDefeated += 1;
         const mult = Math.min(3, 1 + combo * 0.1);
         const pts = Math.round(enemy.points * mult);
@@ -2213,34 +2321,69 @@ export function MobaGtaWorld3D({
         return;
       }
 
+      if (action === "vehicleSwap") {
+        preferredVehicle = preferredVehicle === "car" ? "moto" : "car";
+        soundEngine.play("click");
+        const meta = VEHICLE_RULES[preferredVehicle];
+        emitPopup(
+          `🔄 Selecionado: ${meta.emoji} ${meta.label.toUpperCase()} (${garageUnits[preferredVehicle]} disp. • ${fuelRemaining[preferredVehicle].toFixed(0)}s)`,
+          "#38bdf8"
+        );
+        return;
+      }
+
+      if (action === "vehicleCar") {
+        preferredVehicle = "car";
+        if (!activeVehicle) {
+          performAction("vehicle");
+        } else if (activeVehicle.cfg.kind === "moto") {
+          dismountVehicle();
+          performAction("vehicle");
+        }
+        return;
+      }
+
+      if (action === "vehicleMoto") {
+        preferredVehicle = "moto";
+        if (!activeVehicle) {
+          performAction("vehicle");
+        } else if (activeVehicle.cfg.kind !== "moto") {
+          dismountVehicle();
+          performAction("vehicle");
+        }
+        return;
+      }
+
       if (action === "vehicle") {
         soundEngine.play("vehicle");
         if (activeVehicle) {
           dismountVehicle();
           emitPopup("🏃 MODO A PÉ", "#e2e8f0");
         } else {
-          // Board nearest parked GTA vehicle (or summon closest one if far away!)
-          let bestV = vehicles[0];
-          let bestD = Infinity;
-          for (const v of vehicles) {
-            const d = Math.hypot(v.x - heroPos.x, v.z - heroPos.z);
-            if (d < bestD) {
-              bestD = d;
-              bestV = v;
-            }
+          const kind = preferredVehicle;
+          if (garageUnits[kind] <= 0) {
+            soundEngine.play("error");
+            emitPopup(`❌ Sem ${VEHICLE_RULES[kind].label}s disponíveis na base!`, "#f43f5e");
+            return;
           }
-          if (bestD < 12) {
-            heroPos.set(bestV.x, 0, bestV.z);
-            heroAngle = bestV.rotY;
-          } else {
-            bestV.x = heroPos.x;
-            bestV.z = heroPos.z;
-            bestV.mesh.position.copy(heroPos);
-          }
+          let bestV =
+            vehicles.find((v) =>
+              kind === "moto" ? v.cfg.kind === "moto" : v.cfg.kind !== "moto"
+            ) || vehicles[0];
+          heroPos.set(heroPos.x, 0, heroPos.z);
+          bestV.x = heroPos.x;
+          bestV.z = heroPos.z;
+          bestV.rotY = heroAngle;
+          bestV.mesh.position.copy(heroPos);
+          bestV.mesh.rotation.y = heroAngle;
           activeVehicle = bestV;
           const tag = bestV.mesh.getObjectByName("vehicleTag");
           if (tag) tag.visible = false;
-          emitPopup(`🚙 ${bestV.cfg.name.toUpperCase()}! [Shift = Turbo]`, "#38bdf8");
+          const meta = VEHICLE_RULES[kind];
+          emitPopup(
+            `${meta.emoji} ${bestV.cfg.name.toUpperCase()}! [${fuelRemaining[kind].toFixed(0)}s • Shift = Turbo]`,
+            "#38bdf8"
+          );
         }
         return;
       }
@@ -2301,6 +2444,12 @@ export function MobaGtaWorld3D({
       const fwdZ = Math.cos(heroAngle);
 
       if (action === "attack") {
+        if (attackCharges <= 0) {
+          soundEngine.play("click");
+          emitPopup("⚡ Recarregando energia de ataque!", "#f59e0b");
+          return;
+        }
+        attackCharges = Math.max(0, attackCharges - 1);
         soundEngine.play("slash");
         attackAnimTimer = 0.28;
 
@@ -2440,6 +2589,8 @@ export function MobaGtaWorld3D({
         performAction("emotePray");
       } else if (k === "v") {
         performAction("vehicle");
+      } else if (k === "t" || k === "x") {
+        performAction("vehicleSwap");
       } else if (k === "shift") {
         if (activeVehicle) {
           performAction("nitro");
@@ -2718,6 +2869,44 @@ export function MobaGtaWorld3D({
         }
         if (attackAnimTimer > 0) attackAnimTimer -= dt;
         if (shieldTimer > 0) shieldTimer -= dt;
+        if (hurtFlash > 0) hurtFlash = Math.max(0, hurtFlash - dt);
+
+        // Attack energy recharge
+        if (attackCharges < ATTACK_MAX_CHARGES) {
+          attackRechargeTimer += dt;
+          if (attackRechargeTimer >= ATTACK_RECHARGE_SECONDS) {
+            attackRechargeTimer = 0;
+            attackCharges = Math.min(ATTACK_MAX_CHARGES, attackCharges + 1);
+          }
+        } else {
+          attackRechargeTimer = 0;
+        }
+
+        // Vehicle Fuel countdown & Recall
+        if (activeVehicle) {
+          const vKind: VehicleClass =
+            activeVehicle.cfg.kind === "moto" ? "moto" : "car";
+          fuelRemaining[vKind] -= dt;
+          if (fuelRemaining[vKind] <= 0) {
+            fuelRemaining[vKind] = 0;
+            garageUnits[vKind] = Math.max(0, garageUnits[vKind] - 1);
+            dismountVehicle();
+            soundEngine.play("error");
+            if (garageUnits[vKind] > 0) {
+              fuelRemaining[vKind] = VEHICLE_RULES[vKind].seconds;
+              emitPopup(
+                `⚠️ Combustível da ${VEHICLE_RULES[vKind].label} esgotou! (${garageUnits[vKind]} restantes)`,
+                "#f59e0b"
+              );
+            } else {
+              emitPopup(
+                `❌ Todas as ${VEHICLE_RULES[vKind].label}s foram utilizadas!`,
+                "#f43f5e"
+              );
+            }
+          }
+        }
+
         if (emoteTimer > 0) {
           emoteTimer = Math.max(0, emoteTimer - dt);
           emoteElapsed += dt;
@@ -3020,6 +3209,45 @@ export function MobaGtaWorld3D({
           }
         }
 
+        // Shadow Projectiles (Hostile caster spells)
+        for (let i = shadowProjectiles.length - 1; i >= 0; i--) {
+          const sp = shadowProjectiles[i];
+          sp.life -= dt;
+          sp.mesh.position.x += sp.vx * dt;
+          sp.mesh.position.z += sp.vz * dt;
+          if (
+            Math.hypot(
+              sp.mesh.position.x - heroPos.x,
+              sp.mesh.position.z - heroPos.z
+            ) < 1.9
+          ) {
+            if (shieldTimer <= 0) {
+              hp = Math.max(0, hp - 12);
+              hurtFlash = 0.3;
+              soundEngine.play("error");
+              emitPopup("💥 ESFERA SOMBRIA! -12 HP", "#a855f7");
+              if (hp <= 0) {
+                hp = maxHp;
+                heroPos.set(
+                  WORLD_LANDMARKS.spawn.x,
+                  0,
+                  WORLD_LANDMARKS.spawn.z
+                );
+                emitPopup("✨ RESTAURADO NA BASE IDE!", "#38bdf8");
+              }
+            } else {
+              emitPopup("🛡️ FEITIÇO SOMBRIO ABSORVIDO!", "#fde047");
+            }
+            scene.remove(sp.mesh);
+            shadowProjectiles.splice(i, 1);
+            continue;
+          }
+          if (sp.life <= 0) {
+            scene.remove(sp.mesh);
+            shadowProjectiles.splice(i, 1);
+          }
+        }
+
         // Expanding VFX
         for (let i = vfxList.length - 1; i >= 0; i--) {
           const fx = vfxList[i];
@@ -3108,27 +3336,84 @@ export function MobaGtaWorld3D({
               const chaseDirZ = Math.cos(chaseAngle);
               en.rig.root.rotation.y = baseAngle;
 
-              const stopDist = en.isBoss ? 2.8 : 2.0;
-              if (distHero > stopDist) {
+              const stopDist = en.isBoss ? 3.4 : 2.2;
+              if (distHero > stopDist && en.windup <= 0) {
                 const spd = en.isBoss ? (en.enraged ? 7.2 : 5.6) : 5.4;
                 en.x += chaseDirX * spd * dt;
                 en.z += chaseDirZ * spd * dt;
                 enemyMoving = true;
-              } else if (en.attackCd <= 0) {
-                en.attackCd = en.isBoss ? (en.enraged ? 1.05 : 1.3) : 1.35;
-                en.rig.rightArmPivot.rotation.x = -1.45;
-                if (shieldTimer <= 0) {
-                  const dmgTaken = en.isBoss ? (en.enraged ? 24 : 18) : 10;
-                  hp = Math.max(0, hp - dmgTaken);
-                  soundEngine.play("error");
-                  emitPopup(`-${dmgTaken} HP`, "#f43f5e");
-                  if (hp <= 0) {
-                    hp = maxHp;
-                    heroPos.set(WORLD_LANDMARKS.spawn.x, 0, WORLD_LANDMARKS.spawn.z);
-                    emitPopup("✨ RESTAURADO NA BASE IDE!", "#38bdf8");
+              } else {
+                // In melee range: start or progress windup with telegraphed danger ring!
+                if (en.attackCd <= 0 && en.windup <= 0) {
+                  en.windup = en.windupTotal;
+                  en.telegraph.visible = true;
+                  en.telegraph.position.set(en.x, 0.08, en.z);
+                  en.telegraph.scale.set(0.15, 0.15, 0.15);
+                  (en.telegraph.material as THREE.MeshBasicMaterial).opacity = 0.65;
+                  en.rig.rightArmPivot.rotation.x = -1.9;
+                } else if (en.windup > 0) {
+                  en.windup -= dt;
+                  const progress = 1 - Math.max(0, en.windup / en.windupTotal);
+                  const tgScale = 0.2 + progress * 0.8;
+                  en.telegraph.position.set(en.x, 0.08, en.z);
+                  en.telegraph.scale.set(tgScale, tgScale, tgScale);
+                  en.rig.rightArmPivot.rotation.x = -1.9 + progress * 0.4;
+
+                  if (en.windup <= 0) {
+                    en.telegraph.visible = false;
+                    en.attackCd = en.isBoss ? (en.enraged ? 1.2 : 1.7) : 1.85;
+                    en.rig.rightArmPivot.rotation.x = 0.9;
+                    if (distHero <= (en.isBoss ? 4.8 : 3.2)) {
+                      if (shieldTimer <= 0) {
+                        const dmgTaken = en.isBoss
+                          ? en.enraged
+                            ? 28
+                            : 20
+                          : 12;
+                        hp = Math.max(0, hp - dmgTaken);
+                        hurtFlash = 0.35;
+                        soundEngine.play("error");
+                        emitPopup(`💥 GOLPE SOMBRIO! -${dmgTaken} HP`, "#f43f5e");
+                        if (hp <= 0) {
+                          hp = maxHp;
+                          heroPos.set(
+                            WORLD_LANDMARKS.spawn.x,
+                            0,
+                            WORLD_LANDMARKS.spawn.z
+                          );
+                          emitPopup("✨ RESTAURADO NA BASE IDE!", "#38bdf8");
+                        }
+                      } else {
+                        emitPopup("🛡️ GOLPE REPELIDO PELO ESCUDO!", "#fde047");
+                      }
+                    }
                   }
-                } else {
-                  emitPopup("🛡️ BLOQUEADO PELO ESCUDO DA FÉ!", "#fde047");
+                }
+              }
+
+              // Ranged Caster Minion shadow bolts
+              if (
+                en.isCaster &&
+                !en.isBoss &&
+                distHero >= 5.5 &&
+                distHero <= 20.0
+              ) {
+                if (en.boltCd > 0) en.boltCd -= dt;
+                if (en.boltCd <= 0) {
+                  en.boltCd = 3.8;
+                  const boltMesh = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.45, 12, 12),
+                    new THREE.MeshBasicMaterial({ color: 0xc084fc })
+                  );
+                  boltMesh.position.set(en.x, 1.4, en.z);
+                  scene.add(boltMesh);
+                  const bAngle = Math.atan2(dx, dz);
+                  shadowProjectiles.push({
+                    mesh: boltMesh,
+                    vx: Math.sin(bAngle) * 19,
+                    vz: Math.cos(bAngle) * 19,
+                    life: 1.2,
+                  });
                 }
               }
             }
@@ -3494,6 +3779,21 @@ export function MobaGtaWorld3D({
           cooldowns: { ...cooldowns },
           nearby: currentNearby,
           dots,
+          vehicleKind: activeVehicle
+            ? activeVehicle.cfg.kind === "moto"
+              ? "moto"
+              : "car"
+            : null,
+          preferredVehicle,
+          garage: { ...garageUnits },
+          fuel: { ...fuelRemaining },
+          attackCharges,
+          attackMaxCharges: ATTACK_MAX_CHARGES,
+          attackRechargePct:
+            attackCharges < ATTACK_MAX_CHARGES
+              ? Math.min(1, attackRechargeTimer / ATTACK_RECHARGE_SECONDS)
+              : 1,
+          hurtFlash,
         });
       }
 

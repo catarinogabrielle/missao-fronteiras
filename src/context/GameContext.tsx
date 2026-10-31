@@ -127,6 +127,7 @@ interface GameContextValue {
   resetStudentProgress: () => void;
   switchUser: () => void;
   selectProfile: (profile: AgentProfile) => void;
+  deleteProfile: (profileName: string) => void;
   isMissionUnlocked: (mission: Mission) => boolean;
 }
 
@@ -428,6 +429,32 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         `Agente Conectado: ${profile.name}`,
         `Campeão ${profile.avatarId.toUpperCase()} ativado com sucesso!`,
         "🚀"
+      );
+    },
+    [pushToast]
+  );
+
+  const deleteProfile = useCallback(
+    (profileName: string) => {
+      soundEngine.play("click");
+      setState((prev) => {
+        const nextSaved = (prev.savedProfiles || []).filter(
+          (p) => p.name.toLowerCase() !== profileName.toLowerCase()
+        );
+        const isActiveDeleted =
+          prev.agent?.name.toLowerCase() === profileName.toLowerCase();
+        const fallback = nextSaved[0] || null;
+        return {
+          ...prev,
+          savedProfiles: nextSaved,
+          agent: isActiveDeleted ? fallback : prev.agent,
+          lastActiveAgent: isActiveDeleted ? fallback : prev.lastActiveAgent,
+        };
+      });
+      pushToast(
+        "Conta Excluída",
+        `O perfil "${profileName}" foi removido com sucesso.`,
+        "🗑️"
       );
     },
     [pushToast]
@@ -934,6 +961,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     resetStudentProgress,
     switchUser,
     selectProfile,
+    deleteProfile,
     isMissionUnlocked,
   };
 
