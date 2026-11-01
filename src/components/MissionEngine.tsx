@@ -316,6 +316,58 @@ export function MissionEngine({
   // Real-time Duo Co-op State (WebRTC P2P)
   const [cargoHealth, setCargoHealth] = useState(coopSession?.cargoHealth ?? 100);
   const [partnerPing, setPartnerPing] = useState<number | null>(null);
+  const [partnerPosition, setPartnerPosition] = useState<{
+    x: number;
+    z: number;
+    angle: number;
+    inVehicle: boolean;
+    speed: number;
+  } | null>(null);
+
+  const lastBroadcastRef = useRef<number>(0);
+
+  const handleCargoDamage = useCallback((amount: number) => {
+    setCargoHealth((prev) => {
+      const next = Math.max(0, prev - amount);
+      getGlobalCoopNetwork().sendMessage({
+        type: "SYNC_CARGO",
+        cargoHealth: next,
+        suppliesHeld: 0,
+      });
+      return next;
+    });
+  }, []);
+
+  const handleCoopPing = useCallback(() => {
+    playSfx("click");
+    getGlobalCoopNetwork().sendMessage({
+      type: "COMBAT_TRIGGER",
+      action: "ping",
+    });
+    pushWorldPopup({
+      id: Date.now() + Math.random(),
+      text: "📍 Você sinalizou a rota para seu parceiro!",
+      color: "#fbbf24",
+    });
+  }, [playSfx, pushWorldPopup]);
+
+  const handleHudUpdate = useCallback((snap: WorldHudSnapshot) => {
+    setHudSnap(snap);
+    if (coopSession) {
+      const now = performance.now();
+      if (now - lastBroadcastRef.current > 65) {
+        lastBroadcastRef.current = now;
+        getGlobalCoopNetwork().sendMessage({
+          type: "SYNC_POSITION",
+          x: snap.heroX,
+          z: snap.heroZ,
+          angle: snap.heroAngle,
+          inVehicle: snap.inVehicle,
+          speed: snap.isMoving ? (snap.inVehicle ? 18 : 8) : 0,
+        });
+      }
+    }
+  }, [coopSession]);
 
   useEffect(() => {
     if (!coopSession) return;
@@ -330,19 +382,37 @@ export function MissionEngine({
         });
       },
       onMessage: (msg) => {
+        if (msg.type === "SYNC_POSITION") {
+          setPartnerPosition({
+            x: msg.x,
+            z: msg.z,
+            angle: msg.angle,
+            inVehicle: msg.inVehicle,
+            speed: msg.speed,
+          });
+        }
         if (msg.type === "SYNC_CARGO") {
           setCargoHealth(msg.cargoHealth);
         }
         if (msg.type === "COMBAT_TRIGGER") {
-          pushWorldPopup({
-            id: Date.now() + Math.random(),
-            text: `🛡️ ${coopSession.partnerName || "Parceiro"} golpeou as sombras!`,
-            color: "#38bdf8",
-          });
+          if (msg.action === "ping") {
+            playSfx("levelUp");
+            pushWorldPopup({
+              id: Date.now() + Math.random(),
+              text: `📍 ${coopSession.partnerName || "Parceiro"} marcou o local!`,
+              color: "#38bdf8",
+            });
+          } else {
+            pushWorldPopup({
+              id: Date.now() + Math.random(),
+              text: `🛡️ ${coopSession.partnerName || "Parceiro"} golpeou as sombras!`,
+              color: "#38bdf8",
+            });
+          }
         }
       },
     });
-  }, [coopSession, pushWorldPopup]);
+  }, [coopSession, pushWorldPopup, playSfx]);
 
   const fireAction = useCallback((action: CombatActionType) => {
     setCombatTrigger({
@@ -877,12 +947,26 @@ export function MissionEngine({
           joystickVec={joystickVec}
           combatTrigger={combatTrigger}
           gpsTarget={activeGpsTarget}
-          onHudUpdate={setHudSnap}
+          onHudUpdate={handleHudUpdate}
           onPopup={pushWorldPopup}
           onInteractTrigger={handleInteractTrigger}
           onTowerActivated={handleTowerActivated}
           onRaceCompleted={handleRaceCompleted}
           onEarnRewards={grantFieldLoot}
+          coopPartner={
+            coopSession
+              ? {
+                  name: coopSession.partnerName || "Parceiro",
+                  role:
+                    coopSession.partnerRole ||
+                    (coopSession.myRole === "driver" ? "guardian" : "driver"),
+                  avatarId: (coopSession.partnerAvatarId as any) || "sofia",
+                  skinId: "padrao",
+                }
+              : null
+          }
+          coopPartnerPosition={partnerPosition}
+          onCoopCargoDamage={handleCargoDamage}
         />
       </div>
 
@@ -1041,6 +1125,18 @@ export function MissionEngine({
                     className="pointer-events-none absolute flex h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-cyan-500 text-[8px] text-slate-950"
                   >
                     🧭
+                  </span>
+                );
+              }
+              if (dot.kind === "partner") {
+                return (
+                  <span
+                    key={`partner-${idx}`}
+                    style={pos}
+                    className="pointer-events-none absolute flex h-4 w-4 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-emerald-300 bg-emerald-500 text-[8px] text-slate-950 shadow-[0_0_12px_#10b981] animate-pulse z-10"
+                    title={coopSession?.partnerName || "Parceiro"}
+                  >
+                    👤
                   </span>
                 );
               }
@@ -1286,57 +1382,69 @@ export function MissionEngine({
           <div className="truncate text-[8px] sm:text-[8.5px] font-bold text-cyan-200/90">
             🎯 GPS: {hudSnap.raceActive ? `Anel ${hudSnap.raceCheckpointIdx + 1}/${hudSnap.raceTotalCheckpoints}` : activeGpsTarget.label}
           </div>
+
+          {/* Integrated Real-time Duo Co-op Status & Cargo Bar */}
+          {coopSession && (
+            <div className="pt-1 mt-0.5 border-t border-emerald-500/30 flex flex-col gap-1">
+              <div className="flex items-center justify-between gap-1.5 text-[8px] sm:text-[8.5px]">
+                <div className="flex items-center gap-1 font-black text-emerald-300 uppercase">
+                  <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>DUPLA:</span>
+                  <span className="font-mono text-emerald-400/90">({partnerPing ?? 18}ms)</span>
+                </div>
+                <div className="flex items-center gap-1 font-black">
+                  {coopSession.myRole === "driver" ? (
+                    <span className="text-amber-300">🚗 PILOTO</span>
+                  ) : (
+                    <span className="text-cyan-300">🛡️ GUARDIÃO</span>
+                  )}
+                  <span className="text-slate-500">|</span>
+                  <span className="text-slate-200 truncate max-w-[80px]">
+                    👤 {coopSession.partnerName || "Parceiro"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Cargo Integrity Bar */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[7.5px] sm:text-[8px] font-mono font-black uppercase text-amber-300 shrink-0">
+                  📦 CARGA:
+                </span>
+                <div className="h-1.5 flex-1 rounded-full border border-slate-700 bg-slate-900 overflow-hidden">
+                  <div
+                    style={{ width: `${cargoHealth}%` }}
+                    className={`h-full transition-all duration-200 ${
+                      cargoHealth > 60
+                        ? "bg-gradient-to-r from-emerald-400 to-cyan-400"
+                        : cargoHealth > 30
+                          ? "bg-gradient-to-r from-amber-400 to-orange-400"
+                          : "bg-gradient-to-r from-rose-500 to-rose-600 animate-pulse"
+                    }`}
+                  />
+                </div>
+                <span className="font-mono text-[7.5px] sm:text-[8px] font-black text-white shrink-0">
+                  {cargoHealth}%
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* =========================================================
-          TOP-CENTER: DUO CO-OP REAL-TIME HUD (WEBRTC P2P)
+          TACTICAL CO-OP PING BUTTON (TOP CENTER DOCKED, NEVER OVERLAPS)
          ========================================================= */}
       {coopSession && (
-        <div className="pointer-events-auto absolute top-1.5 sm:top-2 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-1">
-          <div className="flex items-center gap-2 rounded-2xl border border-emerald-400/60 bg-slate-950/90 px-3 py-1 backdrop-blur-md shadow-[0_0_20px_rgba(16,185,129,0.3)]">
-            <div className="flex items-center gap-1.5 text-[9px] font-black uppercase text-emerald-300">
-              <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>DUPLA ONLINE</span>
-              {partnerPing !== null && (
-                <span className="font-mono text-emerald-400/80">({partnerPing}ms)</span>
-              )}
-            </div>
-            <span className="text-slate-600">|</span>
-            <div className="flex items-center gap-1 text-[9.5px] font-black text-white">
-              {coopSession.myRole === "driver" ? (
-                <span className="text-amber-300">🚗 VOCÊ: PILOTO</span>
-              ) : (
-                <span className="text-cyan-300">🛡️ VOCÊ: GUARDIÃO</span>
-              )}
-            </div>
-            <span className="text-slate-600">|</span>
-            <div className="flex items-center gap-1 text-[9px] font-bold text-slate-300">
-              <span>👤 {coopSession.partnerName}</span>
-            </div>
-          </div>
-
-          {/* Cargo Integrity Health Bar */}
-          <div className="flex items-center gap-1.5 rounded-full border border-slate-700/80 bg-slate-950/80 px-2.5 py-0.5 shadow-md">
-            <span className="text-[8.5px] font-mono font-black uppercase text-amber-300 shrink-0">
-              📦 CARGA:
-            </span>
-            <div className="h-1.5 w-24 sm:w-32 rounded-full border border-slate-700 bg-slate-900 overflow-hidden">
-              <div
-                style={{ width: `${cargoHealth}%` }}
-                className={`h-full transition-all duration-200 ${
-                  cargoHealth > 60
-                    ? "bg-gradient-to-r from-emerald-400 to-cyan-400"
-                    : cargoHealth > 30
-                      ? "bg-gradient-to-r from-amber-400 to-orange-400"
-                      : "bg-gradient-to-r from-rose-500 to-rose-600 animate-pulse"
-                }`}
-              />
-            </div>
-            <span className="font-mono text-[8.5px] font-black text-white shrink-0">
-              {cargoHealth}%
-            </span>
-          </div>
+        <div className="pointer-events-auto absolute top-18 sm:top-20 left-1/2 -translate-x-1/2 z-20">
+          <button
+            type="button"
+            onClick={handleCoopPing}
+            className="flex items-center gap-1 rounded-full border border-cyan-400/50 bg-slate-950/85 px-3 py-0.5 text-[8.5px] font-black text-cyan-200 shadow-md backdrop-blur hover:bg-cyan-500/20 active:scale-95 transition cursor-pointer"
+            title="Sinalizar localização para o parceiro"
+          >
+            <span>📍</span>
+            <span>PING DUPLA</span>
+          </button>
         </div>
       )}
 

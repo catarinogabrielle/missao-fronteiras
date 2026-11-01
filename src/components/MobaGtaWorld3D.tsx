@@ -72,6 +72,7 @@ export interface RadarEntityDot {
     | "mainNpc"
     | "scroll"
     | "nexus"
+    | "partner"
     | "totem";
   done?: boolean;
 }
@@ -88,6 +89,7 @@ export interface WorldHudSnapshot {
   heroX: number;
   heroZ: number;
   heroAngle: number;
+  isMoving?: boolean;
   hp: number;
   maxHp: number;
   inVehicle: boolean;
@@ -176,6 +178,20 @@ interface MobaGtaWorld3DProps {
   onTowerActivated: (tower: RadioTowerMission) => void;
   onRaceCompleted: () => void;
   onEarnRewards: (xp: number, wisdom: number) => void;
+  coopPartner?: {
+    name: string;
+    role: "driver" | "guardian";
+    avatarId: AvatarId;
+    skinId?: SkinId;
+  } | null;
+  coopPartnerPosition?: {
+    x: number;
+    z: number;
+    angle: number;
+    inVehicle: boolean;
+    speed: number;
+  } | null;
+  onCoopCargoDamage?: (damage: number) => void;
 }
 
 export function MobaGtaWorld3D({
@@ -198,6 +214,9 @@ export function MobaGtaWorld3D({
   onTowerActivated,
   onRaceCompleted,
   onEarnRewards,
+  coopPartner,
+  coopPartnerPosition,
+  onCoopCargoDamage,
 }: MobaGtaWorld3DProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const heroHolderRef = useRef<THREE.Group | null>(null);
@@ -205,6 +224,20 @@ export function MobaGtaWorld3D({
   const avatarIdRef = useRef(avatarId);
   const skinIdRef = useRef(skinId);
   const agentNameRef = useRef(agentName);
+
+  const coopPartnerRef = useRef(coopPartner);
+  const coopPartnerPosRef = useRef(coopPartnerPosition);
+  const onCoopCargoDamageRef = useRef(onCoopCargoDamage);
+
+  useEffect(() => {
+    coopPartnerRef.current = coopPartner;
+  }, [coopPartner]);
+  useEffect(() => {
+    coopPartnerPosRef.current = coopPartnerPosition;
+  }, [coopPartnerPosition]);
+  useEffect(() => {
+    onCoopCargoDamageRef.current = onCoopCargoDamage;
+  }, [onCoopCargoDamage]);
 
   const pausedRef = useRef(paused);
   const dialogueDoneRef = useRef(dialogueCompleted);
@@ -2168,6 +2201,35 @@ export function MobaGtaWorld3D({
     heroHolder.rotation.y = heroAngle;
     scene.add(heroHolder);
 
+    // --- 3D MULTIPLAYER CO-OP PARTNER CHAMPION RIG & DOCK ---
+    const partnerHolder = new THREE.Group();
+    let partnerRig: ArticulatedRig | null = null;
+    const partnerPos = new THREE.Vector3(
+      WORLD_LANDMARKS.spawn.x + 3.2,
+      0,
+      WORLD_LANDMARKS.spawn.z
+    );
+    let partnerAngle = Math.PI;
+    const partnerTargetPos = new THREE.Vector3(partnerPos.x, 0, partnerPos.z);
+    let partnerTargetAngle = Math.PI;
+    let partnerIsMoving = false;
+    let partnerSpeed = 0;
+    let partnerInVehicle = false;
+    let partnerWalkCycle = 0;
+
+    if (coopPartnerRef.current) {
+      partnerRig = createPlayableChampion3D(
+        coopPartnerRef.current.avatarId || "sofia",
+        `${coopPartnerRef.current.name} [${coopPartnerRef.current.role === "driver" ? "PILOTO" : "GUARDIÃO"}]`,
+        coopPartnerRef.current.skinId || "padrao",
+        false
+      );
+      partnerHolder.add(partnerRig.root);
+      partnerHolder.position.copy(partnerPos);
+      partnerHolder.rotation.y = partnerAngle;
+      scene.add(partnerHolder);
+    }
+
     // AAA Boss Telegraphed Ground AoE Shockwave Ring
     const bossAoeRing = new THREE.Mesh(
       new THREE.RingGeometry(0.6, 6.2, 36),
@@ -3386,6 +3448,80 @@ export function MobaGtaWorld3D({
           }
         }
 
+        // --- ANIMATE 3D CO-OP DUO PARTNER RIG & SYNCHRONIZED POSITION ---
+        if (coopPartnerRef.current) {
+          if (!partnerRig) {
+            partnerRig = createPlayableChampion3D(
+              coopPartnerRef.current.avatarId || "sofia",
+              `${coopPartnerRef.current.name} [${coopPartnerRef.current.role === "driver" ? "PILOTO" : "GUARDIÃO"}]`,
+              coopPartnerRef.current.skinId || "padrao",
+              false
+            );
+            partnerHolder.add(partnerRig.root);
+            scene.add(partnerHolder);
+          }
+
+          if (coopPartnerPosRef.current) {
+            partnerTargetPos.x = coopPartnerPosRef.current.x;
+            partnerTargetPos.z = coopPartnerPosRef.current.z;
+            partnerTargetAngle = coopPartnerPosRef.current.angle;
+            partnerInVehicle = coopPartnerPosRef.current.inVehicle;
+            partnerSpeed = coopPartnerPosRef.current.speed || 0;
+            partnerIsMoving = partnerSpeed > 0.5;
+          } else {
+            // Solo AI Partner companion mode (follows the player smoothly)
+            const distToHero = partnerPos.distanceTo(heroPos);
+            if (distToHero > 4.2) {
+              const dirX = heroPos.x - partnerPos.x;
+              const dirZ = heroPos.z - partnerPos.z;
+              partnerTargetAngle = Math.atan2(dirX, dirZ);
+              partnerTargetPos.x += Math.sin(partnerTargetAngle) * 8.5 * dt;
+              partnerTargetPos.z += Math.cos(partnerTargetAngle) * 8.5 * dt;
+              partnerIsMoving = true;
+              partnerSpeed = 8.5;
+            } else {
+              partnerIsMoving = false;
+              partnerSpeed = 0;
+            }
+          }
+
+          partnerPos.x += (partnerTargetPos.x - partnerPos.x) * Math.min(1, 14 * dt);
+          partnerPos.z += (partnerTargetPos.z - partnerPos.z) * Math.min(1, 14 * dt);
+          partnerAngle += (partnerTargetAngle - partnerAngle) * Math.min(1, 12 * dt);
+
+          partnerHolder.position.copy(partnerPos);
+          partnerHolder.rotation.y = partnerAngle;
+
+          if (partnerIsMoving) {
+            partnerWalkCycle += dt * 12.0;
+          }
+
+          animateHumanRig(
+            partnerRig,
+            partnerWalkCycle,
+            partnerIsMoving,
+            partnerInVehicle,
+            0,
+            idleClock,
+            "idle",
+            0
+          );
+
+          // Co-op Cargo Threat: Shadows attack cargo if near active vehicle
+          const veh = activeVehicle;
+          if (veh) {
+            const shadowNearCargo = enemies.some(
+              (en) =>
+                !en.dead &&
+                Math.hypot(en.x - veh.x, en.z - veh.z) < 4.8
+            );
+            if (shadowNearCargo && Math.random() < dt * 0.7) {
+              onCoopCargoDamageRef.current?.(4);
+              emitPopup("⚠️ Carga atacada por sombras! (-4%)", "#f43f5e");
+            }
+          }
+        }
+
         // GPS Arrow, Holographic Waypoint Trail & Destination Sky Beam
         const activeTarget =
           raceActive && raceCfg.checkpoints[raceCheckpointIdx]
@@ -4148,10 +4284,19 @@ export function MobaGtaWorld3D({
             })),
         ];
 
+        if (coopPartnerRef.current) {
+          dots.push({
+            x: partnerPos.x,
+            z: partnerPos.z,
+            kind: "partner" as const,
+          });
+        }
+
         onHudUpdateRef.current({
           heroX: heroPos.x,
           heroZ: heroPos.z,
           heroAngle,
+          isMoving,
           hp,
           maxHp,
           inVehicle: Boolean(activeVehicle),
