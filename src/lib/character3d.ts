@@ -2349,8 +2349,12 @@ export function animateHumanRig(
     rig.groundAura.rotation.z = idleTime * 0.9;
   }
 
-  // Reset rotations that emotes might modify
+  // Reset rotations and positions that emotes or attacks might modify (prevents floating/warping glitches)
+  rig.bodyGroup.position.y = 0;
+  rig.bodyGroup.position.x = 0;
+  rig.bodyGroup.position.z = 0;
   rig.bodyGroup.rotation.x = 0;
+  rig.bodyGroup.rotation.y = 0;
   rig.bodyGroup.rotation.z = 0;
   rig.leftArmPivot.rotation.z = 0;
   rig.rightArmPivot.rotation.z = 0;

@@ -2206,18 +2206,18 @@ export function MobaGtaWorld3D({
     );
     scene.add(gpsDestinationBeam);
 
-    // Holographic Road Trail Waypoints (Glowing animated guide beacons)
+    // Soft & Subtle Holographic Road Trail (Discreet, gentle guide dots)
     const gpsTrailGroup = new THREE.Group();
-    const trailChevronCount = 14;
+    const trailChevronCount = 8;
     const trailChevrons: THREE.Mesh[] = [];
-    const chevronGeo = new THREE.PlaneGeometry(0.85, 0.85);
+    const chevronGeo = new THREE.PlaneGeometry(0.48, 0.48);
     for (let i = 0; i < trailChevronCount; i++) {
       const ch = new THREE.Mesh(
         chevronGeo,
         new THREE.MeshBasicMaterial({
           color: 0x38bdf8,
           transparent: true,
-          opacity: 0.65,
+          opacity: 0.22,
           side: THREE.DoubleSide,
         })
       );
@@ -2227,45 +2227,6 @@ export function MobaGtaWorld3D({
       trailChevrons.push(ch);
     }
     scene.add(gpsTrailGroup);
-
-    // Biome-Specific Dynamic Weather Particle System
-    const weatherCount = 340;
-    const weatherGeo = new THREE.BufferGeometry();
-    const weatherPos = new Float32Array(weatherCount * 3);
-    const weatherVel = new Float32Array(weatherCount * 3);
-    for (let i = 0; i < weatherCount; i++) {
-      weatherPos[i * 3] = (Math.random() - 0.5) * 55;
-      weatherPos[i * 3 + 1] = Math.random() * 24;
-      weatherPos[i * 3 + 2] = (Math.random() - 0.5) * 55;
-
-      if (resolvedBiome === "amazonia") {
-        weatherVel[i * 3] = -0.5 + Math.random() * 0.2;
-        weatherVel[i * 3 + 1] = -22 - Math.random() * 8; // Tropical rain
-        weatherVel[i * 3 + 2] = -0.5 + Math.random() * 0.2;
-      } else if (resolvedBiome === "sertao") {
-        weatherVel[i * 3] = 4.0 + Math.random() * 3.5; // Warm desert dust storm
-        weatherVel[i * 3 + 1] = -0.8 + Math.random() * 2.0;
-        weatherVel[i * 3 + 2] = 2.0 + Math.random() * 2.0;
-      } else {
-        weatherVel[i * 3] = 1.2 + Math.random() * 1.5; // Foliage & gentle breeze
-        weatherVel[i * 3 + 1] = -2.2 - Math.random() * 1.8;
-        weatherVel[i * 3 + 2] = 0.8 + Math.random() * 1.2;
-      }
-    }
-    weatherGeo.setAttribute("position", new THREE.BufferAttribute(weatherPos, 3));
-    const weatherMat = new THREE.PointsMaterial({
-      color:
-        resolvedBiome === "amazonia"
-          ? 0x93c5fd
-          : resolvedBiome === "sertao"
-          ? 0xfde047
-          : 0xa7f3d0,
-      size: resolvedBiome === "amazonia" ? 0.16 : 0.22,
-      transparent: true,
-      opacity: 0.65,
-    });
-    const weatherParticles = new THREE.Points(weatherGeo, weatherMat);
-    scene.add(weatherParticles);
 
     // --- PROJECTILES & VFX ---
     interface LightProjectile {
@@ -2418,8 +2379,15 @@ export function MobaGtaWorld3D({
       const dx = enemy.x - heroPos.x;
       const dz = enemy.z - heroPos.z;
       const dist = Math.max(0.1, Math.hypot(dx, dz));
-      enemy.x += (dx / dist) * knockback;
-      enemy.z += (dz / dist) * knockback;
+      const safeKnockback = Math.min(2.2, knockback);
+      enemy.x += (dx / dist) * safeKnockback;
+      enemy.z += (dz / dist) * safeKnockback;
+      enemy.x = Math.max(-95, Math.min(95, enemy.x));
+      enemy.z = Math.max(-95, Math.min(95, enemy.z));
+      enemy.rig.root.position.set(enemy.x, 0, enemy.z);
+      if (enemy.telegraph) {
+        enemy.telegraph.position.set(enemy.x, 0.08, enemy.z);
+      }
 
       if (enemy.rig.hpBarFill) {
         const pct = Math.max(0.01, enemy.hp / enemy.maxHp);
@@ -2754,7 +2722,7 @@ export function MobaGtaWorld3D({
           enemies.forEach((e) => {
             if (e.dead) return;
             if (Math.hypot(e.x - heroPos.x, e.z - heroPos.z) <= 5.8) {
-              damageEnemy(e, dmg, e.isBoss ? 2.2 : e.tier === "elite" ? 3.8 : 5.8);
+              damageEnemy(e, dmg, e.isBoss ? 1.0 : e.tier === "elite" ? 1.6 : 2.2);
             }
           });
 
@@ -3391,12 +3359,11 @@ export function MobaGtaWorld3D({
               currentRig.rightArmPivot.rotation.x = -1.9 + attackAnimTimer * 1.5;
               currentRig.rightArmPivot.rotation.y = 0.35 - attackAnimTimer * 1.5;
             } else {
-              // Golpe 3: Giro acrobático 360° com salto no ar
-              const spinT = (0.38 - attackAnimTimer) / 0.38;
-              currentRig.bodyGroup.rotation.y += spinT * Math.PI * 2;
-              currentRig.bodyGroup.position.y += Math.sin(spinT * Math.PI) * 0.42;
-              currentRig.rightArmPivot.rotation.x = -1.6;
-              currentRig.rightArmPivot.rotation.z = -0.6;
+              // Golpe 3: Golpe Sagrado Descendente de Luz
+              currentRig.rightArmPivot.rotation.x = -2.1 + (0.38 - attackAnimTimer) * 4.8;
+              currentRig.leftArmPivot.rotation.x = -2.1 + (0.38 - attackAnimTimer) * 4.8;
+              currentRig.rightArmPivot.rotation.z = -0.25;
+              currentRig.leftArmPivot.rotation.z = 0.25;
             }
 
             if (currentRig.slashArc) {
@@ -3405,6 +3372,8 @@ export function MobaGtaWorld3D({
                 Math.min(0.95, attackAnimTimer * 4.2);
             }
           } else {
+            currentRig.bodyGroup.position.y = 0;
+            currentRig.bodyGroup.rotation.y = 0;
             if (currentRig.slashArc) {
               (currentRig.slashArc.material as THREE.MeshBasicMaterial).opacity = 0;
             }
@@ -3432,21 +3401,21 @@ export function MobaGtaWorld3D({
         gpsDestinationBeam.position.set(activeTarget.x, 14, activeTarget.z);
         gpsDestinationBeam.visible = !raceActive && Math.hypot(gx, gz) > 6.0;
 
-        // Animate Holographic Road Waypoint Trail (Sliding runway light beacons)
+        // Animate Holographic Road Waypoint Trail (Soft, gentle guide dots)
         const totalDist = Math.hypot(gx, gz);
-        if (totalDist > 6.0) {
+        if (totalDist > 8.0 && totalDist < 90.0) {
           gpsTrailGroup.visible = true;
-          const trailLength = Math.min(totalDist - 2.0, 36);
-          const progressOffset = (idleClock * 1.6) % 1.0;
+          const trailLength = Math.min(totalDist - 3.0, 24);
+          const progressOffset = (idleClock * 0.9) % 1.0;
           for (let i = 0; i < trailChevronCount; i++) {
             const t = (i + progressOffset) / trailChevronCount;
-            const distOnLine = 2.5 + t * trailLength;
+            const distOnLine = 3.5 + t * trailLength;
             const px = heroPos.x + (gx / totalDist) * distOnLine;
             const pz = heroPos.z + (gz / totalDist) * distOnLine;
-            trailChevrons[i].position.set(px, 0.08, pz);
-            const alpha = Math.sin(t * Math.PI) * 0.75;
+            trailChevrons[i].position.set(px, 0.04, pz);
+            const alpha = Math.sin(t * Math.PI) * 0.22;
             (trailChevrons[i].material as THREE.MeshBasicMaterial).opacity =
-              Math.max(0.08, alpha);
+              Math.max(0.04, alpha);
             (trailChevrons[i].material as THREE.MeshBasicMaterial).color.setHex(
               raceActive ? 0xfbbf24 : 0x38bdf8
             );
@@ -4109,53 +4078,8 @@ export function MobaGtaWorld3D({
         camera.lookAt(lookTargetX, 1.0, lookTargetZ);
       }
 
-      // Keep Sky Dome centered around hero
+      // Keep Sky Dome centered around hero with constant crystal-clear daytime lighting
       skyDome.position.set(heroPos.x, 0, heroPos.z);
-
-      // --- DYNAMIC DAY / SUNSET / NIGHT CYCLE (~140s full cycle) ---
-      const dayTime = (now * 0.00045) % (Math.PI * 2);
-      const sunHeight = Math.sin(dayTime);
-      const sunX = Math.cos(dayTime) * 75;
-      const sunY = Math.max(10, sunHeight * 68 + 14);
-      const sunZ = Math.sin(dayTime * 0.8) * 55;
-      sun.position.set(sunX, sunY, sunZ);
-
-      if (sunHeight > 0.28) {
-        // Bright Daytime
-        sun.color.setHex(palette.sun);
-        sun.intensity = 1.95;
-        hemi.intensity = 1.15;
-      } else if (sunHeight > -0.15) {
-        // Golden Hour / Sunset
-        sun.color.setHex(0xf97316);
-        sun.intensity = 1.5;
-        hemi.intensity = 0.85;
-      } else {
-        // Starry Night Moonlight
-        sun.color.setHex(0x60a5fa);
-        sun.intensity = 0.85;
-        hemi.intensity = 0.55;
-      }
-
-      // --- DYNAMIC WEATHER PARTICLE SYSTEM FOLLOWING HERO ---
-      weatherParticles.position.set(heroPos.x, 0, heroPos.z);
-      const wPosAttr = weatherGeo.getAttribute("position") as THREE.BufferAttribute;
-      for (let i = 0; i < weatherCount; i++) {
-        let px = wPosAttr.getX(i) + weatherVel[i * 3] * dt;
-        let py = wPosAttr.getY(i) + weatherVel[i * 3 + 1] * dt;
-        let pz = wPosAttr.getZ(i) + weatherVel[i * 3 + 2] * dt;
-
-        if (py < 0.1) {
-          py = 22 + Math.random() * 3;
-          px = (Math.random() - 0.5) * 55;
-          pz = (Math.random() - 0.5) * 55;
-        }
-        if (Math.abs(px) > 28) px = -px * 0.9;
-        if (Math.abs(pz) > 28) pz = -pz * 0.9;
-
-        wPosAttr.setXYZ(i, px, py, pz);
-      }
-      wPosAttr.needsUpdate = true;
 
       // --- SYNC HUD SNAPSHOT (~14fps) ---
       if (now - lastHudSync > 70) {
