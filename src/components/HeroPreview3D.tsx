@@ -506,24 +506,24 @@ export function HeroPreview3D({
 
       {/* Bottom Interactive AAA Emote Animation Bar */}
       {showEmoteBar && (
-        <div className="absolute inset-x-2 bottom-2.5 z-10 flex items-center justify-center gap-1 px-1">
+        <div className="absolute inset-x-1.5 bottom-2 z-10 grid grid-cols-4 gap-1 px-0.5">
           {EMOTE_BUTTONS.map((em) => {
             const isPlaying = activeEmote === em.id;
             return (
               <motion.button
                 key={em.id}
                 type="button"
-                whileHover={{ scale: 1.06, y: -1 }}
-                whileTap={{ scale: 0.94 }}
+                whileHover={{ scale: 1.04, y: -1 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => triggerEmote(em.id)}
-                className={`inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-lg border px-2 py-1 text-[8.5px] sm:text-[9px] font-black tracking-wide uppercase backdrop-blur-md transition ${
+                className={`flex w-full min-w-0 cursor-pointer items-center justify-center gap-0.5 sm:gap-1 rounded-lg border px-1 py-1 text-[8px] sm:text-[8.5px] font-black tracking-tight uppercase backdrop-blur-md transition truncate ${
                   isPlaying
                     ? "border-amber-300 bg-amber-400/25 text-amber-200 shadow-[0_0_12px_rgba(251,191,36,0.45)]"
                     : "border-slate-700/85 bg-slate-950/90 text-slate-200 hover:border-cyan-400/70 hover:text-white"
                 }`}
               >
-                <span>{em.emoji}</span>
-                <span>{em.label}</span>
+                <span className="shrink-0">{em.emoji}</span>
+                <span className="truncate">{em.label}</span>
               </motion.button>
             );
           })}

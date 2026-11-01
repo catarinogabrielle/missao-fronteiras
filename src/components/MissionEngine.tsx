@@ -1387,21 +1387,30 @@ export function MissionEngine({
           {coopSession && (
             <div className="pt-1 mt-0.5 border-t border-emerald-500/30 flex flex-col gap-1">
               <div className="flex items-center justify-between gap-1.5 text-[8px] sm:text-[8.5px]">
-                <div className="flex items-center gap-1 font-black text-emerald-300 uppercase">
+                <div className="flex items-center gap-1 font-black text-emerald-300 uppercase shrink-0">
                   <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   <span>DUPLA:</span>
                   <span className="font-mono text-emerald-400/90">({partnerPing ?? 18}ms)</span>
                 </div>
-                <div className="flex items-center gap-1 font-black">
+                <div className="flex items-center gap-1 font-black min-w-0">
                   {coopSession.myRole === "driver" ? (
-                    <span className="text-amber-300">🚗 PILOTO</span>
+                    <span className="text-amber-300 shrink-0">🚗 PILOTO</span>
                   ) : (
-                    <span className="text-cyan-300">🛡️ GUARDIÃO</span>
+                    <span className="text-cyan-300 shrink-0">🛡️ GUARDIÃO</span>
                   )}
-                  <span className="text-slate-500">|</span>
-                  <span className="text-slate-200 truncate max-w-[80px]">
+                  <span className="text-slate-500 shrink-0">|</span>
+                  <span className="text-slate-200 truncate max-w-[70px] sm:max-w-[100px]">
                     👤 {coopSession.partnerName || "Parceiro"}
                   </span>
+                  <button
+                    type="button"
+                    onClick={handleCoopPing}
+                    className="ml-1 cursor-pointer flex items-center gap-0.5 rounded border border-cyan-400/50 bg-cyan-950/80 hover:bg-cyan-500/30 px-1.5 py-0.2 text-[7.5px] font-black text-cyan-200 active:scale-95 transition shrink-0"
+                    title="Sinalizar localização para a dupla"
+                  >
+                    <span>📍</span>
+                    <span>PING</span>
+                  </button>
                 </div>
               </div>
 
@@ -1430,23 +1439,6 @@ export function MissionEngine({
           )}
         </div>
       </div>
-
-      {/* =========================================================
-          TACTICAL CO-OP PING BUTTON (TOP CENTER DOCKED, NEVER OVERLAPS)
-         ========================================================= */}
-      {coopSession && (
-        <div className="pointer-events-auto absolute top-18 sm:top-20 left-1/2 -translate-x-1/2 z-20">
-          <button
-            type="button"
-            onClick={handleCoopPing}
-            className="flex items-center gap-1 rounded-full border border-cyan-400/50 bg-slate-950/85 px-3 py-0.5 text-[8.5px] font-black text-cyan-200 shadow-md backdrop-blur hover:bg-cyan-500/20 active:scale-95 transition cursor-pointer"
-            title="Sinalizar localização para o parceiro"
-          >
-            <span>📍</span>
-            <span>PING DUPLA</span>
-          </button>
-        </div>
-      )}
 
       {/* =========================================================
           TOP-RIGHT: SCOREBOARD, AUDIO & FULLSCREEN CONTROLS (AAA ERGONOMIC POSITIONING)
