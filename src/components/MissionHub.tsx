@@ -35,7 +35,7 @@ import { HeroPreview3D } from "./HeroPreview3D";
 import { HeroPortrait, NpcPortrait } from "./GamePortrait";
 import { MobaButton } from "./MobaButton";
 import { LocalLanguageModal } from "./LocalLanguageModal";
-import { CoopMultiplayerModal } from "./CoopMultiplayerModal";
+import { CoopMultiplayerModal, type CoopSessionState } from "./CoopMultiplayerModal";
 
 const MISSION_TACTICAL_OBJECTIVES: Record<
   string,
@@ -120,7 +120,7 @@ const MISSION_TACTICAL_OBJECTIVES: Record<
 };
 
 interface MissionHubProps {
-  onSelectMission: (mission: Mission) => void;
+  onSelectMission: (mission: Mission, coopSession?: CoopSessionState) => void;
   onOpenPocketBible: (initialTab?: "gospel" | "dictionary" | "school") => void;
   onOpenPrayerRadar: () => void;
   onOpenTribesQuiz: () => void;
@@ -597,8 +597,8 @@ export function MissionHub({
           {coopModalOpen && (
             <CoopMultiplayerModal
               onClose={() => setCoopModalOpen(false)}
-              onStartCoop={() => {
-                onSelectMission(selectedMission);
+              onStartCoop={(session) => {
+                onSelectMission(selectedMission, session);
               }}
             />
           )}
@@ -1221,8 +1221,8 @@ export function MissionHub({
           {coopModalOpen && (
             <CoopMultiplayerModal
               onClose={() => setCoopModalOpen(false)}
-              onStartCoop={() => {
-                onSelectMission(selectedMission);
+              onStartCoop={(session) => {
+                onSelectMission(selectedMission, session);
               }}
             />
           )}
@@ -1661,8 +1661,8 @@ export function MissionHub({
         {coopModalOpen && (
           <CoopMultiplayerModal
             onClose={() => setCoopModalOpen(false)}
-            onStartCoop={() => {
-              onSelectMission(selectedMission);
+            onStartCoop={(session) => {
+              onSelectMission(selectedMission, session);
             }}
           />
         )}

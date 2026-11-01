@@ -17,6 +17,7 @@ import { TribesQuizModal } from "./TribesQuizModal";
 import { SkinWardrobeModal } from "./SkinWardrobeModal";
 import { StoryPrologueModal } from "./StoryPrologueModal";
 import { ToastOverlay } from "./ToastOverlay";
+import type { CoopSessionState } from "./CoopMultiplayerModal";
 
 export function GameApp() {
   const { state, hydrated, switchUser, markTutorialSeen } = useGame();
@@ -27,6 +28,7 @@ export function GameApp() {
   } = useMobileViewport();
 
   const [activeMission, setActiveMission] = useState<Mission | null>(null);
+  const [activeCoopSession, setActiveCoopSession] = useState<CoopSessionState | null>(null);
   const [passportOpen, setPassportOpen] = useState(false);
   const [storyOpen, setStoryOpen] = useState(false);
   const [bibleOpen, setBibleOpen] = useState(false);
@@ -105,17 +107,25 @@ export function GameApp() {
             <MissionEngine
               key={activeMission.id}
               mission={activeMission}
+              coopSession={activeCoopSession}
               externalPaused={anyTopModalOpen}
               onOpenWardrobe={() => setWardrobeOpen(true)}
-              onExitToHub={() => setActiveMission(null)}
+              onExitToHub={() => {
+                setActiveCoopSession(null);
+                setActiveMission(null);
+              }}
               onSwitchUser={() => {
+                setActiveCoopSession(null);
                 setActiveMission(null);
                 switchUser();
               }}
             />
           ) : (
             <MissionHub
-              onSelectMission={(m) => setActiveMission(getDynamicMissionInstance(m))}
+              onSelectMission={(m, coopSession) => {
+                setActiveCoopSession(coopSession || null);
+                setActiveMission(getDynamicMissionInstance(m));
+              }}
               onOpenPocketBible={(tab = "gospel") => {
                 setBibleTab(tab);
                 setBibleOpen(true);
@@ -126,6 +136,7 @@ export function GameApp() {
               onOpenWardrobe={() => setWardrobeOpen(true)}
               onOpenStory={() => setStoryOpen(true)}
               onSwitchUser={() => {
+                setActiveCoopSession(null);
                 setActiveMission(null);
                 switchUser();
               }}

@@ -48,6 +48,8 @@ import {
 } from "lucide-react";
 import { useGamepadControls } from "@/lib/useGamepadControls";
 import { LocalLanguageModal } from "./LocalLanguageModal";
+import type { CoopSessionState } from "./CoopMultiplayerModal";
+import { getGlobalCoopNetwork } from "@/lib/coopNetwork";
 import { DialogueOption, Mission } from "@/types/game";
 import { SKIN_OPTIONS } from "@/data/avatarsAndGifts";
 import { useGame } from "@/context/GameContext";
@@ -84,6 +86,7 @@ interface MissionEngineProps {
   externalPaused?: boolean;
   onOpenWardrobe?: () => void;
   onSwitchUser?: () => void;
+  coopSession?: CoopSessionState | null;
 }
 
 type OverlayMode =
@@ -178,6 +181,7 @@ export function MissionEngine({
   externalPaused,
   onOpenWardrobe,
   onSwitchUser,
+  coopSession,
 }: MissionEngineProps) {
   const {
     state,
@@ -308,6 +312,37 @@ export function MissionEngine({
       setPopups((prev) => prev.filter((p) => p.id !== popup.id));
     }, 1100);
   }, []);
+
+  // Real-time Duo Co-op State (WebRTC P2P)
+  const [cargoHealth, setCargoHealth] = useState(coopSession?.cargoHealth ?? 100);
+  const [partnerPing, setPartnerPing] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!coopSession) return;
+    const coopNet = getGlobalCoopNetwork();
+    coopNet.setCallbacks({
+      onPingUpdate: (ping) => setPartnerPing(ping),
+      onPartnerLeft: () => {
+        pushWorldPopup({
+          id: Date.now() + Math.random(),
+          text: "⚠️ Parceiro perdeu a conexão!",
+          color: "#f43f5e",
+        });
+      },
+      onMessage: (msg) => {
+        if (msg.type === "SYNC_CARGO") {
+          setCargoHealth(msg.cargoHealth);
+        }
+        if (msg.type === "COMBAT_TRIGGER") {
+          pushWorldPopup({
+            id: Date.now() + Math.random(),
+            text: `🛡️ ${coopSession.partnerName || "Parceiro"} golpeou as sombras!`,
+            color: "#38bdf8",
+          });
+        }
+      },
+    });
+  }, [coopSession, pushWorldPopup]);
 
   const fireAction = useCallback((action: CombatActionType) => {
     setCombatTrigger({
@@ -578,7 +613,14 @@ export function MissionEngine({
     comboTimerUIRef.current = setTimeout(() => {
       setComboStepUI(0);
     }, 850);
-  }, [fireAction]);
+
+    if (coopSession) {
+      getGlobalCoopNetwork().sendMessage({
+        type: "COMBAT_TRIGGER",
+        action: "attack",
+      });
+    }
+  }, [fireAction, coopSession]);
 
   // Native Bluetooth / Xbox / PlayStation Gamepad Controls
   const { connectedGamepad, isGamepadConnected } = useGamepadControls({
@@ -1246,6 +1288,57 @@ export function MissionEngine({
           </div>
         </div>
       </div>
+
+      {/* =========================================================
+          TOP-CENTER: DUO CO-OP REAL-TIME HUD (WEBRTC P2P)
+         ========================================================= */}
+      {coopSession && (
+        <div className="pointer-events-auto absolute top-1.5 sm:top-2 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-1">
+          <div className="flex items-center gap-2 rounded-2xl border border-emerald-400/60 bg-slate-950/90 px-3 py-1 backdrop-blur-md shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+            <div className="flex items-center gap-1.5 text-[9px] font-black uppercase text-emerald-300">
+              <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>DUPLA ONLINE</span>
+              {partnerPing !== null && (
+                <span className="font-mono text-emerald-400/80">({partnerPing}ms)</span>
+              )}
+            </div>
+            <span className="text-slate-600">|</span>
+            <div className="flex items-center gap-1 text-[9.5px] font-black text-white">
+              {coopSession.myRole === "driver" ? (
+                <span className="text-amber-300">🚗 VOCÊ: PILOTO</span>
+              ) : (
+                <span className="text-cyan-300">🛡️ VOCÊ: GUARDIÃO</span>
+              )}
+            </div>
+            <span className="text-slate-600">|</span>
+            <div className="flex items-center gap-1 text-[9px] font-bold text-slate-300">
+              <span>👤 {coopSession.partnerName}</span>
+            </div>
+          </div>
+
+          {/* Cargo Integrity Health Bar */}
+          <div className="flex items-center gap-1.5 rounded-full border border-slate-700/80 bg-slate-950/80 px-2.5 py-0.5 shadow-md">
+            <span className="text-[8.5px] font-mono font-black uppercase text-amber-300 shrink-0">
+              📦 CARGA:
+            </span>
+            <div className="h-1.5 w-24 sm:w-32 rounded-full border border-slate-700 bg-slate-900 overflow-hidden">
+              <div
+                style={{ width: `${cargoHealth}%` }}
+                className={`h-full transition-all duration-200 ${
+                  cargoHealth > 60
+                    ? "bg-gradient-to-r from-emerald-400 to-cyan-400"
+                    : cargoHealth > 30
+                      ? "bg-gradient-to-r from-amber-400 to-orange-400"
+                      : "bg-gradient-to-r from-rose-500 to-rose-600 animate-pulse"
+                }`}
+              />
+            </div>
+            <span className="font-mono text-[8.5px] font-black text-white shrink-0">
+              {cargoHealth}%
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* =========================================================
           TOP-RIGHT: SCOREBOARD, AUDIO & FULLSCREEN CONTROLS (AAA ERGONOMIC POSITIONING)
