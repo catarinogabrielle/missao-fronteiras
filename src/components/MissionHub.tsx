@@ -1254,12 +1254,12 @@ export function MissionHub({
         {/* LEFT WING (3 cols): Live 3D Animated Champion Stand + Wardrobe & Modes */}
         <section className="flex flex-col justify-between gap-3.5 lg:col-span-3">
           {/* Live 3D Champion & Skin Showcase Card */}
-          <div className="moba-panel-gold moba-clip-panel overflow-hidden p-2.5">
+          <div className="moba-panel-gold moba-clip-panel overflow-hidden p-2 sm:p-2.5">
             <HeroPreview3D
               avatarId={state.agent.avatarId}
               skinId={state.agent.skinId ?? "padrao"}
               agentName={state.agent.name}
-              heightClass="h-56"
+              heightClass="h-64 sm:h-72"
               showEmoteBar
               compact
             />

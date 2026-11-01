@@ -472,12 +472,12 @@ export function HeroPreview3D({
     <div
       className={`relative w-full overflow-hidden select-none ${
         borderless
-          ? "rounded-2xl border-0 bg-transparent"
-          : "rounded-3xl border border-amber-400/45 bg-gradient-to-b from-slate-900/90 via-[#071124] to-slate-950 shadow-[0_0_45px_rgba(6,182,212,0.18)]"
+          ? "rounded-xl border-0 bg-transparent"
+          : "rounded-xl border border-amber-400/40 bg-gradient-to-b from-slate-900/90 via-[#071124] to-slate-950 shadow-[0_0_35px_rgba(6,182,212,0.15)]"
       } ${heightClass}`}
     >
       {/* Top Rarity & Drag Hint Pill */}
-      <div className="absolute top-1.5 right-2 left-2 z-10 flex items-center justify-between gap-2 pointer-events-none">
+      <div className="absolute top-2 right-2.5 left-2.5 z-10 flex items-center justify-between gap-2 pointer-events-none">
         {!borderless && (
           <span
             className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-slate-950/80 px-2 py-0.5 text-[9px] font-black tracking-widest uppercase backdrop-blur pointer-events-auto"
@@ -506,20 +506,20 @@ export function HeroPreview3D({
 
       {/* Bottom Interactive AAA Emote Animation Bar */}
       {showEmoteBar && (
-        <div className="absolute right-1 bottom-1.5 left-1 z-10 flex items-center justify-center gap-1">
+        <div className="absolute inset-x-2 bottom-2.5 z-10 flex items-center justify-center gap-1 px-1">
           {EMOTE_BUTTONS.map((em) => {
             const isPlaying = activeEmote === em.id;
             return (
               <motion.button
                 key={em.id}
                 type="button"
-                whileHover={{ scale: 1.07, y: -2 }}
-                whileTap={{ scale: 0.93 }}
+                whileHover={{ scale: 1.06, y: -1 }}
+                whileTap={{ scale: 0.94 }}
                 onClick={() => triggerEmote(em.id)}
-                className={`inline-flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1 text-[9px] font-black tracking-wide uppercase backdrop-blur-md transition ${
+                className={`inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-lg border px-2 py-1 text-[8.5px] sm:text-[9px] font-black tracking-wide uppercase backdrop-blur-md transition ${
                   isPlaying
                     ? "border-amber-300 bg-amber-400/25 text-amber-200 shadow-[0_0_12px_rgba(251,191,36,0.45)]"
-                    : "border-slate-700/85 bg-slate-950/85 text-slate-200 hover:border-cyan-400/70 hover:text-white"
+                    : "border-slate-700/85 bg-slate-950/90 text-slate-200 hover:border-cyan-400/70 hover:text-white"
                 }`}
               >
                 <span>{em.emoji}</span>
