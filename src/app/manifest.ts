@@ -6,6 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Missão Fronteiras",
     description:
       "Jogo 3D estilo MOBA de Missões, Evangelismo Transcultural e Palavra de Deus para Juniores e Adolescentes.",
+    id: "br.org.missoes.fronteiras",
     start_url: "/",
     scope: "/",
     display: "standalone",

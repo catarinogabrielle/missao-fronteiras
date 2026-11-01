@@ -1,0 +1,40 @@
+{
+  "packageId": "br.org.missoes.fronteiras",
+  "host": "missao-fronteiras.vercel.app",
+  "name": "Missão Fronteiras 3D",
+  "launcherName": "Fronteiras 3D",
+  "display": "fullscreen",
+  "themeColor": "#020617",
+  "themeColorDark": "#020617",
+  "navigationColor": "#020617",
+  "navigationColorDark": "#020617",
+  "navigationDividerColor": "#000000",
+  "navigationDividerColorDark": "#000000",
+  "backgroundColor": "#020617",
+  "enableNotifications": true,
+  "startUrl": "/?source=twa",
+  "iconUrl": "https://missao-fronteiras.vercel.app/icons/icon-512.png",
+  "maskableIconUrl": "https://missao-fronteiras.vercel.app/icons/icon-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "android"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://missao-fronteiras.vercel.app/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {
+    "playBilling": {
+      "enabled": false
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "orientation": "sensorLandscape",
+  "fingerprints": []
+}

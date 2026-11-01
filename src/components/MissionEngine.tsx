@@ -44,7 +44,10 @@ import {
   ChevronUp,
   X,
   Zap,
+  Globe2,
 } from "lucide-react";
+import { useGamepadControls } from "@/lib/useGamepadControls";
+import { LocalLanguageModal } from "./LocalLanguageModal";
 import { DialogueOption, Mission } from "@/types/game";
 import { SKIN_OPTIONS } from "@/data/avatarsAndGifts";
 import { useGame } from "@/context/GameContext";
@@ -83,7 +86,13 @@ interface MissionEngineProps {
   onSwitchUser?: () => void;
 }
 
-type OverlayMode = "none" | "briefing" | "dialogue" | "decoder" | "victory";
+type OverlayMode =
+  | "none"
+  | "briefing"
+  | "dialogue"
+  | "decoder"
+  | "victory"
+  | "language";
 
 interface ActivePersonEncounter {
   person: StreetPersonQuest;
@@ -570,6 +579,24 @@ export function MissionEngine({
       setComboStepUI(0);
     }, 850);
   }, [fireAction]);
+
+  // Native Bluetooth / Xbox / PlayStation Gamepad Controls
+  const { connectedGamepad, isGamepadConnected } = useGamepadControls({
+    enabled: overlay === "none",
+    onAttack: triggerAttackAction,
+    onDash: () => fireAction(hudSnap.inVehicle ? "nitro" : "skillW"),
+    onToggleVehicle: () => fireAction("vehicle"),
+    onInteract: () => fireAction("interact"),
+    onSkillQ: () => fireAction("skillQ"),
+    onSkillE: () => fireAction("skillE"),
+    onSkillR: () => fireAction("skillR"),
+    onToggleCamera: () => fireAction("camera"),
+    onOpenLanguage: () =>
+      setOverlay((prev) => (prev === "language" ? "none" : "language")),
+    onMove: (x, y) => {
+      setJoystickVec({ x, y });
+    },
+  });
 
   // Hold-to-repeat attack for smooth mobile combat
   const startContinuousAttack = (e: React.PointerEvent) => {
@@ -1258,6 +1285,35 @@ export function MissionEngine({
           >
             <Maximize2 className="h-3.5 w-3.5 text-cyan-300" />
           </motion.button>
+
+          {/* Quick Language / Translation Mode Button */}
+          <motion.button
+            type="button"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.94 }}
+            onClick={() => {
+              playSfx("click");
+              setOverlay((prev) => (prev === "language" ? "none" : "language"));
+            }}
+            title="Modo Tradução & Idiomas Locais"
+            className="flex h-7 sm:h-8 cursor-pointer items-center gap-1 rounded-xl border border-amber-400/70 bg-slate-950/90 px-2 text-[9px] sm:text-[10px] font-black text-amber-300 shadow-lg transition hover:border-amber-300 hover:text-white"
+          >
+            <Globe2 className="h-3.5 w-3.5 text-amber-400" />
+            <span className="hidden sm:inline">IDIOMA</span>
+          </motion.button>
+
+          {/* Gamepad Connection Indicator */}
+          {isGamepadConnected && (
+            <div
+              title={`Gamepad Conectado: ${connectedGamepad}`}
+              className="flex h-7 sm:h-8 items-center gap-1 rounded-xl border border-emerald-400/60 bg-slate-950/90 px-2 text-[9px] font-black text-emerald-300 shadow-lg"
+            >
+              <span>🎮</span>
+              <span className="hidden md:inline max-w-[90px] truncate">
+                {connectedGamepad?.split("(")[0]?.trim() || "Gamepad"}
+              </span>
+            </div>
+          )}
 
           {/* Toggle Keyboard Controls Help Bar (Desktop PC Only - Strictly Hidden on Mobile / Touch) */}
           {!isMobile && !isMobileDevice && !isMobileLandscape && !isCompactMobile && (
@@ -2314,6 +2370,14 @@ export function MissionEngine({
               </MobaButton>
             </motion.div>
           </motion.div>
+        )}
+
+        {/* 0. LOCAL LANGUAGE & TRANSLATION MODAL */}
+        {overlay === "language" && (
+          <LocalLanguageModal
+            initialMissionId={mission.id}
+            onClose={() => setOverlay("none")}
+          />
         )}
 
         {/* 1. HOLOGRAPHIC CULTURAL BRIEFING OVERLAY */}

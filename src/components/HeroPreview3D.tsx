@@ -85,13 +85,13 @@ export function HeroPreview3D({
     const scene = new THREE.Scene();
 
     const camera = new THREE.PerspectiveCamera(
-      compact ? 40 : 39,
+      compact ? 43 : 41,
       width / height,
       0.1,
       50
     );
-    camera.position.set(0, compact ? 1.32 : 1.35, compact ? 4.70 : 4.60);
-    camera.lookAt(0, 1.15, 0);
+    camera.position.set(0, compact ? 1.18 : 1.20, compact ? 5.25 : 5.05);
+    camera.lookAt(0, 1.02, 0);
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -285,13 +285,13 @@ export function HeroPreview3D({
       // Ensure the entire character (from pedestal -0.1 to hat/head ~2.35)
       // has generous headroom so the face, eyes, hair, and expressions are 100% visible!
       if (compact) {
-        camera.fov = 40;
-        camera.position.set(0, 1.32, 4.70);
-        camera.lookAt(0, 1.15, 0);
+        camera.fov = 43;
+        camera.position.set(0, 1.18, 5.25);
+        camera.lookAt(0, 1.02, 0);
       } else {
-        camera.fov = 39;
-        camera.position.set(0, 1.35, 4.60);
-        camera.lookAt(0, 1.15, 0);
+        camera.fov = 41;
+        camera.position.set(0, 1.20, 5.05);
+        camera.lookAt(0, 1.02, 0);
       }
 
       camera.updateProjectionMatrix();

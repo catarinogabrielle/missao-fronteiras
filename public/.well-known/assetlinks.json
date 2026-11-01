@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "br.org.missoes.fronteiras",
+      "sha256_cert_fingerprints": [
+        "14:6D:E9:7F:0F:7B:6C:3E:6F:0B:4D:2C:5B:3A:8E:7F:1C:2B:3D:4E:5F:6A:7B:8C:9D:0E:1F:2A:3B:4C"
+      ]
+    }
+  }
+]

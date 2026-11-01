@@ -19,6 +19,7 @@ import {
   Trophy,
   Users,
   X,
+  Globe2,
 } from "lucide-react";
 import { Mission } from "@/types/game";
 import { useGame } from "@/context/GameContext";
@@ -33,6 +34,8 @@ import { WorldGlobe3D } from "./WorldGlobe3D";
 import { HeroPreview3D } from "./HeroPreview3D";
 import { HeroPortrait, NpcPortrait } from "./GamePortrait";
 import { MobaButton } from "./MobaButton";
+import { LocalLanguageModal } from "./LocalLanguageModal";
+import { CoopMultiplayerModal } from "./CoopMultiplayerModal";
 
 const MISSION_TACTICAL_OBJECTIVES: Record<
   string,
@@ -161,6 +164,8 @@ export function MissionHub({
 
   const [selectedId, setSelectedId] = useState<string>(defaultMissionId);
   const [citySelectorOpen, setCitySelectorOpen] = useState(false);
+  const [languageModalOpen, setLanguageModalOpen] = useState(false);
+  const [coopModalOpen, setCoopModalOpen] = useState(false);
 
   const selectedMission =
     allMissions.find((m) => m.id === selectedId) || allMissions[0];
@@ -270,6 +275,32 @@ export function MissionHub({
             >
               <Film className="h-3.5 w-3.5 text-amber-400" />
               <span>História</span>
+            </button>
+
+            {/* Quick Language Button */}
+            <button
+              type="button"
+              onClick={() => {
+                playSfx("click");
+                setLanguageModalOpen(true);
+              }}
+              title="Modo Tradução & Idiomas Locais"
+              className="flex items-center gap-1 px-2 py-1 rounded-xl border border-amber-400/60 bg-amber-500/20 text-[9.5px] font-black text-amber-300 hover:bg-amber-500/30 transition cursor-pointer shadow-sm active:scale-95"
+            >
+              <Globe2 className="h-3.5 w-3.5 text-amber-400" />
+            </button>
+
+            {/* Quick Co-op Button */}
+            <button
+              type="button"
+              onClick={() => {
+                playSfx("click");
+                setCoopModalOpen(true);
+              }}
+              title="Multiplayer Cooperativo (2P)"
+              className="flex items-center gap-1 px-2 py-1 rounded-xl border border-emerald-400/60 bg-emerald-500/20 text-[9.5px] font-black text-emerald-300 hover:bg-emerald-500/30 transition cursor-pointer shadow-sm active:scale-95"
+            >
+              <Users className="h-3.5 w-3.5 text-emerald-400" />
             </button>
 
             {/* Streak */}
@@ -550,6 +581,28 @@ export function MissionHub({
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Local Language Modal */}
+        <AnimatePresence>
+          {languageModalOpen && (
+            <LocalLanguageModal
+              initialMissionId={selectedMission.id}
+              onClose={() => setLanguageModalOpen(false)}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* Co-op Multiplayer Modal */}
+        <AnimatePresence>
+          {coopModalOpen && (
+            <CoopMultiplayerModal
+              onClose={() => setCoopModalOpen(false)}
+              onStartCoop={() => {
+                onSelectMission(selectedMission);
+              }}
+            />
+          )}
+        </AnimatePresence>
       </div>
     );
   }
@@ -676,6 +729,44 @@ export function MissionHub({
               </span>
               <span className="rounded bg-cyan-500/20 px-1.5 py-0.2 text-[8.5px] font-mono font-black text-cyan-300">
                 {completedIds.length}/{allMissions.length}
+              </span>
+            </motion.button>
+
+            <motion.button
+              type="button"
+              whileHover={{ scale: 1.02, x: 2 }}
+              whileTap={{ scale: 0.96 }}
+              onClick={() => {
+                playSfx("click");
+                setLanguageModalOpen(true);
+              }}
+              className="w-full flex h-8 sm:h-8.5 items-center justify-between rounded-xl border border-amber-500/35 bg-slate-900/85 px-2.5 text-left text-slate-200 hover:border-amber-400 shadow-md cursor-pointer transition"
+            >
+              <span className="flex items-center gap-1.5 text-xs font-black uppercase">
+                <Globe2 className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+                <span>Idiomas</span>
+              </span>
+              <span className="rounded bg-amber-500/20 px-1.5 py-0.2 text-[8.5px] font-mono font-black text-amber-300">
+                8 Povos
+              </span>
+            </motion.button>
+
+            <motion.button
+              type="button"
+              whileHover={{ scale: 1.02, x: 2 }}
+              whileTap={{ scale: 0.96 }}
+              onClick={() => {
+                playSfx("click");
+                setCoopModalOpen(true);
+              }}
+              className="w-full flex h-8 sm:h-8.5 items-center justify-between rounded-xl border border-emerald-500/35 bg-slate-900/85 px-2.5 text-left text-slate-200 hover:border-emerald-400 shadow-md cursor-pointer transition"
+            >
+              <span className="flex items-center gap-1.5 text-xs font-black uppercase">
+                <Users className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                <span>Co-op (2P)</span>
+              </span>
+              <span className="rounded bg-emerald-500/20 px-1.5 py-0.2 text-[8.5px] font-mono font-black text-emerald-300">
+                Dupla
               </span>
             </motion.button>
           </div>
@@ -1114,6 +1205,28 @@ export function MissionHub({
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Local Language Modal */}
+        <AnimatePresence>
+          {languageModalOpen && (
+            <LocalLanguageModal
+              initialMissionId={selectedMission.id}
+              onClose={() => setLanguageModalOpen(false)}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* Co-op Multiplayer Modal */}
+        <AnimatePresence>
+          {coopModalOpen && (
+            <CoopMultiplayerModal
+              onClose={() => setCoopModalOpen(false)}
+              onStartCoop={() => {
+                onSelectMission(selectedMission);
+              }}
+            />
+          )}
+        </AnimatePresence>
       </div>
     );
   }
@@ -1275,6 +1388,40 @@ export function MissionHub({
                 </span>
                 <span className="font-mono text-[10px] text-amber-300">
                   {completedIds.length}/{allMissions.length}
+                </span>
+              </MobaButton>
+
+              <MobaButton
+                variant="obsidian"
+                size="sm"
+                shape="slant"
+                sheen={false}
+                onClick={() => setLanguageModalOpen(true)}
+                className="w-full !justify-between !border-amber-500/40"
+              >
+                <span className="inline-flex items-center gap-2">
+                  <Globe2 className="h-4 w-4 text-amber-400" />
+                  Idiomas dos Povos
+                </span>
+                <span className="font-mono text-[10px] text-amber-300">
+                  8 LÍNGUAS
+                </span>
+              </MobaButton>
+
+              <MobaButton
+                variant="obsidian"
+                size="sm"
+                shape="slant"
+                sheen={false}
+                onClick={() => setCoopModalOpen(true)}
+                className="w-full !justify-between !border-emerald-500/40"
+              >
+                <span className="inline-flex items-center gap-2">
+                  <Users className="h-4 w-4 text-emerald-400" />
+                  Co-op (2 Jogadores)
+                </span>
+                <span className="font-mono text-[10px] text-emerald-300">
+                  DUPLA
                 </span>
               </MobaButton>
             </div>
@@ -1513,6 +1660,28 @@ export function MissionHub({
           </AnimatePresence>
         </section>
       </div>
+
+      {/* Local Language Modal */}
+      <AnimatePresence>
+        {languageModalOpen && (
+          <LocalLanguageModal
+            initialMissionId={selectedMission.id}
+            onClose={() => setLanguageModalOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Co-op Multiplayer Modal */}
+      <AnimatePresence>
+        {coopModalOpen && (
+          <CoopMultiplayerModal
+            onClose={() => setCoopModalOpen(false)}
+            onStartCoop={() => {
+              onSelectMission(selectedMission);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </main>
   );
 }
