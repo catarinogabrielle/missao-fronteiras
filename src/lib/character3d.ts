@@ -26,37 +26,49 @@ export interface ArticulatedRig {
 export function createNameplateSprite(
   label: string,
   borderColor = "#fbbf24",
-  bgColor = "rgba(3, 7, 18, 0.92)"
+  bgColor = "rgba(3, 7, 18, 0.90)"
 ): THREE.Sprite {
+  const cleanLabel = label.slice(0, 36);
+
+  // Measure text width using an offscreen canvas
+  const tempCanvas = document.createElement("canvas");
+  const tempCtx = tempCanvas.getContext("2d")!;
+  tempCtx.font = "bold 28px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+  const metrics = tempCtx.measureText(cleanLabel);
+  const textWidth = Math.ceil(metrics.width);
+
+  // Dynamic canvas sizing with comfortable horizontal and vertical padding
+  const paddingX = 32;
+  const canvasWidth = Math.max(220, textWidth + paddingX * 2);
+  const canvasHeight = 68;
+
   const canvas = document.createElement("canvas");
-  canvas.width = 512;
-  canvas.height = 100;
+  canvas.width = canvasWidth;
+  canvas.height = canvasHeight;
   const ctx = canvas.getContext("2d")!;
 
-  ctx.font = "900 24px system-ui, -apple-system, sans-serif";
-  const cleanLabel = label.slice(0, 32);
-  const textMetrics = ctx.measureText(cleanLabel);
-  const pillW = Math.min(480, Math.max(200, textMetrics.width + 56));
-  const pillH = 58;
-  const pillX = (512 - pillW) / 2;
-  const pillY = (100 - pillH) / 2;
+  const margin = 3;
+  const pillW = canvasWidth - margin * 2;
+  const pillH = canvasHeight - margin * 2;
+  const radius = pillH / 2;
 
   ctx.shadowColor = borderColor;
-  ctx.shadowBlur = 10;
+  ctx.shadowBlur = 8;
   ctx.fillStyle = bgColor;
   ctx.strokeStyle = borderColor;
   ctx.lineWidth = 4;
 
   ctx.beginPath();
-  ctx.roundRect(pillX, pillY, pillW, pillH, pillH / 2);
+  ctx.roundRect(margin, margin, pillW, pillH, radius);
   ctx.fill();
   ctx.stroke();
 
   ctx.shadowBlur = 0;
   ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 28px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(cleanLabel, 256, 50);
+  ctx.fillText(cleanLabel, canvasWidth / 2, canvasHeight / 2);
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -65,8 +77,11 @@ export function createNameplateSprite(
     transparent: true,
     depthTest: false,
   });
+
   const sprite = new THREE.Sprite(mat);
-  sprite.scale.set((pillW / 180) * 1.05, 0.58, 1);
+  const height3D = 0.55;
+  const width3D = height3D * (canvasWidth / canvasHeight);
+  sprite.scale.set(width3D, height3D, 1);
   sprite.renderOrder = 10;
   return sprite;
 }

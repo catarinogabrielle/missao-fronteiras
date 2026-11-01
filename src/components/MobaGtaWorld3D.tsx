@@ -977,9 +977,10 @@ export function MobaGtaWorld3D({
       dir: number;
       phase: number;
     }
+    const isAmazoniaBiome = resolvedBiome === "amazonia";
     const pedestrians: AmbientPedestrian[] = [
-      { baseX: -23, z: 26, range: 11, speed: 2.3, col: 0x3b82f6, skin: "#e5a975" },
-      { baseX: 23, z: 26, range: 11, speed: 2.5, col: 0xec4899, skin: "#fad0b1" },
+      { baseX: -23, z: isAmazoniaBiome ? 44 : 26, range: 11, speed: 2.3, col: 0x3b82f6, skin: "#e5a975" },
+      { baseX: 23, z: isAmazoniaBiome ? 12 : 26, range: 11, speed: 2.5, col: 0xec4899, skin: "#fad0b1" },
       { baseX: -24, z: -11, range: 10, speed: 2.2, col: 0x10b981, skin: "#c68652" },
       { baseX: 24, z: -11, range: 10, speed: 2.4, col: 0xf59e0b, skin: "#9c6234" },
       { baseX: -23, z: -26, range: 11, speed: 2.6, col: 0x8b5cf6, skin: "#fde2ce" },
@@ -3537,6 +3538,16 @@ export function MobaGtaWorld3D({
           partnerPos.z += (partnerTargetPos.z - partnerPos.z) * Math.min(1, 14 * dt);
           partnerAngle += (partnerTargetAngle - partnerAngle) * Math.min(1, 12 * dt);
 
+          if (resolvedBiome === "amazonia" && !partnerInVehicle) {
+            const onBridge =
+              Math.abs(partnerPos.x) < 5.8 ||
+              Math.abs(partnerPos.x + 46) < 5.8 ||
+              Math.abs(partnerPos.x - 46) < 5.8;
+            if (!onBridge && Math.abs(partnerPos.z - 27) < 4.8) {
+              partnerPos.z = partnerPos.z > 27 ? 31.9 : 22.1;
+            }
+          }
+
           const pElevation = getGroundElevation(partnerPos.x, partnerPos.z);
           partnerPos.y += (pElevation - partnerPos.y) * Math.min(1, 16 * dt);
 
@@ -4027,7 +4038,18 @@ export function MobaGtaWorld3D({
             en.rig.leftArmPivot.rotation.x = -Math.sin(ph) * (strideAmp * 0.8);
           }
           en.rig.rightArmPivot.rotation.x *= 0.9;
-          en.rig.root.position.set(en.x, 0, en.z);
+
+          if (resolvedBiome === "amazonia") {
+            const onBridge =
+              Math.abs(en.x) < 5.8 ||
+              Math.abs(en.x + 46) < 5.8 ||
+              Math.abs(en.x - 46) < 5.8;
+            if (!onBridge && Math.abs(en.z - 27) < 5.2) {
+              en.z = en.homeZ > 27 ? 32.4 : 21.6;
+            }
+          }
+          const enElev = getGroundElevation(en.x, en.z);
+          en.rig.root.position.set(en.x, enElev, en.z);
         });
 
         // --- INTELLIGENT CIVILIAN BOT AI (Panic when near shadows, relieved when safe) ---
