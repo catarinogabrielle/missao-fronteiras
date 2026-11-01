@@ -166,6 +166,7 @@ export function MissionHub({
   const [citySelectorOpen, setCitySelectorOpen] = useState(false);
   const [languageModalOpen, setLanguageModalOpen] = useState(false);
   const [coopModalOpen, setCoopModalOpen] = useState(false);
+  const [desktopMapTab, setDesktopMapTab] = useState<"briefing" | "globe">("briefing");
 
   const selectedMission =
     allMissions.find((m) => m.id === selectedId) || allMissions[0];
@@ -1250,49 +1251,79 @@ export function MissionHub({
         />
       </AnimatePresence>
 
-      <div className="relative z-10 mx-auto grid h-full w-full max-w-[1560px] flex-1 min-h-0 grid-cols-12 gap-2.5 lg:gap-3 overflow-hidden">
-        {/* LEFT WING (3 cols): Live 3D Animated Champion Stand + Wardrobe & Modes */}
-        <section className="flex h-full flex-col justify-between min-h-0 gap-2 lg:col-span-3 overflow-hidden">
-          {/* Live 3D Champion & Skin Showcase Card */}
-          <div className="moba-panel-gold moba-clip-panel overflow-hidden p-2 shrink-0">
-            <HeroPreview3D
-              avatarId={state.agent.avatarId}
-              skinId={state.agent.skinId ?? "padrao"}
-              agentName={state.agent.name}
-              heightClass="h-40 xl:h-44"
-              showEmoteBar
-              compact
-            />
-
-            <div className="mt-1.5 px-1">
-              <div className="flex items-center justify-between gap-1">
-                <span className="text-[9.5px] font-black tracking-widest text-amber-300 uppercase truncate">
-                  NÍV. {level} • {levelTitle}
+      <div className="relative z-10 mx-auto grid h-full w-full max-w-[1580px] flex-1 min-h-0 grid-cols-12 gap-2.5 lg:gap-3 overflow-hidden">
+        {/* =========================================================================
+            LEFT WING (5 cols): HEROIC 3D CHAMPION SHOWCASE + QUICK COMMAND ARSENAL
+            - Champion stands tall, majestic & prominent with full visibility (face, weapon, aura)
+            - Emotes and 360 rotation directly on the pedestal
+            - Zero empty voids: Arsenal is a compact high-density command dock below
+           ========================================================================= */}
+        <section className="flex h-full flex-col justify-between min-h-0 gap-2 lg:col-span-5 xl:col-span-5 2xl:col-span-4 overflow-hidden">
+          {/* Live 3D Champion Podium Showcase Card */}
+          <div className="moba-panel-gold moba-clip-panel relative flex flex-1 flex-col justify-between overflow-hidden p-2.5 min-h-0">
+            {/* Top Bar of Hero Card: Level, Rank, and Skin Tag */}
+            <div className="flex items-center justify-between px-1.5 pt-0.5 shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="rounded-lg border border-amber-400/40 bg-amber-500/20 px-2 py-0.5 font-mono text-[10px] font-black text-amber-300 uppercase">
+                  NÍVEL {level} • {levelTitle}
                 </span>
-                <span
-                  className="text-[9px] font-black shrink-0"
-                  style={{ color: skinMeta.accentHex }}
-                >
-                  {skinMeta.badgeEmoji} {skinMeta.name}
+                <span className="text-[10px] font-bold text-slate-400">
+                  {giftMeta ? `Dom: ${giftMeta.name}` : "Agente Tático"}
                 </span>
               </div>
-              <div className="truncate text-xs font-black text-white uppercase leading-tight mt-0.5">
-                {state.agent.name}{" "}
-                <span className="text-[10px] text-cyan-300">
-                  ({heroMeta?.name})
-                </span>
+              <span
+                className="rounded-full border border-cyan-400/30 bg-cyan-500/15 px-2 py-0.5 text-[9.5px] font-black"
+                style={{ color: skinMeta.accentHex }}
+              >
+                {skinMeta.badgeEmoji} {skinMeta.name}
+              </span>
+            </div>
+
+            {/* Hero 3D Render - Large, majestic, clear facial features and full armor */}
+            <div className="relative flex-1 min-h-[300px] xl:min-h-[360px] 2xl:min-h-[420px] w-full overflow-hidden my-1">
+              <HeroPreview3D
+                avatarId={state.agent.avatarId}
+                skinId={state.agent.skinId ?? "padrao"}
+                agentName={state.agent.name}
+                heightClass="h-full"
+                showEmoteBar
+                compact={false}
+                borderless
+              />
+            </div>
+
+            {/* Bottom Bar of Hero: Name & Customization Action Buttons */}
+            <div className="shrink-0 px-1 pt-1 border-t border-amber-500/20">
+              <div className="flex items-center justify-between mb-1.5">
+                <div>
+                  <div className="text-[9px] font-black tracking-widest text-cyan-300 uppercase">
+                    CAMPEÃO ATIVO
+                  </div>
+                  <div className="text-sm xl:text-base font-black text-white uppercase tracking-wide truncate max-w-[200px]">
+                    {state.agent.name}{" "}
+                    <span className="text-xs font-semibold text-slate-400">
+                      ({heroMeta?.name})
+                    </span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[9px] font-mono text-slate-400 uppercase">EXPERIÊNCIA</div>
+                  <div className="text-xs font-mono font-black text-amber-400">
+                    {state.xp} XP
+                  </div>
+                </div>
               </div>
 
-              <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+              <div className="grid grid-cols-2 gap-1.5">
                 <MobaButton
                   variant="gold"
                   size="sm"
                   shape="hex"
                   onClick={onOpenWardrobe}
-                  className="w-full !py-1 text-[10px]"
+                  className="w-full !py-1.5 text-xs font-black"
                 >
-                  <Sparkles className="h-3 w-3" />
-                  SKINS 3D
+                  <Sparkles className="h-3.5 w-3.5" />
+                  SKINS & CAMPEÃO
                 </MobaButton>
 
                 {onSwitchUser && (
@@ -1302,23 +1333,28 @@ export function MissionHub({
                     shape="slant"
                     sheen={false}
                     onClick={onSwitchUser}
-                    className="w-full !py-1 text-[10px]"
+                    className="w-full !py-1.5 text-xs font-black"
                   >
-                    <Users className="h-3 w-3 text-amber-300" />
-                    USUÁRIO
+                    <Users className="h-3.5 w-3.5 text-amber-300" />
+                    TROCAR USUÁRIO
                   </MobaButton>
                 )}
               </div>
             </div>
           </div>
 
-          {/* AAA Arsenal & Grimório (2-Column Grid to fit comfortably without scrolling) */}
-          <div className="moba-panel-cyan moba-clip-panel flex flex-1 flex-col justify-between p-2 min-h-0 overflow-hidden">
-            <div className="text-[10px] font-black tracking-[0.2em] text-cyan-300 uppercase px-0.5">
-              🎒 Arsenal & Comando
+          {/* Quick Tactical Command & Arsenal Dock (No empty voids!) */}
+          <div className="moba-panel-cyan moba-clip-panel shrink-0 p-2 overflow-hidden">
+            <div className="flex items-center justify-between pb-1 px-1 border-b border-cyan-500/20 mb-1.5">
+              <span className="text-[9.5px] font-black tracking-[0.2em] text-cyan-300 uppercase">
+                🎒 ARSENAL & COMANDO
+              </span>
+              <span className="text-[8.5px] font-mono text-slate-400">
+                ACESSO RÁPIDO
+              </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-1.5 my-1 flex-1 content-center">
+            <div className="grid grid-cols-3 gap-1.5">
               <MobaButton
                 variant="obsidian"
                 size="sm"
@@ -1327,8 +1363,8 @@ export function MissionHub({
                 onClick={() => onOpenPocketBible("gospel")}
                 className="w-full !justify-between !px-2 !py-1.5"
               >
-                <span className="inline-flex items-center gap-1.5 text-[10px] truncate">
-                  <BookOpen className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                <span className="inline-flex items-center gap-1 text-[10px] truncate">
+                  <BookOpen className="h-3 w-3 text-emerald-400 shrink-0" />
                   Grimório
                 </span>
                 <span className="font-mono text-[9px] text-emerald-300">
@@ -1344,8 +1380,8 @@ export function MissionHub({
                 onClick={onOpenPrayerRadar}
                 className="w-full !justify-between !px-2 !py-1.5"
               >
-                <span className="inline-flex items-center gap-1.5 text-[10px] truncate">
-                  <Radio className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+                <span className="inline-flex items-center gap-1 text-[10px] truncate">
+                  <Radio className="h-3 w-3 text-amber-400 shrink-0" />
                   Radar
                 </span>
                 <span className="font-mono text-[9px] text-amber-300">
@@ -1358,43 +1394,11 @@ export function MissionHub({
                 size="sm"
                 shape="slant"
                 sheen={false}
-                onClick={() => onOpenPocketBible("dictionary")}
-                className="w-full !justify-between !px-2 !py-1.5"
-              >
-                <span className="inline-flex items-center gap-1.5 text-[10px] truncate">
-                  <Compass className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
-                  Cultura
-                </span>
-                <span className="font-mono text-[9px] text-cyan-300">INFO</span>
-              </MobaButton>
-
-              <MobaButton
-                variant="obsidian"
-                size="sm"
-                shape="slant"
-                sheen={false}
-                onClick={onOpenPassport}
-                className="w-full !justify-between !px-2 !py-1.5"
-              >
-                <span className="inline-flex items-center gap-1.5 text-[10px] truncate">
-                  <Trophy className="h-3.5 w-3.5 text-amber-300 shrink-0" />
-                  Cards
-                </span>
-                <span className="font-mono text-[9px] text-amber-300">
-                  {completedIds.length}/{allMissions.length}
-                </span>
-              </MobaButton>
-
-              <MobaButton
-                variant="obsidian"
-                size="sm"
-                shape="slant"
-                sheen={false}
                 onClick={() => setLanguageModalOpen(true)}
                 className="w-full !justify-between !px-2 !py-1.5 !border-amber-500/40"
               >
-                <span className="inline-flex items-center gap-1.5 text-[10px] truncate">
-                  <Globe2 className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+                <span className="inline-flex items-center gap-1 text-[10px] truncate">
+                  <Globe2 className="h-3 w-3 text-amber-400 shrink-0" />
                   Idiomas
                 </span>
                 <span className="font-mono text-[9px] text-amber-300">8 Povos</span>
@@ -1408,66 +1412,301 @@ export function MissionHub({
                 onClick={() => setCoopModalOpen(true)}
                 className="w-full !justify-between !px-2 !py-1.5 !border-emerald-500/40"
               >
-                <span className="inline-flex items-center gap-1.5 text-[10px] truncate">
-                  <Users className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                  Co-op
+                <span className="inline-flex items-center gap-1 text-[10px] truncate">
+                  <Users className="h-3 w-3 text-emerald-400 shrink-0" />
+                  Co-op Duo
                 </span>
                 <span className="font-mono text-[9px] text-emerald-300">2P</span>
               </MobaButton>
+
+              <MobaButton
+                variant="obsidian"
+                size="sm"
+                shape="slant"
+                sheen={false}
+                onClick={onOpenPassport}
+                className="w-full !justify-between !px-2 !py-1.5"
+              >
+                <span className="inline-flex items-center gap-1 text-[10px] truncate">
+                  <Trophy className="h-3 w-3 text-amber-300 shrink-0" />
+                  Cards
+                </span>
+                <span className="font-mono text-[9px] text-amber-300">
+                  {completedIds.length}/{allMissions.length}
+                </span>
+              </MobaButton>
+
+              <MobaButton
+                variant="violet"
+                size="sm"
+                shape="hex"
+                onClick={onOpenTribesQuiz}
+                className="w-full !justify-center !px-2 !py-1.5 !text-[10px] font-black"
+              >
+                <Swords className="h-3 w-3 text-amber-300" />
+                Arena 4v4
+              </MobaButton>
             </div>
           </div>
-
-          {/* MODO ARENA MULTIPLAYER (DESAFIO DE TRIBOS) */}
-          <MobaButton
-            variant="violet"
-            size="md"
-            shape="hex"
-            onClick={onOpenTribesQuiz}
-            className="w-full !py-2 shrink-0"
-          >
-            <Swords className="h-4 w-4 text-amber-300" />
-            <div className="text-left leading-tight">
-              <div className="text-xs font-black">ARENA DE TRIBOS 4V4</div>
-              <div className="text-[9px] font-semibold text-fuchsia-200 normal-case">
-                Multiplayer para Igreja!
-              </div>
-            </div>
-          </MobaButton>
         </section>
 
-        {/* CENTER STAGE (5 cols): 3D Interactive World Globe + Arena Thumbnail Strip */}
-        <section className="flex h-full flex-col justify-between min-h-0 gap-2 lg:col-span-5 overflow-hidden">
-          <div className="moba-panel-cyan moba-clip-panel relative flex flex-1 flex-col justify-between overflow-hidden p-2.5 min-h-0">
-            <div className="flex items-center justify-between px-2 pt-0.5 shrink-0">
-              <div>
-                <div className="text-[9.5px] font-black tracking-[0.22em] text-cyan-300 uppercase">
-                  SELETOR PLANETÁRIO 3D • BASE IDE
-                </div>
-                <h2 className="text-base font-black tracking-wide text-white uppercase">
-                  Escolha a Cidade de Missão
-                </h2>
+        {/* =========================================================================
+            RIGHT WING (7 cols): MISSION OPERATIONS CENTER & TACTICAL EXPEDITION DECK
+            - Seamless toggle: [Painel Tático] vs [Globo 3D Holográfico]
+            - Selected Mission Dossier with Widescreen Splash, NPC Ally, Objectives & CTA
+            - Interactive 8-biome selector grid (no dead space)
+           ========================================================================= */}
+        <section className="flex h-full flex-col justify-between min-h-0 gap-2 lg:col-span-7 xl:col-span-7 2xl:col-span-8 overflow-hidden">
+          {/* Top Tactical Command Header with Mode Switcher */}
+          <div className="moba-panel-cyan moba-clip-panel flex items-center justify-between p-2 shrink-0">
+            <div>
+              <div className="text-[9px] font-black tracking-[0.22em] text-cyan-300 uppercase">
+                EXPEDIÇÕES GLOBAIS • BASE IDE
               </div>
-              <span className="rounded-md border border-emerald-400/40 bg-emerald-500/15 px-2 py-0.5 font-mono text-xs font-black text-emerald-300">
-                {completedIds.length}/{allMissions.length} VITÓRIAS
+              <h2 className="text-sm xl:text-base font-black tracking-wide text-white uppercase leading-tight">
+                {desktopMapTab === "briefing"
+                  ? "Dossiê da Missão Selecionada"
+                  : "Navegação Planetária 3D"}
+              </h2>
+            </div>
+
+            {/* View Mode Toggle: Painel Tático vs Globo 3D */}
+            <div className="flex items-center gap-1 rounded-xl border border-slate-700/80 bg-slate-950/70 p-1">
+              <button
+                type="button"
+                onClick={() => {
+                  playSfx("click");
+                  setDesktopMapTab("briefing");
+                }}
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-black uppercase transition cursor-pointer ${
+                  desktopMapTab === "briefing"
+                    ? "bg-amber-400 text-slate-950 shadow-md"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <MapPin className="h-3.5 w-3.5" />
+                <span>Painel Tático</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  playSfx("click");
+                  setDesktopMapTab("globe");
+                }}
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-black uppercase transition cursor-pointer ${
+                  desktopMapTab === "globe"
+                    ? "bg-cyan-400 text-slate-950 shadow-md"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <Globe2 className="h-3.5 w-3.5" />
+                <span>Globo 3D</span>
+              </button>
+            </div>
+
+            <span className="rounded-lg border border-emerald-400/40 bg-emerald-500/15 px-2.5 py-1 font-mono text-xs font-black text-emerald-300">
+              {completedIds.length}/{allMissions.length} VITÓRIAS
+            </span>
+          </div>
+
+          {/* MAIN CENTER DISPLAY: TACTICAL BRIEFING OR 3D GLOBE */}
+          {desktopMapTab === "briefing" ? (
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={selectedMission.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className="moba-panel-gold moba-clip-panel flex flex-1 flex-col justify-between overflow-hidden p-2.5 min-h-0"
+              >
+                {/* Widescreen City Splash Photo Banner */}
+                <div className="relative h-28 xl:h-32 w-full rounded-xl overflow-hidden shrink-0">
+                  <img
+                    src={selectedSplash}
+                    alt={selectedMission.title}
+                    className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+
+                  <div className="absolute top-2 right-2.5 left-2.5 flex items-center justify-between gap-2">
+                    <span className="moba-clip-slant bg-slate-950/90 px-2.5 py-0.5 text-[9px] font-black tracking-wider text-amber-300 uppercase backdrop-blur border border-amber-400/30">
+                      FASE {selectedMission.order} • {selectedMission.difficulty}
+                    </span>
+
+                    {selectedPrayed && (
+                      <span className="rounded-full border border-amber-300/50 bg-amber-500/25 px-2 py-0.5 text-[9px] font-black text-amber-200 backdrop-blur">
+                        🙏 BUFF ATIVO
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="absolute right-3 bottom-1.5 left-3">
+                    <div className="flex items-center gap-1 text-[10px] font-bold text-cyan-300">
+                      <MapPin className="h-3 w-3" />
+                      {selectedMission.regionName}
+                    </div>
+                    <h3 className="text-lg xl:text-xl font-black tracking-wide text-white uppercase leading-tight truncate">
+                      {selectedMission.emoji} {selectedMission.title}
+                    </h3>
+                  </div>
+                </div>
+
+                {/* Briefing Intelligence Grid (2 Columns: NPC Ally + Mission Intel) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 my-1.5 flex-1 min-h-0 content-center">
+                  {/* Left Column: NPC Ally Card */}
+                  <div className="flex items-center gap-2.5 rounded-xl border border-cyan-500/30 bg-slate-950/85 p-2.5">
+                    <NpcPortrait
+                      avatarKey={selectedMission.npc.avatarKey}
+                      size={46}
+                      shape="hex"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[9px] font-black tracking-widest text-cyan-400 uppercase">
+                        CONTATO PRINCIPAL NO MAPA 3D
+                      </div>
+                      <div className="text-xs font-black text-white truncate">
+                        {selectedMission.npc.name} ({selectedMission.npc.age} anos)
+                      </div>
+                      <p className="line-clamp-2 text-[10px] text-slate-300 leading-snug">
+                        &ldquo;{selectedMission.npc.bio}&rdquo;
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Mission Objective & Rewards */}
+                  <div className="flex flex-col justify-between rounded-xl border border-slate-800 bg-slate-950/85 p-2.5">
+                    <p className="text-[10.5px] leading-snug text-slate-300 line-clamp-2 mb-1.5">
+                      {selectedMission.shortDescription}
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-1.5 text-center">
+                      <div className="rounded-lg border border-slate-800 bg-slate-900/80 p-1">
+                        <div className="text-[8px] font-bold text-slate-400 uppercase">
+                          RECOMPENSA
+                        </div>
+                        <div className="font-mono text-xs font-black text-emerald-400 truncate">
+                          +{selectedMission.rewardXp} XP • +{selectedMission.rewardWisdom} 💎
+                        </div>
+                      </div>
+                      <div className="rounded-lg border border-slate-800 bg-slate-900/80 p-1">
+                        <div className="text-[8px] font-bold text-slate-400 uppercase">
+                          DESAFIOS
+                        </div>
+                        <div className="font-mono text-xs font-black text-amber-300 truncate">
+                          {selectedRecord?.completed
+                            ? `${selectedRecord.bestTrust}% CONFIANÇA`
+                            : "CORRIDA + TORRES"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Giant Play Button + Co-op Quick Launch */}
+                <div className="pt-1 flex items-center gap-2 shrink-0 border-t border-amber-500/20">
+                  {selectedUnlocked ? (
+                    <MobaButton
+                      variant="gold"
+                      size="lg"
+                      shape="hex"
+                      onClick={() => onSelectMission(selectedMission)}
+                      className="flex-1 !py-2.5 text-sm font-black"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      {selectedRecord?.completed
+                        ? "REENTRAR NA CIDADE 3D"
+                        : "ENTRAR NA CIDADE 3D"}
+                    </MobaButton>
+                  ) : (
+                    <MobaButton
+                      variant="obsidian"
+                      size="md"
+                      shape="hex"
+                      disabled
+                      className="flex-1 !py-2 text-xs"
+                    >
+                      <Lock className="h-3.5 w-3.5" />
+                      VENÇA A FASE {selectedMission.order - 1} PRIMEIRO
+                    </MobaButton>
+                  )}
+
+                  <MobaButton
+                    variant="emerald"
+                    size="lg"
+                    shape="hex"
+                    onClick={() => setCoopModalOpen(true)}
+                    className="!px-3.5 !py-2.5 text-xs font-black shrink-0"
+                    title="Jogar em Dupla Cooperativa"
+                  >
+                    <Users className="h-4 w-4" />
+                    CO-OP (2P)
+                  </MobaButton>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          ) : (
+            /* Interactive 3D Planet Globe View */
+            <div className="moba-panel-cyan moba-clip-panel relative flex flex-1 flex-col justify-between overflow-hidden p-2.5 min-h-0">
+              <div className="flex items-center justify-between px-2 pt-0.5 shrink-0">
+                <span className="text-[9.5px] font-mono font-bold text-cyan-300">
+                  🌐 Arraste para girar a Terra • Clique nos cristais para selecionar
+                </span>
+                <span className="text-[9.5px] font-mono text-amber-300">
+                  {selectedMission.emoji} {selectedMission.title}
+                </span>
+              </div>
+
+              {/* WebGL 3D Globe */}
+              <div className="my-1 flex-1 min-h-0 w-full overflow-hidden">
+                <WorldGlobe3D
+                  missions={allMissions}
+                  selectedMissionId={selectedMission.id}
+                  completedIds={completedIds}
+                  unlockedIds={unlockedIds}
+                  onSelectMission={(m) => {
+                    playSfx("click");
+                    setSelectedId(m.id);
+                  }}
+                />
+              </div>
+
+              {/* Quick Play from Globe View */}
+              <div className="pt-1 flex items-center justify-between gap-2 shrink-0 border-t border-cyan-500/20">
+                <div className="text-xs font-black text-white truncate">
+                  Destino: <span className="text-amber-300">{selectedMission.title}</span> ({selectedMission.regionName})
+                </div>
+
+                {selectedUnlocked ? (
+                  <MobaButton
+                    variant="gold"
+                    size="sm"
+                    shape="hex"
+                    onClick={() => onSelectMission(selectedMission)}
+                    className="!py-1.5 !px-5 text-xs font-black"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    ENTRAR NA CIDADE 3D
+                  </MobaButton>
+                ) : (
+                  <span className="text-xs text-rose-300 font-bold">FASE BLOQUEADA</span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Bottom Arena Biome Selector Cards with 3D Thumbnails (All 8 Cities - No Empty Holes!) */}
+          <div className="moba-panel-cyan moba-clip-panel shrink-0 p-2 overflow-hidden">
+            <div className="flex items-center justify-between px-1 pb-1 mb-1 border-b border-cyan-500/20">
+              <span className="text-[9px] font-black tracking-[0.2em] text-cyan-300 uppercase">
+                🗺️ SELEÇÃO DE CIDADES & BIOMAS
+              </span>
+              <span className="text-[8.5px] font-mono text-slate-400">
+                8 EXPEDIÇÕES DISPONÍVEIS
               </span>
             </div>
 
-            {/* Real WebGL 3D Interactive Planet */}
-            <div className="my-1 flex-1 min-h-0 w-full overflow-hidden">
-              <WorldGlobe3D
-                missions={allMissions}
-                selectedMissionId={selectedMission.id}
-                completedIds={completedIds}
-                unlockedIds={unlockedIds}
-                onSelectMission={(m) => {
-                  playSfx("click");
-                  setSelectedId(m.id);
-                }}
-              />
-            </div>
-
-            {/* Bottom Arena Map Selector Cards with 3D Thumbnails (All 8 Cities) */}
-            <div className="grid grid-cols-4 gap-1.5 pt-1 shrink-0">
+            <div className="grid grid-cols-4 gap-1.5">
               {allMissions.map((m) => {
                 const isSelected = m.id === selectedMission.id;
                 const unlocked = unlockedIds.includes(m.id);
@@ -1478,28 +1717,27 @@ export function MissionHub({
                   <motion.button
                     key={m.id}
                     type="button"
-                    whileHover={{ scale: 1.04, y: -1 }}
-                    whileTap={{ scale: 0.96 }}
+                    whileHover={{ scale: 1.03, y: -1 }}
+                    whileTap={{ scale: 0.97 }}
                     onClick={() => {
                       playSfx("click");
                       setSelectedId(m.id);
                     }}
                     className={`relative cursor-pointer overflow-hidden rounded-xl border-2 text-left transition ${
                       isSelected
-                        ? "border-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.5)]"
+                        ? "border-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.5)] ring-1 ring-amber-300"
                         : unlocked
                           ? "border-slate-700 hover:border-cyan-400"
                           : "border-slate-800 opacity-60 grayscale"
                     }`}
                   >
-                    <div className="relative h-12 w-full">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <div className="relative h-11 xl:h-12 w-full">
                       <img
                         src={thumb}
                         alt={m.title}
                         className="h-full w-full object-cover"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/35 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
 
                       <span className="absolute top-0.5 right-0.5">
                         {done ? (
@@ -1520,129 +1758,6 @@ export function MissionHub({
               })}
             </div>
           </div>
-        </section>
-
-        {/* RIGHT WING (4 cols): Selected 3D Arena Match Dossier & Giant AAA Play Button */}
-        <section className="flex h-full flex-col justify-between min-h-0 lg:col-span-4 overflow-hidden">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={selectedMission.id}
-              initial={{ opacity: 0, x: 16 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -12 }}
-              transition={{ duration: 0.25 }}
-              className="moba-panel-gold moba-clip-panel flex h-full flex-col justify-between overflow-hidden"
-            >
-              {/* City Photo Banner */}
-              <div className="relative h-28 xl:h-32 w-full overflow-hidden shrink-0">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={selectedSplash}
-                  alt={selectedMission.title}
-                  className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent" />
-
-                <div className="absolute top-2 right-2.5 left-2.5 flex items-center justify-between gap-2">
-                  <span className="moba-clip-slant bg-slate-950/85 px-2.5 py-0.5 text-[9px] font-black tracking-wider text-amber-300 uppercase backdrop-blur">
-                    FASE {selectedMission.order} • {selectedMission.difficulty}
-                  </span>
-
-                  {selectedPrayed && (
-                    <span className="rounded-full border border-amber-300/50 bg-amber-500/25 px-2 py-0.5 text-[9px] font-black text-amber-200 backdrop-blur">
-                      🙏 BUFF ATIVO
-                    </span>
-                  )}
-                </div>
-
-                <div className="absolute right-3 bottom-1.5 left-3">
-                  <div className="flex items-center gap-1 text-[10px] font-bold text-cyan-300">
-                    <MapPin className="h-3 w-3" />
-                    {selectedMission.regionName}
-                  </div>
-                  <h3 className="text-lg xl:text-xl font-black tracking-wide text-white uppercase leading-tight truncate">
-                    {selectedMission.emoji} {selectedMission.title}
-                  </h3>
-                </div>
-              </div>
-
-              {/* NPC Ally Card & Mission Objective */}
-              <div className="flex flex-1 flex-col justify-between p-2.5 min-h-0 overflow-hidden gap-1.5">
-                <div className="flex items-center gap-2.5 rounded-xl border border-cyan-500/30 bg-slate-950/85 p-2 shrink-0">
-                  <NpcPortrait
-                    avatarKey={selectedMission.npc.avatarKey}
-                    size={46}
-                    shape="hex"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[9px] font-black tracking-widest text-cyan-400 uppercase">
-                      CONTATO PRINCIPAL NO MAPA 3D
-                    </div>
-                    <div className="text-xs font-black text-white truncate">
-                      {selectedMission.npc.name} ({selectedMission.npc.age} anos)
-                    </div>
-                    <p className="line-clamp-2 text-[10px] text-slate-300 leading-snug">
-                      &ldquo;{selectedMission.npc.bio}&rdquo;
-                    </p>
-                  </div>
-                </div>
-
-                <p className="text-[11px] leading-relaxed text-slate-300 line-clamp-2">
-                  {selectedMission.shortDescription}
-                </p>
-
-                <div className="grid grid-cols-2 gap-1.5 text-center shrink-0">
-                  <div className="rounded-lg border border-slate-800 bg-slate-950/80 p-1.5">
-                    <div className="text-[8.5px] font-bold text-slate-400 uppercase">
-                      RECOMPENSA
-                    </div>
-                    <div className="mt-0.5 font-mono text-xs font-black text-emerald-400 truncate">
-                      +{selectedMission.rewardXp} XP • +{selectedMission.rewardWisdom} 💎
-                    </div>
-                  </div>
-                  <div className="rounded-lg border border-slate-800 bg-slate-950/80 p-1.5">
-                    <div className="text-[8.5px] font-bold text-slate-400 uppercase">
-                      DESAFIOS
-                    </div>
-                    <div className="mt-0.5 font-mono text-xs font-black text-amber-300 truncate">
-                      {selectedRecord?.completed
-                        ? `${selectedRecord.bestTrust}% CONFIANÇA`
-                        : "CORRIDA + TORRES"}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Giant Play Button - ALWAYS VISIBLE AT BOTTOM WITHOUT SCROLL */}
-              <div className="border-t border-amber-500/25 bg-slate-950/85 p-2.5 shrink-0">
-                {selectedUnlocked ? (
-                  <MobaButton
-                    variant="gold"
-                    size="lg"
-                    shape="hex"
-                    onClick={() => onSelectMission(selectedMission)}
-                    className="w-full !py-2.5 sm:!py-3 text-sm font-black"
-                  >
-                    <Sparkles className="h-4 w-4" />
-                    {selectedRecord?.completed
-                      ? "REENTRAR NA CIDADE 3D"
-                      : "ENTRAR NA CIDADE 3D"}
-                  </MobaButton>
-                ) : (
-                  <MobaButton
-                    variant="obsidian"
-                    size="md"
-                    shape="hex"
-                    disabled
-                    className="w-full !py-2 text-xs"
-                  >
-                    <Lock className="h-3.5 w-3.5" />
-                    VENÇA A FASE {selectedMission.order - 1} PRIMEIRO
-                  </MobaButton>
-                )}
-              </div>
-            </motion.div>
-          </AnimatePresence>
         </section>
       </div>
 
