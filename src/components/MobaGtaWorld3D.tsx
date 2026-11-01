@@ -2206,6 +2206,67 @@ export function MobaGtaWorld3D({
     );
     scene.add(gpsDestinationBeam);
 
+    // Holographic Road Trail Waypoints (Glowing animated guide beacons)
+    const gpsTrailGroup = new THREE.Group();
+    const trailChevronCount = 14;
+    const trailChevrons: THREE.Mesh[] = [];
+    const chevronGeo = new THREE.PlaneGeometry(0.85, 0.85);
+    for (let i = 0; i < trailChevronCount; i++) {
+      const ch = new THREE.Mesh(
+        chevronGeo,
+        new THREE.MeshBasicMaterial({
+          color: 0x38bdf8,
+          transparent: true,
+          opacity: 0.65,
+          side: THREE.DoubleSide,
+        })
+      );
+      ch.rotation.x = -Math.PI / 2;
+      ch.rotation.z = Math.PI / 4; // Diamond shape on road
+      gpsTrailGroup.add(ch);
+      trailChevrons.push(ch);
+    }
+    scene.add(gpsTrailGroup);
+
+    // Biome-Specific Dynamic Weather Particle System
+    const weatherCount = 340;
+    const weatherGeo = new THREE.BufferGeometry();
+    const weatherPos = new Float32Array(weatherCount * 3);
+    const weatherVel = new Float32Array(weatherCount * 3);
+    for (let i = 0; i < weatherCount; i++) {
+      weatherPos[i * 3] = (Math.random() - 0.5) * 55;
+      weatherPos[i * 3 + 1] = Math.random() * 24;
+      weatherPos[i * 3 + 2] = (Math.random() - 0.5) * 55;
+
+      if (resolvedBiome === "amazonia") {
+        weatherVel[i * 3] = -0.5 + Math.random() * 0.2;
+        weatherVel[i * 3 + 1] = -22 - Math.random() * 8; // Tropical rain
+        weatherVel[i * 3 + 2] = -0.5 + Math.random() * 0.2;
+      } else if (resolvedBiome === "sertao") {
+        weatherVel[i * 3] = 4.0 + Math.random() * 3.5; // Warm desert dust storm
+        weatherVel[i * 3 + 1] = -0.8 + Math.random() * 2.0;
+        weatherVel[i * 3 + 2] = 2.0 + Math.random() * 2.0;
+      } else {
+        weatherVel[i * 3] = 1.2 + Math.random() * 1.5; // Foliage & gentle breeze
+        weatherVel[i * 3 + 1] = -2.2 - Math.random() * 1.8;
+        weatherVel[i * 3 + 2] = 0.8 + Math.random() * 1.2;
+      }
+    }
+    weatherGeo.setAttribute("position", new THREE.BufferAttribute(weatherPos, 3));
+    const weatherMat = new THREE.PointsMaterial({
+      color:
+        resolvedBiome === "amazonia"
+          ? 0x93c5fd
+          : resolvedBiome === "sertao"
+          ? 0xfde047
+          : 0xa7f3d0,
+      size: resolvedBiome === "amazonia" ? 0.16 : 0.22,
+      transparent: true,
+      opacity: 0.65,
+    });
+    const weatherParticles = new THREE.Points(weatherGeo, weatherMat);
+    scene.add(weatherParticles);
+
     // --- PROJECTILES & VFX ---
     interface LightProjectile {
       mesh: THREE.Mesh;
@@ -2266,6 +2327,8 @@ export function MobaGtaWorld3D({
     let raceCheckpointIdx = 0;
 
     let attackAnimTimer = 0;
+    let attackComboStep = 0; // 0 = Corte Lateral, 1 = Estocada Rápida, 2 = Giro Sagrado Finalizador
+    let lastAttackTime = 0;
     let shieldTimer = 0;
     let dashTimer = 0;
     let dashDirX = 0;
@@ -2614,15 +2677,21 @@ export function MobaGtaWorld3D({
 
       if (action === "attack") {
         const now = performance.now();
-        if (now - lastBasicAttackTime < 160) {
+        if (now - lastBasicAttackTime < 130) {
           return;
         }
         lastBasicAttackTime = now;
-        soundEngine.play("slash");
-        attackAnimTimer = 0.24;
+
+        // Combo chain window: within 850ms, advance to next strike; otherwise reset to 0
+        if (now - lastAttackTime < 850) {
+          attackComboStep = (attackComboStep + 1) % 3;
+        } else {
+          attackComboStep = 0;
+        }
+        lastAttackTime = now;
 
         let closest: LiveEnemy | null = null;
-        let bestD = 5.4;
+        let bestD = 5.8;
         for (const e of enemies) {
           if (e.dead) continue;
           const d = Math.hypot(e.x - heroPos.x, e.z - heroPos.z);
@@ -2638,14 +2707,59 @@ export function MobaGtaWorld3D({
           );
         }
 
-        const isCrit = combo > 0 && combo % 3 === 2;
-        const dmg = isCrit ? 72 : 45;
-        enemies.forEach((e) => {
-          if (e.dead) return;
-          if (Math.hypot(e.x - heroPos.x, e.z - heroPos.z) <= 4.9) {
-            damageEnemy(e, dmg, 1.6);
-          }
-        });
+        if (attackComboStep === 0) {
+          // Golpe 1: Corte Lateral Rápido
+          soundEngine.play("slash");
+          attackAnimTimer = 0.22;
+          const dmg = 38;
+          enemies.forEach((e) => {
+            if (e.dead) return;
+            if (Math.hypot(e.x - heroPos.x, e.z - heroPos.z) <= 5.0) {
+              damageEnemy(e, dmg, 1.2);
+            }
+          });
+        } else if (attackComboStep === 1) {
+          // Golpe 2: Estocada Frontal Perfurante
+          soundEngine.play("dash");
+          attackAnimTimer = 0.22;
+          const dmg = 50;
+          enemies.forEach((e) => {
+            if (e.dead) return;
+            if (Math.hypot(e.x - heroPos.x, e.z - heroPos.z) <= 5.2) {
+              damageEnemy(e, dmg, 1.8);
+            }
+          });
+        } else {
+          // Golpe 3: Giro Sagrado 360° com Knockback Massivo!
+          soundEngine.play("levelUp");
+          attackAnimTimer = 0.38;
+          const dmg = 82;
+
+          // Expanding Golden Shockwave VFX!
+          const wave = new THREE.Mesh(
+            new THREE.RingGeometry(0.8, 2.2, 32),
+            new THREE.MeshBasicMaterial({
+              color: 0xfbbf24,
+              side: THREE.DoubleSide,
+              transparent: true,
+              opacity: 0.85,
+            })
+          );
+          wave.rotation.x = -Math.PI / 2;
+          wave.position.set(heroPos.x, 0.25, heroPos.z);
+          scene.add(wave);
+          vfxList.push({ mesh: wave, age: 0, duration: 0.65, maxScale: 4.5 });
+
+          // Knockback across all nearby enemies!
+          enemies.forEach((e) => {
+            if (e.dead) return;
+            if (Math.hypot(e.x - heroPos.x, e.z - heroPos.z) <= 5.8) {
+              damageEnemy(e, dmg, e.isBoss ? 2.2 : e.tier === "elite" ? 3.8 : 5.8);
+            }
+          });
+
+          emitPopup("⚡ COMBO 3-HIT! FINALIZADOR SAGRADO! -82 HP", "#fbbf24");
+        }
       } else if (action === "skillQ") {
         if (cooldowns.q > 0) return;
         cooldowns.q = 3.5;
@@ -3266,14 +3380,32 @@ export function MobaGtaWorld3D({
             emoteElapsed
           );
 
-          // Sword Slash Arc & Shield Dome
-          if (currentRig.slashArc) {
-            if (attackAnimTimer > 0) {
-              currentRig.rightArmPivot.rotation.x = -1.4 + attackAnimTimer * 4;
-              currentRig.slashArc.rotation.z += dt * 18;
-              (currentRig.slashArc.material as THREE.MeshBasicMaterial).opacity =
-                Math.min(0.9, attackAnimTimer * 4);
+          // Sword Slash Arc, 3-Hit Combo Motion & Shield Dome
+          if (attackAnimTimer > 0) {
+            if (attackComboStep === 0) {
+              // Golpe 1: Corte horizontal da direita para a esquerda
+              currentRig.rightArmPivot.rotation.x = -1.3 + attackAnimTimer * 3.5;
+              currentRig.rightArmPivot.rotation.z = -0.5 + attackAnimTimer * 2.0;
+            } else if (attackComboStep === 1) {
+              // Golpe 2: Estocada frontal com estiramento do braço
+              currentRig.rightArmPivot.rotation.x = -1.9 + attackAnimTimer * 1.5;
+              currentRig.rightArmPivot.rotation.y = 0.35 - attackAnimTimer * 1.5;
             } else {
+              // Golpe 3: Giro acrobático 360° com salto no ar
+              const spinT = (0.38 - attackAnimTimer) / 0.38;
+              currentRig.bodyGroup.rotation.y += spinT * Math.PI * 2;
+              currentRig.bodyGroup.position.y += Math.sin(spinT * Math.PI) * 0.42;
+              currentRig.rightArmPivot.rotation.x = -1.6;
+              currentRig.rightArmPivot.rotation.z = -0.6;
+            }
+
+            if (currentRig.slashArc) {
+              currentRig.slashArc.rotation.z += dt * 20;
+              (currentRig.slashArc.material as THREE.MeshBasicMaterial).opacity =
+                Math.min(0.95, attackAnimTimer * 4.2);
+            }
+          } else {
+            if (currentRig.slashArc) {
               (currentRig.slashArc.material as THREE.MeshBasicMaterial).opacity = 0;
             }
           }
@@ -3285,7 +3417,7 @@ export function MobaGtaWorld3D({
           }
         }
 
-        // GPS Arrow & Destination Sky Beam (locks onto Race Checkpoint during active race!)
+        // GPS Arrow, Holographic Waypoint Trail & Destination Sky Beam
         const activeTarget =
           raceActive && raceCfg.checkpoints[raceCheckpointIdx]
             ? raceCfg.checkpoints[raceCheckpointIdx]
@@ -3299,6 +3431,29 @@ export function MobaGtaWorld3D({
 
         gpsDestinationBeam.position.set(activeTarget.x, 14, activeTarget.z);
         gpsDestinationBeam.visible = !raceActive && Math.hypot(gx, gz) > 6.0;
+
+        // Animate Holographic Road Waypoint Trail (Sliding runway light beacons)
+        const totalDist = Math.hypot(gx, gz);
+        if (totalDist > 6.0) {
+          gpsTrailGroup.visible = true;
+          const trailLength = Math.min(totalDist - 2.0, 36);
+          const progressOffset = (idleClock * 1.6) % 1.0;
+          for (let i = 0; i < trailChevronCount; i++) {
+            const t = (i + progressOffset) / trailChevronCount;
+            const distOnLine = 2.5 + t * trailLength;
+            const px = heroPos.x + (gx / totalDist) * distOnLine;
+            const pz = heroPos.z + (gz / totalDist) * distOnLine;
+            trailChevrons[i].position.set(px, 0.08, pz);
+            const alpha = Math.sin(t * Math.PI) * 0.75;
+            (trailChevrons[i].material as THREE.MeshBasicMaterial).opacity =
+              Math.max(0.08, alpha);
+            (trailChevrons[i].material as THREE.MeshBasicMaterial).color.setHex(
+              raceActive ? 0xfbbf24 : 0x38bdf8
+            );
+          }
+        } else {
+          gpsTrailGroup.visible = false;
+        }
 
         // Collectibles Magnet & Pickup
         collectibles.forEach((c) => {
@@ -3956,6 +4111,51 @@ export function MobaGtaWorld3D({
 
       // Keep Sky Dome centered around hero
       skyDome.position.set(heroPos.x, 0, heroPos.z);
+
+      // --- DYNAMIC DAY / SUNSET / NIGHT CYCLE (~140s full cycle) ---
+      const dayTime = (now * 0.00045) % (Math.PI * 2);
+      const sunHeight = Math.sin(dayTime);
+      const sunX = Math.cos(dayTime) * 75;
+      const sunY = Math.max(10, sunHeight * 68 + 14);
+      const sunZ = Math.sin(dayTime * 0.8) * 55;
+      sun.position.set(sunX, sunY, sunZ);
+
+      if (sunHeight > 0.28) {
+        // Bright Daytime
+        sun.color.setHex(palette.sun);
+        sun.intensity = 1.95;
+        hemi.intensity = 1.15;
+      } else if (sunHeight > -0.15) {
+        // Golden Hour / Sunset
+        sun.color.setHex(0xf97316);
+        sun.intensity = 1.5;
+        hemi.intensity = 0.85;
+      } else {
+        // Starry Night Moonlight
+        sun.color.setHex(0x60a5fa);
+        sun.intensity = 0.85;
+        hemi.intensity = 0.55;
+      }
+
+      // --- DYNAMIC WEATHER PARTICLE SYSTEM FOLLOWING HERO ---
+      weatherParticles.position.set(heroPos.x, 0, heroPos.z);
+      const wPosAttr = weatherGeo.getAttribute("position") as THREE.BufferAttribute;
+      for (let i = 0; i < weatherCount; i++) {
+        let px = wPosAttr.getX(i) + weatherVel[i * 3] * dt;
+        let py = wPosAttr.getY(i) + weatherVel[i * 3 + 1] * dt;
+        let pz = wPosAttr.getZ(i) + weatherVel[i * 3 + 2] * dt;
+
+        if (py < 0.1) {
+          py = 22 + Math.random() * 3;
+          px = (Math.random() - 0.5) * 55;
+          pz = (Math.random() - 0.5) * 55;
+        }
+        if (Math.abs(px) > 28) px = -px * 0.9;
+        if (Math.abs(pz) > 28) pz = -pz * 0.9;
+
+        wPosAttr.setXYZ(i, px, py, pz);
+      }
+      wPosAttr.needsUpdate = true;
 
       // --- SYNC HUD SNAPSHOT (~14fps) ---
       if (now - lastHudSync > 70) {

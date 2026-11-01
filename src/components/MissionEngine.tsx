@@ -558,14 +558,27 @@ export function MissionEngine({
     ]
   );
 
+  // Dynamic 3-Hit Combo UI Tracker
+  const [comboStepUI, setComboStepUI] = useState(0);
+  const comboTimerUIRef = useRef<NodeJS.Timeout | null>(null);
+
+  const triggerAttackAction = useCallback(() => {
+    fireAction("attack");
+    setComboStepUI((prev) => (prev % 3) + 1);
+    if (comboTimerUIRef.current) clearTimeout(comboTimerUIRef.current);
+    comboTimerUIRef.current = setTimeout(() => {
+      setComboStepUI(0);
+    }, 850);
+  }, [fireAction]);
+
   // Hold-to-repeat attack for smooth mobile combat
   const startContinuousAttack = (e: React.PointerEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    fireAction("attack");
+    triggerAttackAction();
     if (attackIntervalRef.current) clearInterval(attackIntervalRef.current);
     attackIntervalRef.current = setInterval(() => {
-      fireAction("attack");
+      triggerAttackAction();
     }, 260);
   };
 
@@ -1854,7 +1867,7 @@ export function MissionEngine({
             </div>
           </motion.button>
 
-          {/* PRIMARY MELEE ATTACK BUTTON (UNLIMITED / FREE AT WILL) */}
+          {/* PRIMARY MELEE ATTACK BUTTON (UNLIMITED 3-HIT COMBO) */}
           <motion.button
             type="button"
             whileHover={{ scale: 1.05 }}
@@ -1863,17 +1876,45 @@ export function MissionEngine({
             onPointerUp={stopContinuousAttack}
             onPointerLeave={stopContinuousAttack}
             onPointerCancel={stopContinuousAttack}
-            title="Golpe de Luz (Ataque Básico Ilimitado) [ESPAÇO]"
-            className="group relative flex h-16 w-16 sm:h-20 sm:w-20 cursor-pointer flex-col items-center justify-center rounded-full border-3 border-amber-300 bg-gradient-to-b from-rose-500 via-red-600 to-rose-900 text-white shadow-[0_0_28px_rgba(244,63,94,0.7)] active:scale-95 transition select-none"
+            title="Golpe de Luz (Combo 3-Hit Ilimitado) [ESPAÇO]"
+            className={`group relative flex h-16 w-16 sm:h-20 sm:w-20 cursor-pointer flex-col items-center justify-center rounded-full border-3 active:scale-95 transition select-none ${
+              comboStepUI === 3
+                ? "border-amber-200 bg-gradient-to-b from-amber-400 via-rose-600 to-rose-950 text-white shadow-[0_0_38px_rgba(251,191,36,0.95)]"
+                : "border-amber-300 bg-gradient-to-b from-rose-500 via-red-600 to-rose-900 text-white shadow-[0_0_28px_rgba(244,63,94,0.7)]"
+            }`}
           >
             {/* Glowing outer sheen ring */}
-            <div className="absolute inset-0 rounded-full border-2 border-amber-200/40 animate-pulse pointer-events-none" />
-            <Swords className="h-6 w-6 sm:h-7.5 sm:w-7.5 drop-shadow group-hover:scale-110 transition-transform" />
+            <div
+              className={`absolute inset-0 rounded-full border-2 pointer-events-none ${
+                comboStepUI === 3
+                  ? "border-amber-200 animate-ping opacity-60"
+                  : "border-amber-200/40 animate-pulse"
+              }`}
+            />
+            <Swords
+              className={`h-6 w-6 sm:h-7.5 sm:w-7.5 drop-shadow transition-transform ${
+                comboStepUI === 3
+                  ? "scale-115 text-amber-200 animate-pulse"
+                  : "group-hover:scale-110"
+              }`}
+            />
             <span className="mt-0.5 font-mono text-[8px] sm:text-[9.5px] font-black tracking-wider text-amber-200 uppercase drop-shadow">
               ATACAR
             </span>
-            <span className="font-mono text-[7px] text-amber-300/80 font-bold uppercase tracking-tight">
-              LIVRE ∞
+            <span
+              className={`font-mono text-[7px] font-black uppercase tracking-tight ${
+                comboStepUI === 3
+                  ? "text-amber-200 animate-pulse text-[8px]"
+                  : "text-amber-300/90"
+              }`}
+            >
+              {comboStepUI === 1
+                ? "⚡ GOLPE 1"
+                : comboStepUI === 2
+                ? "⚡⚡ GOLPE 2"
+                : comboStepUI === 3
+                ? "💥 FINALIZADOR!"
+                : "LIVRE ∞"}
             </span>
           </motion.button>
         </div>
