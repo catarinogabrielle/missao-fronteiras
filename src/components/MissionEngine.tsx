@@ -316,6 +316,23 @@ export function MissionEngine({
   // Real-time Duo Co-op State (WebRTC P2P)
   const [cargoHealth, setCargoHealth] = useState(coopSession?.cargoHealth ?? 100);
   const [partnerPing, setPartnerPing] = useState<number | null>(null);
+  const [partnerInfo, setPartnerInfo] = useState<{
+    name: string;
+    role: "driver" | "guardian";
+    avatarId: string;
+    skinId: string;
+  } | null>(
+    coopSession
+      ? {
+          name: coopSession.partnerName || "Parceiro",
+          role:
+            coopSession.partnerRole ||
+            (coopSession.myRole === "driver" ? "guardian" : "driver"),
+          avatarId: coopSession.partnerAvatarId || "sofia",
+          skinId: coopSession.partnerSkinId || "padrao",
+        }
+      : null
+  );
   const [partnerPosition, setPartnerPosition] = useState<{
     x: number;
     z: number;
@@ -374,6 +391,14 @@ export function MissionEngine({
     const coopNet = getGlobalCoopNetwork();
     coopNet.setCallbacks({
       onPingUpdate: (ping) => setPartnerPing(ping),
+      onPartnerJoined: (p) => {
+        setPartnerInfo({
+          name: p.name,
+          role: p.role,
+          avatarId: p.avatarId,
+          skinId: p.skinId || "padrao",
+        });
+      },
       onPartnerLeft: () => {
         pushWorldPopup({
           id: Date.now() + Math.random(),
@@ -382,6 +407,14 @@ export function MissionEngine({
         });
       },
       onMessage: (msg) => {
+        if (msg.type === "HANDSHAKE" || msg.type === "HANDSHAKE_ACK") {
+          setPartnerInfo({
+            name: msg.player.name,
+            role: msg.player.role,
+            avatarId: msg.player.avatarId,
+            skinId: msg.player.skinId || "padrao",
+          });
+        }
         if (msg.type === "SYNC_POSITION") {
           setPartnerPosition({
             x: msg.x,
@@ -956,12 +989,13 @@ export function MissionEngine({
           coopPartner={
             coopSession
               ? {
-                  name: coopSession.partnerName || "Parceiro",
+                  name: partnerInfo?.name || coopSession.partnerName || "Parceiro",
                   role:
+                    partnerInfo?.role ||
                     coopSession.partnerRole ||
                     (coopSession.myRole === "driver" ? "guardian" : "driver"),
-                  avatarId: (coopSession.partnerAvatarId as any) || "sofia",
-                  skinId: "padrao",
+                  avatarId: (partnerInfo?.avatarId || coopSession.partnerAvatarId || "sofia") as any,
+                  skinId: (partnerInfo?.skinId || coopSession.partnerSkinId || "padrao") as any,
                 }
               : null
           }
@@ -1399,41 +1433,45 @@ export function MissionEngine({
                     <span className="text-cyan-300 shrink-0">🛡️ GUARDIÃO</span>
                   )}
                   <span className="text-slate-500 shrink-0">|</span>
-                  <span className="text-slate-200 truncate max-w-[70px] sm:max-w-[100px]">
-                    👤 {coopSession.partnerName || "Parceiro"}
+                  <span className="text-slate-200 truncate max-w-[80px] sm:max-w-[120px]">
+                    👤 {partnerInfo?.name || coopSession.partnerName || "Parceiro"}
                   </span>
-                  <button
-                    type="button"
-                    onClick={handleCoopPing}
-                    className="ml-1 cursor-pointer flex items-center gap-0.5 rounded border border-cyan-400/50 bg-cyan-950/80 hover:bg-cyan-500/30 px-1.5 py-0.2 text-[7.5px] font-black text-cyan-200 active:scale-95 transition shrink-0"
-                    title="Sinalizar localização para a dupla"
-                  >
-                    <span>📍</span>
-                    <span>PING</span>
-                  </button>
                 </div>
               </div>
 
-              {/* Cargo Integrity Bar */}
-              <div className="flex items-center gap-1.5">
-                <span className="text-[7.5px] sm:text-[8px] font-mono font-black uppercase text-amber-300 shrink-0">
-                  📦 CARGA:
-                </span>
-                <div className="h-1.5 flex-1 rounded-full border border-slate-700 bg-slate-900 overflow-hidden">
-                  <div
-                    style={{ width: `${cargoHealth}%` }}
-                    className={`h-full transition-all duration-200 ${
-                      cargoHealth > 60
-                        ? "bg-gradient-to-r from-emerald-400 to-cyan-400"
-                        : cargoHealth > 30
-                          ? "bg-gradient-to-r from-amber-400 to-orange-400"
-                          : "bg-gradient-to-r from-rose-500 to-rose-600 animate-pulse"
-                    }`}
-                  />
+              {/* Cargo Integrity Bar + PING DUPLA in same row (ZERO OVERLAP!) */}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 flex-1 min-w-0">
+                  <span className="text-[7.5px] sm:text-[8px] font-mono font-black uppercase text-amber-300 shrink-0">
+                    📦 CARGA:
+                  </span>
+                  <div className="h-1.5 flex-1 rounded-full border border-slate-700 bg-slate-900 overflow-hidden min-w-[50px]">
+                    <div
+                      style={{ width: `${cargoHealth}%` }}
+                      className={`h-full transition-all duration-200 ${
+                        cargoHealth > 60
+                          ? "bg-gradient-to-r from-emerald-400 to-cyan-400"
+                          : cargoHealth > 30
+                            ? "bg-gradient-to-r from-amber-400 to-orange-400"
+                            : "bg-gradient-to-r from-rose-500 to-rose-600 animate-pulse"
+                      }`}
+                    />
+                  </div>
+                  <span className="font-mono text-[7.5px] sm:text-[8px] font-black text-white shrink-0">
+                    {cargoHealth}%
+                  </span>
                 </div>
-                <span className="font-mono text-[7.5px] sm:text-[8px] font-black text-white shrink-0">
-                  {cargoHealth}%
-                </span>
+
+                {/* Tactile Ping Button docked cleanly in the row */}
+                <button
+                  type="button"
+                  onClick={handleCoopPing}
+                  className="cursor-pointer shrink-0 inline-flex items-center gap-0.5 rounded-full border border-cyan-400/60 bg-gradient-to-r from-cyan-500/25 to-blue-500/25 px-2 py-0.5 text-[8px] font-black uppercase text-cyan-200 shadow-sm hover:border-cyan-300 hover:text-white active:scale-95 transition"
+                  title="Sinalizar rota para a dupla"
+                >
+                  <span className="text-[8.5px]">📍</span>
+                  <span>PING DUPLA</span>
+                </button>
               </div>
             </div>
           )}

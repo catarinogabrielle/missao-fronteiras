@@ -38,6 +38,7 @@ export interface CoopSessionState {
   partnerName: string | null;
   partnerRole: CoopRole | null;
   partnerAvatarId: string | null;
+  partnerSkinId?: string | null;
   cargoHealth: number;
   suppliesDelivered: number;
 }
@@ -131,6 +132,7 @@ export function CoopMultiplayerModal({
         name: state.agent?.name || "Líder da Missão",
         role: selectedRole,
         avatarId: state.agent?.avatarId || "lucas",
+        skinId: state.agent?.skinId || "padrao",
       });
     } catch {
       // handled by callbacks
@@ -146,6 +148,7 @@ export function CoopMultiplayerModal({
         name: state.agent?.name || "Agente Parceiro",
         role: selectedRole,
         avatarId: state.agent?.avatarId || "sofia",
+        skinId: state.agent?.skinId || "padrao",
       });
     } catch {
       // handled by callbacks
@@ -158,6 +161,7 @@ export function CoopMultiplayerModal({
       name: selectedRole === "driver" ? "Sofia (Guardiã)" : "Lucas (Piloto)",
       role: selectedRole === "driver" ? "guardian" : "driver",
       avatarId: selectedRole === "driver" ? "sofia" : "lucas",
+      skinId: "padrao",
     };
     setPartner(simulatedPartner);
     setNetworkStatus("connected");
@@ -185,7 +189,8 @@ export function CoopMultiplayerModal({
       partnerName: partner?.name || "Parceiro",
       partnerRole:
         partner?.role || (selectedRole === "driver" ? "guardian" : "driver"),
-      partnerAvatarId: partner?.avatarId || "sofia",
+      partnerAvatarId: partner?.avatarId || (selectedRole === "driver" ? "sofia" : "lucas"),
+      partnerSkinId: partner?.skinId || "padrao",
       cargoHealth: 100,
       suppliesDelivered: 0,
     });

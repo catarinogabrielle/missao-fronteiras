@@ -26,27 +26,37 @@ export interface ArticulatedRig {
 export function createNameplateSprite(
   label: string,
   borderColor = "#fbbf24",
-  bgColor = "rgba(3, 7, 18, 0.88)"
+  bgColor = "rgba(3, 7, 18, 0.92)"
 ): THREE.Sprite {
   const canvas = document.createElement("canvas");
-  canvas.width = 440;
-  canvas.height = 92;
+  canvas.width = 512;
+  canvas.height = 100;
   const ctx = canvas.getContext("2d")!;
 
+  ctx.font = "900 24px system-ui, -apple-system, sans-serif";
+  const cleanLabel = label.slice(0, 32);
+  const textMetrics = ctx.measureText(cleanLabel);
+  const pillW = Math.min(480, Math.max(200, textMetrics.width + 56));
+  const pillH = 58;
+  const pillX = (512 - pillW) / 2;
+  const pillY = (100 - pillH) / 2;
+
+  ctx.shadowColor = borderColor;
+  ctx.shadowBlur = 10;
   ctx.fillStyle = bgColor;
   ctx.strokeStyle = borderColor;
-  ctx.lineWidth = 5;
+  ctx.lineWidth = 4;
 
   ctx.beginPath();
-  ctx.roundRect(12, 14, 416, 64, 24);
+  ctx.roundRect(pillX, pillY, pillW, pillH, pillH / 2);
   ctx.fill();
   ctx.stroke();
 
+  ctx.shadowBlur = 0;
   ctx.fillStyle = "#ffffff";
-  ctx.font = "900 24px system-ui, sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(label.slice(0, 28), 220, 47);
+  ctx.fillText(cleanLabel, 256, 50);
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -56,7 +66,7 @@ export function createNameplateSprite(
     depthTest: false,
   });
   const sprite = new THREE.Sprite(mat);
-  sprite.scale.set(2.6, 0.55, 1);
+  sprite.scale.set((pillW / 180) * 1.05, 0.58, 1);
   sprite.renderOrder = 10;
   return sprite;
 }
@@ -466,10 +476,11 @@ export function buildStylizedHumanRig(
         side: THREE.DoubleSide,
         transparent: true,
         opacity: 0.75,
+        depthWrite: false,
       })
     );
     groundAura.rotation.x = -Math.PI / 2;
-    groundAura.position.y = 0.03;
+    groundAura.position.y = 0.065;
     root.add(groundAura);
   }
 

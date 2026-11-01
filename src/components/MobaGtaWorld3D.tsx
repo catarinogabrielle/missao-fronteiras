@@ -2204,6 +2204,9 @@ export function MobaGtaWorld3D({
     // --- 3D MULTIPLAYER CO-OP PARTNER CHAMPION RIG & DOCK ---
     const partnerHolder = new THREE.Group();
     let partnerRig: ArticulatedRig | null = null;
+    let partnerRigAvatarId: string | null = null;
+    let partnerRigSkinId: string | null = null;
+    let partnerRigName: string | null = null;
     const partnerPos = new THREE.Vector3(
       WORLD_LANDMARKS.spawn.x + 3.2,
       0,
@@ -2218,11 +2221,16 @@ export function MobaGtaWorld3D({
     let partnerWalkCycle = 0;
 
     if (coopPartnerRef.current) {
+      const cp = coopPartnerRef.current;
+      partnerRigAvatarId = (cp.avatarId || "sofia") as AvatarId;
+      partnerRigSkinId = (cp.skinId || "padrao") as SkinId;
+      const roleStr = cp.role === "driver" ? "PILOTO" : "GUARDIÃO";
+      partnerRigName = `${cp.name} [${roleStr}]`;
       partnerRig = createPlayableChampion3D(
-        coopPartnerRef.current.avatarId || "sofia",
-        `${coopPartnerRef.current.name} [${coopPartnerRef.current.role === "driver" ? "PILOTO" : "GUARDIÃO"}]`,
-        coopPartnerRef.current.skinId || "padrao",
-        false
+        partnerRigAvatarId as AvatarId,
+        partnerRigName,
+        partnerRigSkinId as SkinId,
+        true // showNameplate is TRUE!
       );
       partnerHolder.add(partnerRig.root);
       partnerHolder.position.copy(partnerPos);
@@ -3118,6 +3126,22 @@ export function MobaGtaWorld3D({
       };
     };
 
+    // Elevation helper: smoothly raises hero and partner on top of bridges (eliminates legs sinking)
+    const getGroundElevation = (x: number, z: number): number => {
+      if (resolvedBiome === "amazonia") {
+        const onBridgeX =
+          Math.abs(x) < 6.0 ||
+          Math.abs(x + 46) < 6.0 ||
+          Math.abs(x - 46) < 6.0;
+        const distZ = Math.abs(z - 27);
+        if (onBridgeX && distZ < 6.2) {
+          const ramp = Math.min(1, (6.2 - distZ) / 1.2);
+          return 0.52 * ramp;
+        }
+      }
+      return 0;
+    };
+
     // --- MAIN 60FPS GTA + MOBA OPEN-WORLD GAME LOOP ---
     let animId = 0;
     let lastTime = performance.now();
@@ -3276,7 +3300,10 @@ export function MobaGtaWorld3D({
         if (keys["d"] || keys["arrowright"]) rawX += 1;
 
         isMoving = false;
-        const vehSpeed = activeVehicle ? activeVehicle.cfg.topSpeed : 10.2;
+        const inputLen = Math.hypot(rawX, rawY);
+        // Fast, agile runner speed on mobile: 15.6 units/s base on foot, 18.2 with sprint deflection!
+        const footSpeed = 15.6 * (inputLen > 0.88 ? 1.18 : 1.0);
+        const vehSpeed = activeVehicle ? activeVehicle.cfg.topSpeed : footSpeed;
         const baseSpeed =
           activeVehicle && nitroTimer > 0 ? vehSpeed * 1.55 : vehSpeed;
 
@@ -3370,7 +3397,9 @@ export function MobaGtaWorld3D({
           });
         }
 
-        // Sync Hero & Active Vehicle Transforms + Realistic Knee-Bending & Emote Animations!
+        // Sync Hero & Active Vehicle Transforms + Realistic Elevation & Animations!
+        const heroElev = getGroundElevation(heroPos.x, heroPos.z);
+        heroPos.y += (heroElev - heroPos.y) * Math.min(1, 16 * dt);
         heroHolder.position.copy(heroPos);
         heroHolder.rotation.y = heroAngle;
 
@@ -3450,15 +3479,34 @@ export function MobaGtaWorld3D({
 
         // --- ANIMATE 3D CO-OP DUO PARTNER RIG & SYNCHRONIZED POSITION ---
         if (coopPartnerRef.current) {
-          if (!partnerRig) {
+          const cp = coopPartnerRef.current;
+          const cpAvatar = (cp.avatarId || "sofia") as AvatarId;
+          const cpSkin = (cp.skinId || "padrao") as SkinId;
+          const cpRoleLabel = cp.role === "driver" ? "PILOTO" : "GUARDIÃO";
+          const cpName = `${cp.name} [${cpRoleLabel}]`;
+
+          if (
+            !partnerRig ||
+            partnerRigAvatarId !== cpAvatar ||
+            partnerRigSkinId !== cpSkin ||
+            partnerRigName !== cpName
+          ) {
+            if (partnerRig) {
+              partnerHolder.remove(partnerRig.root);
+            }
             partnerRig = createPlayableChampion3D(
-              coopPartnerRef.current.avatarId || "sofia",
-              `${coopPartnerRef.current.name} [${coopPartnerRef.current.role === "driver" ? "PILOTO" : "GUARDIÃO"}]`,
-              coopPartnerRef.current.skinId || "padrao",
-              false
+              cpAvatar,
+              cpName,
+              cpSkin,
+              true // showNameplate is TRUE!
             );
+            partnerRigAvatarId = cpAvatar;
+            partnerRigSkinId = cpSkin;
+            partnerRigName = cpName;
             partnerHolder.add(partnerRig.root);
-            scene.add(partnerHolder);
+            if (!scene.children.includes(partnerHolder)) {
+              scene.add(partnerHolder);
+            }
           }
 
           if (coopPartnerPosRef.current) {
@@ -3488,6 +3536,9 @@ export function MobaGtaWorld3D({
           partnerPos.x += (partnerTargetPos.x - partnerPos.x) * Math.min(1, 14 * dt);
           partnerPos.z += (partnerTargetPos.z - partnerPos.z) * Math.min(1, 14 * dt);
           partnerAngle += (partnerTargetAngle - partnerAngle) * Math.min(1, 12 * dt);
+
+          const pElevation = getGroundElevation(partnerPos.x, partnerPos.z);
+          partnerPos.y += (pElevation - partnerPos.y) * Math.min(1, 16 * dt);
 
           partnerHolder.position.copy(partnerPos);
           partnerHolder.rotation.y = partnerAngle;

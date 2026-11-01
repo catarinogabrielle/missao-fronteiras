@@ -8,6 +8,7 @@ export interface CoopPlayerInfo {
   name: string;
   role: CoopRole;
   avatarId: string;
+  skinId?: string;
 }
 
 export type CoopNetworkMessage =
