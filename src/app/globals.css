@@ -31,6 +31,17 @@ html {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Zero-Glitch Hardware-level Landscape Lock for Mobile Devices */
+.force-landscape-barrier {
+  display: none !important;
+}
+
+@media (orientation: portrait) and (max-width: 1024px) {
+  .force-landscape-barrier {
+    display: flex !important;
+  }
+}
+
 /* Mobile Landscape ("Celular Deitado") Root Scaling for Crisp Console Fit */
 @media (max-height: 540px) and (orientation: landscape) {
   html {

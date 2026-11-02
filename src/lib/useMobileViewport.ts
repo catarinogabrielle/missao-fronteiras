@@ -93,32 +93,41 @@ export function useMobileViewport(): MobileViewportInfo {
       setSnap(readViewportSnapshot());
     };
 
-    const delayedSync = () => {
+    const onResize = () => {
       sync();
       if (t1) clearTimeout(t1);
       if (t2) clearTimeout(t2);
-      if (t3) clearTimeout(t3);
       t1 = setTimeout(sync, 100);
       t2 = setTimeout(sync, 250);
-      t3 = setTimeout(sync, 500);
+    };
+
+    const onOrientationChange = () => {
+      // Mobile browsers don't commit final landscape width/height until the rotate animation completes.
+      // Skipping synchronous sync prevents stale portrait readings from glitching the layout!
+      if (t1) clearTimeout(t1);
+      if (t2) clearTimeout(t2);
+      if (t3) clearTimeout(t3);
+      t1 = setTimeout(sync, 120);
+      t2 = setTimeout(sync, 280);
+      t3 = setTimeout(sync, 550);
     };
 
     sync();
-    window.addEventListener("resize", delayedSync);
-    window.addEventListener("orientationchange", delayedSync);
-    document.addEventListener("fullscreenchange", delayedSync);
-    document.addEventListener("webkitfullscreenchange", delayedSync);
-    window.visualViewport?.addEventListener("resize", delayedSync);
+    window.addEventListener("resize", onResize);
+    window.addEventListener("orientationchange", onOrientationChange);
+    document.addEventListener("fullscreenchange", onResize);
+    document.addEventListener("webkitfullscreenchange", onResize);
+    window.visualViewport?.addEventListener("resize", onResize);
 
     return () => {
       if (t1) clearTimeout(t1);
       if (t2) clearTimeout(t2);
       if (t3) clearTimeout(t3);
-      window.removeEventListener("resize", delayedSync);
-      window.removeEventListener("orientationchange", delayedSync);
-      document.removeEventListener("fullscreenchange", delayedSync);
-      document.removeEventListener("webkitfullscreenchange", delayedSync);
-      window.visualViewport?.removeEventListener("resize", delayedSync);
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("orientationchange", onOrientationChange);
+      document.removeEventListener("fullscreenchange", onResize);
+      document.removeEventListener("webkitfullscreenchange", onResize);
+      window.visualViewport?.removeEventListener("resize", onResize);
     };
   }, []);
 

@@ -449,6 +449,9 @@ export function MobaGtaWorld3D({
     renderer.toneMappingExposure = 1.15;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.domElement.style.width = "100%";
+    renderer.domElement.style.height = "100%";
+    renderer.domElement.style.display = "block";
     container.innerHTML = "";
     container.appendChild(renderer.domElement);
 
@@ -3249,20 +3252,36 @@ export function MobaGtaWorld3D({
     window.addEventListener("pointerup", onPointerUp);
     window.addEventListener("pointercancel", onPointerCancel);
 
-    const onResize = () => {
-      if (!container) return;
-      const w = container.clientWidth || window.innerWidth;
-      const h = container.clientHeight || window.innerHeight;
-      if (w <= 0 || h <= 0) return;
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-      renderer.setSize(w, h);
+    let resizeTimer: number | undefined;
+    let orientTimer1: NodeJS.Timeout | number | undefined;
+    let orientTimer2: NodeJS.Timeout | number | undefined;
+
+    const debouncedResize = () => {
+      if (resizeTimer) cancelAnimationFrame(resizeTimer);
+      resizeTimer = requestAnimationFrame(() => {
+        if (!container) return;
+        const w = container.clientWidth || window.innerWidth;
+        const h = container.clientHeight || window.innerHeight;
+        if (w <= 0 || h <= 0) return;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h, false);
+      });
     };
-    window.addEventListener("resize", onResize);
-    window.addEventListener("orientationchange", onResize);
+
+    const onOrientationChange = () => {
+      // Do not resize immediately with stale portrait dimensions during mobile rotation animation
+      if (orientTimer1) clearTimeout(orientTimer1);
+      if (orientTimer2) clearTimeout(orientTimer2);
+      orientTimer1 = setTimeout(debouncedResize, 140);
+      orientTimer2 = setTimeout(debouncedResize, 350);
+    };
+
+    window.addEventListener("resize", debouncedResize);
+    window.addEventListener("orientationchange", onOrientationChange);
     const resizeObs =
       typeof ResizeObserver !== "undefined"
-        ? new ResizeObserver(() => onResize())
+        ? new ResizeObserver(() => debouncedResize())
         : null;
     resizeObs?.observe(container);
 
@@ -4867,8 +4886,11 @@ export function MobaGtaWorld3D({
       window.removeEventListener("pointercancel", onPointerCancel);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
-      window.removeEventListener("resize", onResize);
-      window.removeEventListener("orientationchange", onResize);
+      if (resizeTimer) cancelAnimationFrame(resizeTimer);
+      if (orientTimer1) clearTimeout(orientTimer1);
+      if (orientTimer2) clearTimeout(orientTimer2);
+      window.removeEventListener("resize", debouncedResize);
+      window.removeEventListener("orientationchange", onOrientationChange);
       renderer.dispose();
     };
   }, [
