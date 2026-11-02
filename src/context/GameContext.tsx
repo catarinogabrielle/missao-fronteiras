@@ -108,6 +108,7 @@ interface GameContextValue {
   }) => void;
   isSkinUnlocked: (skinId: SkinId) => boolean;
   unlockAndEquipSkin: (skinId: SkinId, forceFree?: boolean) => boolean;
+  buyAndEquipSkin: (skinId: SkinId) => boolean;
   completeMission: (
     mission: Mission,
     finalTrust: number,
@@ -339,15 +340,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const isSkinUnlocked = useCallback(
     (skinId: SkinId) => {
-      const meta = SKIN_OPTIONS.find((s) => s.id === skinId);
-      if (!meta) return false;
-      const currentLevel = Math.floor(state.xp / xpPerLevel) + 1;
-      return (
-        currentLevel >= meta.unlockLevel ||
-        state.unlockedSkins.includes(skinId)
-      );
+      if (skinId === "padrao") return true;
+      return state.unlockedSkins.includes(skinId);
     },
-    [state.xp, state.unlockedSkins, xpPerLevel]
+    [state.unlockedSkins]
   );
 
   const createAgent = useCallback(
@@ -549,15 +545,103 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
+  const buyAndEquipSkin = useCallback(
+    (skinId: SkinId) => {
+      const meta = SKIN_OPTIONS.find((s) => s.id === skinId);
+      if (!meta) return false;
+
+      // Already unlocked? Just equip!
+      if (skinId === "padrao" || state.unlockedSkins.includes(skinId)) {
+        soundEngine.play("success");
+        setState((prev) => {
+          if (!prev.agent) return prev;
+          const updatedAgent = { ...prev.agent, skinId };
+          const nextSaved = Array.from(
+            new Map(
+              [...(prev.savedProfiles || []), updatedAgent].map((p) => [
+                p.name.toLowerCase(),
+                p,
+              ])
+            ).values()
+          );
+          return {
+            ...prev,
+            agent: updatedAgent,
+            lastActiveAgent: updatedAgent,
+            savedProfiles: nextSaved,
+            unlockedSkins: Array.from(new Set([...prev.unlockedSkins, skinId])),
+          };
+        });
+        pushToast(
+          `Skin Equipada: ${meta.name}`,
+          meta.tagline,
+          meta.badgeEmoji
+        );
+        return true;
+      }
+
+      const currentLevel = Math.floor(state.xp / xpPerLevel) + 1;
+      if (currentLevel < meta.unlockLevel) {
+        soundEngine.play("error");
+        pushToast(
+          "Nível Insuficiente",
+          `Esta skin requer Nível ${meta.unlockLevel} ⚡ (Você está no Nível ${currentLevel}). Continue jogando para desbloquear!`,
+          "🔒"
+        );
+        return false;
+      }
+
+      if (state.wisdom < meta.priceDiamonds) {
+        soundEngine.play("error");
+        pushToast(
+          "Diamantes Insuficientes",
+          `Você precisa de ${meta.priceDiamonds} 💎 (Você tem ${state.wisdom} 💎). Faltam ${meta.priceDiamonds - state.wisdom} 💎!`,
+          "💎"
+        );
+        return false;
+      }
+
+      // Purchase successful!
+      soundEngine.play("levelUp");
+      setState((prev) => {
+        if (!prev.agent) return prev;
+        const updatedAgent = { ...prev.agent, skinId };
+        const nextSaved = Array.from(
+          new Map(
+            [...(prev.savedProfiles || []), updatedAgent].map((p) => [
+              p.name.toLowerCase(),
+              p,
+            ])
+          ).values()
+        );
+        return {
+          ...prev,
+          wisdom: Math.max(0, prev.wisdom - meta.priceDiamonds),
+          agent: updatedAgent,
+          lastActiveAgent: updatedAgent,
+          savedProfiles: nextSaved,
+          unlockedSkins: Array.from(new Set([...prev.unlockedSkins, skinId])),
+        };
+      });
+
+      pushToast(
+        `🎉 Skin Desbloqueada: ${meta.name}!`,
+        `Adquirida por ${meta.priceDiamonds} 💎 e equipada com sucesso!`,
+        meta.badgeEmoji
+      );
+      return true;
+    },
+    [pushToast, state.xp, state.wisdom, state.unlockedSkins, xpPerLevel]
+  );
+
   const unlockAndEquipSkin = useCallback(
     (skinId: SkinId, forceFree = false) => {
       const meta = SKIN_OPTIONS.find((s) => s.id === skinId);
       if (!meta) return false;
 
-      const currentLevel = Math.floor(state.xp / xpPerLevel) + 1;
       const alreadyUnlocked =
         forceFree ||
-        currentLevel >= meta.unlockLevel ||
+        skinId === "padrao" ||
         state.unlockedSkins.includes(skinId);
 
       if (alreadyUnlocked) {
@@ -589,15 +673,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         return true;
       }
 
-      soundEngine.play("error");
-      pushToast(
-        "Nível Insuficiente",
-        `Esta skin requer Nível ${meta.unlockLevel} ⚡ (Você está no Nível ${currentLevel}). Continue jogando e completando missões!`,
-        "🔒"
-      );
-      return false;
+      // If not unlocked, attempt to buy
+      return buyAndEquipSkin(skinId);
     },
-    [pushToast, state.xp, state.unlockedSkins, xpPerLevel]
+    [buyAndEquipSkin, pushToast, state.unlockedSkins]
   );
 
   const markTutorialSeen = useCallback((profileName?: string) => {
@@ -966,6 +1045,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     updateAgentAppearance,
     isSkinUnlocked,
     unlockAndEquipSkin,
+    buyAndEquipSkin,
     completeMission,
     acceptSchoolChallenge,
     prayForRegion,

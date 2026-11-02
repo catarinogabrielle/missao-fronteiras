@@ -41,6 +41,8 @@ export interface SkinOption {
   rarity: SkinRarity;
   /** Player level required to unlock and equip this skin */
   unlockLevel: number;
+  /** Diamond price in Wisdom Crystals (0 for free default) */
+  priceDiamonds: number;
   tagline: string;
   accentHex: string;
   badgeEmoji: string;
