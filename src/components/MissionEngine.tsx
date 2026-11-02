@@ -1232,50 +1232,51 @@ export function MissionEngine({
       </div>
 
       {/* =========================================================
-          TOP-CENTER: CLEAN & INTUITIVE AAA GAMER HUD
-          - Clearly separates VIDA (Health) from MISSÃO (Objective Progress)
-          - Clear GPS destination and mission title
+          TOP-CENTER: ULTRA-COMPACT AAA GAMER HUD
+          - Slim, unobtrusive profile that won't block mobile gameplay
+          - Clear VIDA vs MISSÃO status
+          - Ultra-compact single-row Duo mode
          ========================================================= */}
-      <div className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 z-20 w-[92%] max-w-sm sm:max-w-md">
-        <div className="pointer-events-auto rounded-2xl border border-amber-400/50 bg-slate-950/90 backdrop-blur-xl p-2 sm:p-2.5 shadow-[0_4px_24px_rgba(0,0,0,0.7)] flex flex-col gap-1.5 select-none">
+      <div className="pointer-events-none absolute top-1 sm:top-1.5 left-1/2 -translate-x-1/2 z-20 w-auto min-w-[230px] max-w-[270px] sm:max-w-[340px]">
+        <div className="pointer-events-auto rounded-xl border border-amber-400/40 bg-slate-950/85 backdrop-blur-md px-2 py-1 sm:px-2.5 sm:py-1.5 shadow-[0_2px_12px_rgba(0,0,0,0.6)] flex flex-col gap-1 select-none">
           {/* Top Row: Mission Biome + Current Destination */}
-          <div className="flex items-center justify-between gap-2 border-b border-slate-800/80 pb-1">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className="text-sm shrink-0">{mission.emoji}</span>
-              <span className="truncate text-[10px] sm:text-[11px] font-black tracking-wider text-amber-300 uppercase">
+          <div className="flex items-center justify-between gap-1.5 border-b border-slate-800/80 pb-0.5">
+            <div className="flex items-center gap-1 min-w-0">
+              <span className="text-xs shrink-0">{mission.emoji}</span>
+              <span className="truncate text-[8.5px] sm:text-[9.5px] font-black tracking-wider text-amber-300 uppercase max-w-[110px] sm:max-w-[150px]">
                 {mission.title.split("•")[0]?.trim() || mission.title}
               </span>
             </div>
-            <div className="truncate text-[8.5px] sm:text-[9.5px] font-bold text-cyan-300 flex items-center gap-1 shrink-0">
+            <div className="truncate text-[7.5px] sm:text-[8.5px] font-bold text-cyan-300 flex items-center gap-0.5 shrink-0 max-w-[110px] sm:max-w-[150px]">
               <span>📍</span>
-              <span className="truncate max-w-[130px] sm:max-w-[180px]">
+              <span className="truncate">
                 {hudSnap.raceActive ? `Anel ${hudSnap.raceCheckpointIdx + 1}/${hudSnap.raceTotalCheckpoints}` : activeGpsTarget.label}
               </span>
             </div>
           </div>
 
           {/* Row 2: Two Distinct, Unmistakable Status Bars: VIDA vs PROGRESSO */}
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-2 gap-2">
             {/* 1. VIDA DO HERÓI (HEALTH BAR) */}
             <div className="flex flex-col gap-0.5">
-              <div className="flex items-center justify-between text-[9px] sm:text-[9.5px] font-black font-mono">
-                <span className="flex items-center gap-1 text-rose-400">
-                  <Heart className="h-3 w-3 fill-rose-500 text-rose-500 shrink-0" />
+              <div className="flex items-center justify-between text-[7.5px] sm:text-[8px] font-black font-mono leading-none">
+                <span className="flex items-center gap-0.5 text-rose-400">
+                  <Heart className="h-2.5 w-2.5 fill-rose-500 text-rose-500 shrink-0" />
                   <span>VIDA</span>
                 </span>
                 <span className={hudSnap.hp <= 30 ? "text-rose-400 font-bold animate-pulse" : "text-emerald-400"}>
                   {hudSnap.hp}/{hudSnap.maxHp}
                 </span>
               </div>
-              <div className="h-2 w-full overflow-hidden rounded-full border border-slate-700 bg-slate-900 p-[1px]">
+              <div className="h-1.5 w-full overflow-hidden rounded-full border border-slate-700 bg-slate-900 p-[0.5px]">
                 <div
                   style={{ width: `${hpPct}%` }}
                   className={`h-full rounded-full transition-all duration-200 ${
                     hpPct > 50
-                      ? "bg-gradient-to-r from-emerald-500 to-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                      ? "bg-gradient-to-r from-emerald-500 to-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.5)]"
                       : hpPct > 25
-                        ? "bg-gradient-to-r from-amber-500 to-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.5)]"
-                        : "bg-gradient-to-r from-rose-600 to-rose-500 animate-pulse shadow-[0_0_10px_rgba(244,63,94,0.7)]"
+                        ? "bg-gradient-to-r from-amber-500 to-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.5)]"
+                        : "bg-gradient-to-r from-rose-600 to-rose-500 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.7)]"
                   }`}
                 />
               </div>
@@ -1283,8 +1284,8 @@ export function MissionEngine({
 
             {/* 2. PROGRESSO DA MISSÃO (OBJECTIVE PROGRESS BAR) */}
             <div className="flex flex-col gap-0.5">
-              <div className="flex items-center justify-between text-[9px] sm:text-[9.5px] font-black font-mono">
-                <span className="flex items-center gap-1 text-cyan-300">
+              <div className="flex items-center justify-between text-[7.5px] sm:text-[8px] font-black font-mono leading-none">
+                <span className="flex items-center gap-0.5 text-cyan-300">
                   <span>🎯</span>
                   <span>MISSÃO</span>
                 </span>
@@ -1292,10 +1293,10 @@ export function MissionEngine({
                   {trust}%
                 </span>
               </div>
-              <div className="h-2 w-full overflow-hidden rounded-full border border-slate-700 bg-slate-900 p-[1px]">
+              <div className="h-1.5 w-full overflow-hidden rounded-full border border-slate-700 bg-slate-900 p-[0.5px]">
                 <motion.div
                   animate={{ width: `${trust}%` }}
-                  className="h-full rounded-full bg-gradient-to-r from-cyan-500 via-teal-400 to-amber-300 shadow-[0_0_8px_rgba(6,182,212,0.5)]"
+                  className="h-full rounded-full bg-gradient-to-r from-cyan-500 via-teal-400 to-amber-300 shadow-[0_0_6px_rgba(6,182,212,0.5)]"
                 />
               </div>
             </div>
@@ -1303,9 +1304,9 @@ export function MissionEngine({
 
           {/* Live Checkpoint Express Race Countdown (Only when racing) */}
           {hudSnap.raceActive && (
-            <div className="flex items-center justify-between pt-1 border-t border-emerald-500/30 font-mono text-[9px] font-black text-emerald-200">
+            <div className="flex items-center justify-between pt-0.5 border-t border-emerald-500/30 font-mono text-[7.5px] sm:text-[8px] font-black text-emerald-200 leading-none">
               <span className="flex items-center gap-1">
-                <Flag className="h-3 w-3 text-amber-300" />
+                <Flag className="h-2.5 w-2.5 text-amber-300" />
                 CHECKPOINT {hudSnap.raceCheckpointIdx + 1}/{hudSnap.raceTotalCheckpoints}
               </span>
               <span className={hudSnap.raceTimeLeft < 12 ? "animate-pulse text-rose-300" : "text-amber-300"}>
@@ -1316,79 +1317,70 @@ export function MissionEngine({
 
           {/* Integrated Slim District Boss Bar (Only when near boss) */}
           {nearBossArena && !hudSnap.raceActive && (
-            <div className="flex items-center gap-2 pt-1 border-t border-fuchsia-500/30">
-              <span className="flex items-center gap-1 text-[9px] font-black text-fuchsia-200 uppercase shrink-0">
-                <Crown className="h-3 w-3 text-amber-300" />
+            <div className="flex items-center gap-1.5 pt-0.5 border-t border-fuchsia-500/30">
+              <span className="flex items-center gap-0.5 text-[7.5px] sm:text-[8px] font-black text-fuchsia-200 uppercase shrink-0">
+                <Crown className="h-2.5 w-2.5 text-amber-300" />
                 {worldCfg.bossName.split(" ")[0] || "BOSS"}:
               </span>
-              <div className="flex-1 h-2 overflow-hidden rounded-full border border-fuchsia-400/30 bg-slate-950 p-[1px]">
+              <div className="flex-1 h-1.5 overflow-hidden rounded-full border border-fuchsia-400/30 bg-slate-950 p-[0.5px]">
                 <div
                   style={{ width: `${hudSnap.bossHpPct}%` }}
-                  className="h-full rounded-full bg-gradient-to-r from-rose-500 via-fuchsia-500 to-amber-400 transition-all duration-150 shadow-[0_0_8px_rgba(244,63,94,0.5)]"
+                  className="h-full rounded-full bg-gradient-to-r from-rose-500 via-fuchsia-500 to-amber-400 transition-all duration-150 shadow-[0_0_6px_rgba(244,63,94,0.5)]"
                 />
               </div>
-              <span className="font-mono text-[8.5px] font-black text-amber-300 shrink-0">
+              <span className="font-mono text-[7.5px] sm:text-[8px] font-black text-amber-300 shrink-0">
                 {hudSnap.bossHpPct}%
               </span>
             </div>
           )}
 
-          {/* Integrated Real-time Duo Co-op Status & Cargo Bar */}
+          {/* Integrated Real-time Duo Co-op Status: Ultra-Compact Single Row */}
           {coopSession && (
-            <div className="pt-1 mt-0.5 border-t border-emerald-500/30 flex flex-col gap-1">
-              <div className="flex items-center justify-between gap-1.5 text-[8px] sm:text-[8.5px]">
-                <div className="flex items-center gap-1 font-black text-emerald-300 uppercase shrink-0">
-                  <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>DUPLA:</span>
-                  <span className="font-mono text-emerald-400/90">({partnerPing ?? 18}ms)</span>
-                </div>
-                <div className="flex items-center gap-1 font-black min-w-0">
-                  {coopSession.myRole === "driver" ? (
-                    <span className="text-amber-300 shrink-0">🚗 PILOTO</span>
-                  ) : (
-                    <span className="text-cyan-300 shrink-0">🛡️ GUARDIÃO</span>
-                  )}
-                  <span className="text-slate-500 shrink-0">|</span>
-                  <span className="text-slate-200 truncate max-w-[80px] sm:max-w-[120px]">
-                    👤 {partnerInfo?.name || coopSession.partnerName || "Parceiro"}
-                  </span>
-                </div>
+            <div className="pt-1 mt-0.5 border-t border-emerald-500/30 flex items-center justify-between gap-1.5 text-[7.5px] sm:text-[8px] leading-none">
+              {/* Duo Partner & Ping */}
+              <div className="flex items-center gap-1 min-w-0 truncate">
+                <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                <span className="shrink-0" title={coopSession.myRole === "driver" ? "Você é Piloto" : "Você é Guardião"}>
+                  {coopSession.myRole === "driver" ? "🚗" : "🛡️"}
+                </span>
+                <span className="truncate max-w-[65px] sm:max-w-[90px] font-bold text-slate-200">
+                  {partnerInfo?.name || coopSession.partnerName || "Dupla"}
+                </span>
+                <span className="font-mono text-[7px] text-emerald-400/90 shrink-0">
+                  ({partnerPing ?? 18}ms)
+                </span>
               </div>
 
-              {/* Cargo Integrity Bar + PING DUPLA in same row (ZERO OVERLAP!) */}
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1 flex-1 min-w-0">
-                  <span className="text-[7.5px] sm:text-[8px] font-mono font-black uppercase text-amber-300 shrink-0">
-                    📦 CARGA:
-                  </span>
-                  <div className="h-1.5 flex-1 rounded-full border border-slate-700 bg-slate-900 overflow-hidden min-w-[50px]">
-                    <div
-                      style={{ width: `${cargoHealth}%` }}
-                      className={`h-full transition-all duration-200 ${
-                        cargoHealth > 60
-                          ? "bg-gradient-to-r from-emerald-400 to-cyan-400"
-                          : cargoHealth > 30
-                            ? "bg-gradient-to-r from-amber-400 to-orange-400"
-                            : "bg-gradient-to-r from-rose-500 to-rose-600 animate-pulse"
-                      }`}
-                    />
-                  </div>
-                  <span className="font-mono text-[7.5px] sm:text-[8px] font-black text-white shrink-0">
-                    {cargoHealth}%
-                  </span>
+              {/* Duo Cargo Health Bar */}
+              <div className="flex items-center gap-1 shrink-0">
+                <span className="text-[7.5px] font-mono font-black text-amber-300 shrink-0">📦</span>
+                <div className="h-1.5 w-10 sm:w-14 rounded-full border border-slate-700 bg-slate-900 overflow-hidden">
+                  <div
+                    style={{ width: `${cargoHealth}%` }}
+                    className={`h-full transition-all duration-200 ${
+                      cargoHealth > 60
+                        ? "bg-gradient-to-r from-emerald-400 to-cyan-400"
+                        : cargoHealth > 30
+                          ? "bg-gradient-to-r from-amber-400 to-orange-400"
+                          : "bg-gradient-to-r from-rose-500 to-rose-600 animate-pulse"
+                    }`}
+                  />
                 </div>
-
-                {/* Tactile Ping Button docked cleanly in the row */}
-                <button
-                  type="button"
-                  onClick={handleCoopPing}
-                  className="cursor-pointer shrink-0 inline-flex items-center gap-0.5 rounded-full border border-cyan-400/60 bg-gradient-to-r from-cyan-500/25 to-blue-500/25 px-2 py-0.5 text-[8px] font-black uppercase text-cyan-200 shadow-sm hover:border-cyan-300 hover:text-white active:scale-95 transition"
-                  title="Sinalizar rota para a dupla"
-                >
-                  <span className="text-[8.5px]">📍</span>
-                  <span>PING DUPLA</span>
-                </button>
+                <span className="font-mono text-[7px] font-black text-white shrink-0">
+                  {cargoHealth}%
+                </span>
               </div>
+
+              {/* Compact Ping Button */}
+              <button
+                type="button"
+                onClick={handleCoopPing}
+                className="cursor-pointer shrink-0 inline-flex items-center gap-0.5 rounded-md border border-cyan-400/60 bg-gradient-to-r from-cyan-500/25 to-blue-500/25 px-1.5 py-0.5 text-[7px] sm:text-[7.5px] font-black uppercase text-cyan-200 shadow-sm hover:border-cyan-300 hover:text-white active:scale-95 transition"
+                title="Sinalizar rota para a dupla"
+              >
+                <span className="text-[7.5px]">📍</span>
+                <span>PING</span>
+              </button>
             </div>
           )}
         </div>
