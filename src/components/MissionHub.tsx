@@ -1568,14 +1568,14 @@ export function MissionHub({
         {/* =========================================================================
             LEFT COLUMN (3 cols on lg/xl): HEROIC 3D CHAMPION & COMPACT COMMAND DOCK
             - Hero stands tall and visible with 360° rotation and responsive emote bar
-            - Compact Arsenal dock below (Grimório, Radar, Idiomas, Co-op Duo, Cards, Arena 4v4)
+            - Generous, tactile Arsenal dock below (Grimório, Radar, Idiomas, Co-op Duo, Cards, Arena 4v4)
             - Fits 100% within viewport height without scrollbar
            ========================================================================= */}
-        <section className="flex h-full flex-col justify-between min-h-0 gap-1.5 lg:col-span-3 xl:col-span-3 overflow-hidden">
+        <section className="flex h-full flex-col justify-between min-h-0 gap-2 lg:col-span-3 xl:col-span-3 overflow-hidden">
           {/* Live 3D Champion Showcase Card */}
           <div className="moba-panel-gold moba-clip-panel relative flex flex-1 flex-col justify-between overflow-hidden p-2 min-h-0">
             {/* Hero 3D Render Canvas */}
-            <div className="relative flex-1 min-h-[160px] xl:min-h-[200px] w-full overflow-hidden my-0.5">
+            <div className="relative flex-1 min-h-[140px] xl:min-h-[180px] w-full overflow-hidden my-0.5">
               <HeroPreview3D
                 avatarId={state.agent.avatarId}
                 skinId={state.agent.skinId ?? "padrao"}
@@ -1616,39 +1616,39 @@ export function MissionHub({
                   playSfx("click");
                   onOpenWardrobe();
                 }}
-                className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-amber-400/60 bg-gradient-to-r from-amber-500/20 via-amber-500/30 to-amber-600/20 py-1.5 text-xs font-black text-amber-300 hover:border-amber-300 hover:text-white transition cursor-pointer shadow-sm"
+                className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-amber-400/60 bg-gradient-to-r from-amber-500/20 via-amber-500/30 to-amber-600/20 py-2 text-xs xl:text-sm font-black text-amber-300 hover:border-amber-300 hover:text-white transition cursor-pointer shadow-sm"
               >
-                <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                <Sparkles className="h-4 w-4 text-amber-400" />
                 <span>PERSONALIZAR HERÓI 3D</span>
               </motion.button>
             </div>
           </div>
 
-          {/* Quick Tactical Command & Arsenal Dock */}
-          <div className="moba-panel-cyan moba-clip-panel shrink-0 p-1.5 overflow-hidden">
-            <div className="flex items-center justify-between pb-0.5 px-1 border-b border-cyan-500/20 mb-1">
-              <span className="text-[8.5px] font-black tracking-[0.2em] text-cyan-300 uppercase">
+          {/* Tactical Command & Arsenal Dock */}
+          <div className="moba-panel-cyan moba-clip-panel shrink-0 p-2 xl:p-2.5 overflow-hidden">
+            <div className="flex items-center justify-between pb-1 px-1 border-b border-cyan-500/20 mb-1.5">
+              <span className="text-[9.5px] xl:text-[10.5px] font-black tracking-[0.2em] text-cyan-300 uppercase flex items-center gap-1">
                 🎒 ARSENAL & COMANDO
               </span>
-              <span className="text-[8px] font-mono text-slate-400">
+              <span className="text-[8.5px] font-mono text-slate-400">
                 ACESSO RÁPIDO
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-1">
+            <div className="grid grid-cols-2 gap-1.5">
               <MobaButton
                 variant="obsidian"
                 size="sm"
                 shape="slant"
                 sheen={false}
                 onClick={() => onOpenPocketBible("gospel")}
-                className="w-full !justify-between !px-1.5 !py-1"
+                className="w-full !justify-between !px-2.5 !py-2 xl:!py-2.5"
               >
-                <span className="inline-flex items-center gap-1 text-[9px] truncate">
-                  <BookOpen className="h-2.5 w-2.5 text-emerald-400 shrink-0" />
+                <span className="inline-flex items-center gap-1.5 text-[10px] xl:text-[11px] font-bold truncate">
+                  <BookOpen className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
                   Grimório
                 </span>
-                <span className="font-mono text-[8.5px] text-emerald-300">
+                <span className="font-mono text-[9px] xl:text-[10px] font-bold text-emerald-300">
                   {state.studiedGospelSteps.length}/4
                 </span>
               </MobaButton>
@@ -1659,13 +1659,13 @@ export function MissionHub({
                 shape="slant"
                 sheen={false}
                 onClick={onOpenPrayerRadar}
-                className="w-full !justify-between !px-1.5 !py-1"
+                className="w-full !justify-between !px-2.5 !py-2 xl:!py-2.5"
               >
-                <span className="inline-flex items-center gap-1 text-[9px] truncate">
-                  <Radio className="h-2.5 w-2.5 text-amber-400 shrink-0" />
+                <span className="inline-flex items-center gap-1.5 text-[10px] xl:text-[11px] font-bold truncate">
+                  <Radio className="h-3.5 w-3.5 text-amber-400 shrink-0" />
                   Radar
                 </span>
-                <span className="font-mono text-[8.5px] text-amber-300">
+                <span className="font-mono text-[9px] xl:text-[10px] font-bold text-amber-300">
                   {state.prayedMissionIds.length}/4
                 </span>
               </MobaButton>
@@ -1676,13 +1676,13 @@ export function MissionHub({
                 shape="slant"
                 sheen={false}
                 onClick={() => setLanguageModalOpen(true)}
-                className="w-full !justify-between !px-1.5 !py-1 !border-amber-500/40"
+                className="w-full !justify-between !px-2.5 !py-2 xl:!py-2.5 !border-amber-500/40"
               >
-                <span className="inline-flex items-center gap-1 text-[9px] truncate">
-                  <Globe2 className="h-2.5 w-2.5 text-amber-400 shrink-0" />
+                <span className="inline-flex items-center gap-1.5 text-[10px] xl:text-[11px] font-bold truncate">
+                  <Globe2 className="h-3.5 w-3.5 text-amber-400 shrink-0" />
                   Idiomas
                 </span>
-                <span className="font-mono text-[8.5px] text-amber-300">8 Povos</span>
+                <span className="font-mono text-[9px] xl:text-[10px] font-bold text-amber-300">8 Povos</span>
               </MobaButton>
 
               <MobaButton
@@ -1691,13 +1691,13 @@ export function MissionHub({
                 shape="slant"
                 sheen={false}
                 onClick={() => setCoopModalOpen(true)}
-                className="w-full !justify-between !px-1.5 !py-1 !border-emerald-500/40"
+                className="w-full !justify-between !px-2.5 !py-2 xl:!py-2.5 !border-emerald-500/40"
               >
-                <span className="inline-flex items-center gap-1 text-[9px] truncate">
-                  <Users className="h-2.5 w-2.5 text-emerald-400 shrink-0" />
+                <span className="inline-flex items-center gap-1.5 text-[10px] xl:text-[11px] font-bold truncate">
+                  <Users className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
                   Co-op Duo
                 </span>
-                <span className="font-mono text-[8.5px] text-emerald-300">2P</span>
+                <span className="font-mono text-[9px] xl:text-[10px] font-bold text-emerald-300">2P</span>
               </MobaButton>
 
               <MobaButton
@@ -1706,13 +1706,13 @@ export function MissionHub({
                 shape="slant"
                 sheen={false}
                 onClick={onOpenPassport}
-                className="w-full !justify-between !px-1.5 !py-1"
+                className="w-full !justify-between !px-2.5 !py-2 xl:!py-2.5"
               >
-                <span className="inline-flex items-center gap-1 text-[9px] truncate">
-                  <Trophy className="h-2.5 w-2.5 text-amber-300 shrink-0" />
+                <span className="inline-flex items-center gap-1.5 text-[10px] xl:text-[11px] font-bold truncate">
+                  <Trophy className="h-3.5 w-3.5 text-amber-300 shrink-0" />
                   Cards
                 </span>
-                <span className="font-mono text-[8.5px] text-amber-300">
+                <span className="font-mono text-[9px] xl:text-[10px] font-bold text-amber-300">
                   {completedIds.length}/{allMissions.length}
                 </span>
               </MobaButton>
@@ -1722,9 +1722,9 @@ export function MissionHub({
                 size="sm"
                 shape="hex"
                 onClick={onOpenTribesQuiz}
-                className="w-full !justify-center !px-1.5 !py-1 !text-[9px] font-black"
+                className="w-full !justify-center !px-2.5 !py-2 xl:!py-2.5 !text-[10.5px] xl:!text-[11.5px] font-black"
               >
-                <Swords className="h-2.5 w-2.5 text-amber-300 shrink-0" />
+                <Swords className="h-3.5 w-3.5 text-amber-300 shrink-0" />
                 <span className="truncate">Arena 4v4</span>
               </MobaButton>
             </div>
@@ -1737,9 +1737,9 @@ export function MissionHub({
             - 8-Biome mission selector thumbnails right underneath
             - 100% viewport fit, zero scrollbars
            ========================================================================= */}
-        <section className="flex h-full flex-col justify-between min-h-0 gap-1.5 lg:col-span-5 xl:col-span-5 overflow-hidden">
+        <section className="flex h-full flex-col justify-between min-h-0 gap-2 lg:col-span-5 xl:col-span-5 overflow-hidden">
           {/* Top Planetary Header */}
-          <div className="moba-panel-cyan moba-clip-panel flex items-center justify-between px-2.5 py-1 shrink-0">
+          <div className="moba-panel-cyan moba-clip-panel flex items-center justify-between px-3 py-1.5 shrink-0">
             <div>
               <div className="text-[8.5px] font-black tracking-[0.2em] text-cyan-300 uppercase">
                 SELETOR PLANETÁRIO 3D • BASE IDE
@@ -1766,7 +1766,7 @@ export function MissionHub({
             </div>
 
             {/* WebGL 3D Globe */}
-            <div className="my-0.5 flex-1 min-h-[160px] xl:min-h-[210px] w-full overflow-hidden">
+            <div className="my-0.5 flex-1 min-h-[140px] xl:min-h-[175px] w-full overflow-hidden">
               <WorldGlobe3D
                 missions={allMissions}
                 selectedMissionId={selectedMission.id}
@@ -1785,18 +1785,23 @@ export function MissionHub({
             </div>
           </div>
 
-          {/* 8-Biome Selector Grid (4 cols x 2 rows - Compact, beautiful thumbnails) */}
-          <div className="moba-panel-cyan moba-clip-panel shrink-0 p-1.5 overflow-hidden">
-            <div className="flex items-center justify-between px-1 pb-0.5 mb-1 border-b border-cyan-500/20">
-              <span className="text-[8.5px] font-black tracking-[0.2em] text-cyan-300 uppercase">
-                🗺️ SELEÇÃO DE CIDADES & BIOMAS
-              </span>
-              <span className="text-[8px] font-mono text-slate-400">
-                8 EXPEDIÇÕES DISPONÍVEIS
+          {/* 8-Biome Selector Grid (4 cols x 2 rows - Generous, beautiful, readable thumbnails) */}
+          <div className="moba-panel-cyan moba-clip-panel shrink-0 p-2 overflow-hidden">
+            <div className="flex items-center justify-between px-1 pb-1 mb-1.5 border-b border-cyan-500/20">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[9px] xl:text-[10px] font-black tracking-[0.2em] text-cyan-300 uppercase">
+                  🗺️ SELEÇÃO DE CIDADES & BIOMAS
+                </span>
+                <span className="rounded bg-cyan-500/20 border border-cyan-400/40 px-1.5 py-0.2 text-[8px] font-mono font-bold text-cyan-300">
+                  8 EXPEDIÇÕES
+                </span>
+              </div>
+              <span className="text-[8.5px] font-mono text-amber-300 font-bold">
+                {completedIds.length}/8 LIBERADOS
               </span>
             </div>
 
-            <div className="grid grid-cols-4 gap-1">
+            <div className="grid grid-cols-4 gap-1.5">
               {allMissions.map((m) => {
                 const isSelected = m.id === selectedMission.id;
                 const unlocked = unlockedIds.includes(m.id);
@@ -1807,39 +1812,60 @@ export function MissionHub({
                   <motion.button
                     key={m.id}
                     type="button"
-                    whileHover={{ scale: 1.03, y: -1 }}
+                    whileHover={{ scale: 1.03, y: -2 }}
                     whileTap={{ scale: 0.97 }}
                     onClick={() => {
                       playSfx("click");
                       setSelectedId(m.id);
                     }}
-                    className={`relative cursor-pointer overflow-hidden rounded-lg border text-left transition ${
+                    className={`group relative cursor-pointer overflow-hidden rounded-xl border text-left transition-all duration-200 ${
                       isSelected
-                        ? "border-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.5)] ring-1 ring-amber-300"
+                        ? "border-amber-400 bg-amber-500/10 shadow-[0_0_16px_rgba(245,158,11,0.55)] ring-2 ring-amber-400/80 scale-[1.02]"
                         : unlocked
-                          ? "border-slate-700 hover:border-cyan-400"
-                          : "border-slate-800 opacity-60 grayscale"
+                          ? "border-slate-700/80 bg-slate-900/60 hover:border-cyan-400 hover:shadow-[0_0_10px_rgba(6,182,212,0.3)]"
+                          : "border-slate-800/80 bg-slate-950/70 opacity-50 grayscale hover:opacity-75"
                     }`}
                   >
-                    <div className="relative h-9 xl:h-10 w-full">
+                    <div className="relative h-15 sm:h-16 xl:h-20 w-full overflow-hidden">
                       <img
                         src={thumb}
                         alt={m.title}
-                        className="h-full w-full object-cover"
+                        className={`h-full w-full object-cover transition-transform duration-500 ${
+                          isSelected ? "scale-110" : "group-hover:scale-105"
+                        }`}
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-slate-950/15" />
 
-                      <span className="absolute top-0.5 right-0.5">
+                      {/* Top Badges: Phase on Left, Status on Right */}
+                      <div className="absolute top-1 left-1.5 right-1.5 flex items-center justify-between">
+                        <span
+                          className={`px-1.5 py-0.2 rounded text-[7.5px] xl:text-[8.5px] font-mono font-black tracking-wider shadow ${
+                            isSelected
+                              ? "bg-amber-500 text-slate-950 font-black"
+                              : "bg-slate-950/85 text-cyan-300 border border-cyan-500/40"
+                          }`}
+                        >
+                          F.{m.order}
+                        </span>
+
                         {done ? (
-                          <CheckCircle2 className="h-3 w-3 fill-emerald-950 text-emerald-400" />
+                          <span className="flex items-center justify-center h-4 w-4 rounded-full bg-emerald-500 text-slate-950 shadow">
+                            <CheckCircle2 className="h-3 w-3 fill-slate-950 text-emerald-400" />
+                          </span>
                         ) : !unlocked ? (
-                          <Lock className="h-2.5 w-2.5 text-slate-300" />
+                          <span className="flex items-center justify-center h-4 w-4 rounded-full bg-slate-950/85 border border-slate-700 text-slate-400">
+                            <Lock className="h-2.5 w-2.5" />
+                          </span>
                         ) : null}
-                      </span>
+                      </div>
 
-                      <div className="absolute right-1 bottom-0.5 left-1">
-                        <div className="truncate text-[8px] font-black text-white uppercase">
-                          {m.order}. {m.title.split(" ")[0]}
+                      {/* Bottom: Full Title and Region Subtitle */}
+                      <div className="absolute right-1.5 bottom-1 left-1.5">
+                        <div className="text-[7px] xl:text-[8px] font-mono font-bold text-cyan-300 truncate uppercase">
+                          {m.regionName}
+                        </div>
+                        <div className="truncate text-[8.5px] xl:text-[10px] font-black text-white uppercase leading-tight group-hover:text-amber-300 transition-colors">
+                          {m.title}
                         </div>
                       </div>
                     </div>
@@ -1855,9 +1881,9 @@ export function MissionHub({
             - Complete mission briefing as requested
             - Banner photo, NPC Ally, objectives, rewards and big CTA button
            ========================================================================= */}
-        <section className="flex h-full flex-col justify-between min-h-0 gap-1.5 lg:col-span-4 xl:col-span-4 overflow-hidden">
+        <section className="flex h-full flex-col justify-between min-h-0 gap-2 lg:col-span-4 xl:col-span-4 overflow-hidden">
           {/* Top Dossier Header */}
-          <div className="moba-panel-gold moba-clip-panel flex items-center justify-between px-2.5 py-1 shrink-0">
+          <div className="moba-panel-gold moba-clip-panel flex items-center justify-between px-3 py-1.5 shrink-0">
             <div className="min-w-0 flex-1">
               <div className="text-[8.5px] font-black tracking-[0.2em] text-amber-300 uppercase">
                 DOSSIÊ TÁTICO DA EXPEDIÇÃO
@@ -1875,7 +1901,7 @@ export function MissionHub({
           {/* Dossier Card Body */}
           <div className="moba-panel-gold moba-clip-panel flex flex-1 flex-col justify-between overflow-hidden p-2 min-h-0">
             {/* Widescreen City Splash Photo Banner */}
-            <div className="relative h-20 xl:h-24 2xl:h-28 w-full rounded-xl overflow-hidden shrink-0">
+            <div className="relative h-18 xl:h-20 2xl:h-22 w-full rounded-xl overflow-hidden shrink-0">
               <img
                 src={selectedSplash}
                 alt={selectedMission.title}
@@ -1910,7 +1936,7 @@ export function MissionHub({
             <div className="flex items-center gap-2 rounded-xl border border-cyan-500/30 bg-slate-950/85 p-2 my-1 shrink-0">
               <NpcPortrait
                 avatarKey={selectedMission.npc.avatarKey}
-                size={40}
+                size={38}
                 shape="hex"
               />
               <div className="min-w-0 flex-1">
@@ -1928,24 +1954,24 @@ export function MissionHub({
 
             {/* Mission Objective & Rewards */}
             <div className="flex flex-col justify-between rounded-xl border border-slate-800 bg-slate-950/85 p-2 flex-1 min-h-0 my-0.5">
-              <p className="text-[10px] leading-snug text-slate-300 line-clamp-2 mb-1">
+              <p className="text-[10px] xl:text-[10.5px] leading-snug text-slate-300 line-clamp-2 mb-1">
                 {selectedMission.shortDescription}
               </p>
 
-              <div className="grid grid-cols-2 gap-1.5 text-center mt-auto">
-                <div className="rounded-lg border border-slate-800 bg-slate-900/80 p-1">
-                  <div className="text-[7.5px] font-bold text-slate-400 uppercase">
+              <div className="grid grid-cols-2 gap-2 text-center mt-auto">
+                <div className="rounded-lg border border-slate-800 bg-slate-900/80 p-1.5">
+                  <div className="text-[8px] xl:text-[8.5px] font-bold text-slate-400 uppercase">
                     RECOMPENSA
                   </div>
-                  <div className="font-mono text-[10px] font-black text-emerald-400 truncate">
+                  <div className="font-mono text-xs xl:text-sm font-black text-emerald-400 truncate">
                     +{selectedMission.rewardXp} XP • +{selectedMission.rewardWisdom} 💎
                   </div>
                 </div>
-                <div className="rounded-lg border border-slate-800 bg-slate-900/80 p-1">
-                  <div className="text-[7.5px] font-bold text-slate-400 uppercase">
+                <div className="rounded-lg border border-slate-800 bg-slate-900/80 p-1.5">
+                  <div className="text-[8px] xl:text-[8.5px] font-bold text-slate-400 uppercase">
                     DESAFIOS
                   </div>
-                  <div className="font-mono text-[10px] font-black text-amber-300 truncate">
+                  <div className="font-mono text-xs xl:text-sm font-black text-amber-300 truncate">
                     {selectedRecord?.completed
                       ? `${selectedRecord.bestTrust}% CONFIANÇA`
                       : "CORRIDA + TORRES"}
@@ -1955,14 +1981,14 @@ export function MissionHub({
             </div>
 
             {/* Giant Play Button + Co-op Quick Launch */}
-            <div className="pt-1.5 flex items-center gap-1.5 shrink-0 border-t border-amber-500/20">
+            <div className="pt-2 flex items-center gap-2 shrink-0 border-t border-amber-500/20">
               {selectedUnlocked ? (
                 <MobaButton
                   variant="gold"
                   size="lg"
                   shape="hex"
                   onClick={() => onSelectMission(selectedMission)}
-                  className="flex-1 !py-2.5 text-xs xl:text-sm font-black"
+                  className="flex-1 !py-3 xl:!py-3.5 text-sm xl:text-base font-black tracking-wide shadow-lg"
                 >
                   <Sparkles className="h-4 w-4" />
                   {selectedRecord?.completed
@@ -1975,9 +2001,9 @@ export function MissionHub({
                   size="md"
                   shape="hex"
                   disabled
-                  className="flex-1 !py-2 text-[10.5px]"
+                  className="flex-1 !py-3 text-xs"
                 >
-                  <Lock className="h-3 w-3" />
+                  <Lock className="h-3.5 w-3.5" />
                   FASE {selectedMission.order - 1} OBRIGATÓRIA
                 </MobaButton>
               )}
@@ -1987,7 +2013,7 @@ export function MissionHub({
                 size="lg"
                 shape="hex"
                 onClick={() => setCoopModalOpen(true)}
-                className="!px-3 !py-2.5 text-xs font-black shrink-0"
+                className="!px-4 !py-3 xl:!py-3.5 text-xs xl:text-sm font-black shrink-0 shadow-lg"
                 title="Jogar em Dupla Cooperativa"
               >
                 <Users className="h-4 w-4" />
