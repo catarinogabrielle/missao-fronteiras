@@ -1067,9 +1067,9 @@ export function MissionHub({
             </div>
 
             {/* Rewards Pill */}
-            <div className="flex items-center justify-between text-[9.5px] font-bold text-slate-400 bg-slate-950/80 px-2.5 py-1 rounded-xl border border-slate-800 shrink-0">
-              <span>Recompensa da Fase:</span>
-              <span className="text-amber-300 font-mono font-black">
+            <div className="flex items-center justify-between gap-1 text-[8.5px] sm:text-[9.5px] font-bold text-slate-400 bg-slate-950/80 px-2 py-1 rounded-xl border border-slate-800 shrink-0 whitespace-nowrap overflow-hidden">
+              <span className="shrink-0 text-slate-400">Recompensa:</span>
+              <span className="text-amber-300 font-mono font-black shrink-0 whitespace-nowrap">
                 +{selectedMission.rewardXp} XP • +{selectedMission.rewardWisdom} 💎
               </span>
             </div>
@@ -1229,9 +1229,9 @@ export function MissionHub({
                         </div>
 
                         {/* Rewards */}
-                        <div className="relative z-10 border-t border-slate-800/80 pt-1 flex items-center justify-between text-[9.5px]">
-                          <span className="text-slate-400">Recompensa:</span>
-                          <span className="font-mono font-black text-emerald-400">
+                        <div className="relative z-10 border-t border-slate-800/80 pt-1 flex items-center justify-between gap-1 text-[8.5px] sm:text-[9.5px] whitespace-nowrap overflow-hidden">
+                          <span className="text-slate-400 shrink-0">Recompensa:</span>
+                          <span className="font-mono font-black text-emerald-400 shrink-0 whitespace-nowrap">
                             +{m.rewardXp} XP • +{m.rewardWisdom} 💎
                           </span>
                         </div>
