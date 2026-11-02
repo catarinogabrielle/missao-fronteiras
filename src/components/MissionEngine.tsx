@@ -1805,11 +1805,10 @@ export function MissionEngine({
               style={{
                 transform: `translate(${joystickVec.x * 44}px, ${joystickVec.y * 44}px)`,
               }}
-              className="pointer-events-none flex h-16 w-16 sm:h-18 sm:w-18 items-center justify-center rounded-full border-2 border-amber-200 bg-gradient-to-b from-amber-300 via-amber-500 to-orange-600 text-[10px] sm:text-[11px] font-black text-slate-950 shadow-[0_0_24px_rgba(251,191,36,0.85)] active:scale-95"
+              className="pointer-events-none flex h-16 w-16 sm:h-18 sm:w-18 items-center justify-center rounded-full border-2 border-amber-200 bg-gradient-to-b from-amber-300 via-amber-500 to-orange-600 shadow-[0_0_24px_rgba(251,191,36,0.85)] active:scale-95"
             >
-              <div className="flex flex-col items-center justify-center rounded-full border border-amber-950/40 bg-amber-400/30 h-11 w-11 sm:h-12 sm:w-12">
-                <span className="leading-none text-[10px] sm:text-[11px] font-black tracking-wide">MOVER</span>
-                <span className="mt-1 h-1.5 w-1.5 rounded-full bg-slate-950/50" />
+              <div className="flex items-center justify-center rounded-full border border-amber-950/30 bg-amber-400/35 h-10 w-10 sm:h-11 sm:w-11 shadow-inner">
+                <div className="h-4 w-4 sm:h-4.5 sm:w-4.5 rounded-full border border-amber-950/30 bg-amber-500/60" />
               </div>
             </div>
           </div>
