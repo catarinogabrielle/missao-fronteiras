@@ -1207,19 +1207,6 @@ export function MissionHub({
         <section className="flex h-full flex-col justify-between min-h-0 gap-1.5 lg:col-span-3 xl:col-span-3 overflow-hidden">
           {/* Live 3D Champion Showcase Card */}
           <div className="moba-panel-gold moba-clip-panel relative flex flex-1 flex-col justify-between overflow-hidden p-2 min-h-0">
-            {/* Top Bar: Level, Rank, and Skin Tag */}
-            <div className="flex items-center justify-between px-1 pt-0.5 shrink-0">
-              <span className="rounded-lg border border-amber-400/40 bg-amber-500/20 px-1.5 py-0.5 font-mono text-[9px] font-black text-amber-300 uppercase">
-                NÍV. {level} • {levelTitle}
-              </span>
-              <span
-                className="rounded-full border border-cyan-400/30 bg-cyan-500/15 px-1.5 py-0.5 text-[8.5px] font-black truncate max-w-[100px]"
-                style={{ color: skinMeta.accentHex }}
-              >
-                {skinMeta.badgeEmoji} {skinMeta.name}
-              </span>
-            </div>
-
             {/* Hero 3D Render Canvas */}
             <div className="relative flex-1 min-h-[160px] xl:min-h-[200px] w-full overflow-hidden my-0.5">
               <HeroPreview3D
