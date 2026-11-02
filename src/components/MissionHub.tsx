@@ -346,33 +346,43 @@ export function MissionHub({
             </div>
           </button>
 
-          {/* Giant JOGAR Button */}
+          {/* JOGAR & DUPLA Buttons */}
           {selectedUnlocked ? (
-            <motion.button
-              type="button"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.96 }}
-              onClick={() => {
-                playSfx("ult");
-                onSelectMission(selectedMission);
-              }}
-              className="w-full py-3 flex items-center justify-center gap-2 rounded-2xl border-2 border-amber-300 bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 text-slate-950 font-black shadow-[0_0_24px_rgba(245,158,11,0.65)] hover:shadow-[0_0_36px_rgba(245,158,11,0.85)] cursor-pointer transition active:scale-95"
-            >
-              <Swords className="h-5 w-5 fill-slate-950 text-slate-950 shrink-0" />
-              <div className="text-center">
-                <div className="text-base font-black tracking-widest uppercase leading-tight">
-                  JOGAR AGORA
-                </div>
-                <div className="text-[9px] font-extrabold uppercase text-amber-950/90 leading-none">
-                  ENTRAR NA CIDADE • FASE {selectedMission.order}
-                </div>
-              </div>
-            </motion.button>
+            <div className="space-y-1.5">
+              <motion.button
+                type="button"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.96 }}
+                onClick={() => {
+                  playSfx("ult");
+                  onSelectMission(selectedMission);
+                }}
+                className="w-full py-2.5 flex items-center justify-center gap-2 rounded-xl border-2 border-amber-300 bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 text-slate-950 font-black shadow-[0_0_20px_rgba(245,158,11,0.6)] cursor-pointer transition active:scale-95 text-xs uppercase"
+              >
+                <Swords className="h-4 w-4 fill-slate-950 text-slate-950 shrink-0" />
+                <span>JOGAR CIDADE 3D</span>
+                <span className="text-[9.5px] font-bold text-amber-950/80">• FASE {selectedMission.order}</span>
+              </motion.button>
+
+              <motion.button
+                type="button"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.96 }}
+                onClick={() => {
+                  playSfx("click");
+                  setCoopModalOpen(true);
+                }}
+                className="w-full py-2 flex items-center justify-center gap-2 rounded-xl border border-emerald-400/80 bg-gradient-to-r from-emerald-500/25 via-emerald-600/30 to-teal-500/25 text-emerald-300 font-black shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:text-white cursor-pointer transition uppercase text-xs"
+              >
+                <Users className="h-4 w-4 text-emerald-400 shrink-0" />
+                <span>JOGAR EM DUPLA (CO-OP 2P)</span>
+              </motion.button>
+            </div>
           ) : (
             <button
               type="button"
               disabled
-              className="w-full py-3 flex items-center justify-center gap-1.5 rounded-2xl border border-slate-800 bg-slate-900/60 text-slate-500 text-xs font-black uppercase cursor-not-allowed"
+              className="w-full py-2.5 flex items-center justify-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-500 text-xs font-black uppercase cursor-not-allowed"
             >
               <Lock className="h-4 w-4" />
               <span>Bloqueado • Conclua a Fase {selectedMission.order - 1}</span>
@@ -1068,29 +1078,44 @@ export function MissionHub({
           {/* Bottom: AAA MOBA JOGAR Button & Quick Navigation */}
           <div className="shrink-0 space-y-1.5">
             {selectedUnlocked ? (
-              <motion.button
-                type="button"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.96 }}
-                onClick={() => {
-                  playSfx("ult");
-                  onSelectMission(selectedMission);
-                }}
-                className="w-full py-3 sm:py-3.5 flex flex-col items-center justify-center rounded-xl sm:rounded-2xl border-2 border-amber-300 bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 text-slate-950 font-black shadow-[0_0_24px_rgba(245,158,11,0.65)] hover:shadow-[0_0_36px_rgba(245,158,11,0.85)] hover:brightness-105 cursor-pointer transition"
-              >
-                <div className="flex items-center justify-center gap-2 text-base sm:text-lg font-black tracking-widest uppercase">
-                  <Swords className="h-5 w-5 fill-slate-950 text-slate-950 shrink-0" />
-                  <span>JOGAR</span>
-                </div>
-                <div className="text-[9.5px] font-extrabold uppercase tracking-wider text-amber-950/90 truncate max-w-[95%]">
-                  ENTRAR NA CIDADE 3D • FASE {selectedMission.order}
-                </div>
-              </motion.button>
+              <>
+                {/* 1. JOGAR (Solo) - Altura Reduzida */}
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.96 }}
+                  onClick={() => {
+                    playSfx("ult");
+                    onSelectMission(selectedMission);
+                  }}
+                  className="w-full py-2 sm:py-2.5 flex items-center justify-center gap-2 rounded-xl sm:rounded-2xl border-2 border-amber-300 bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 text-slate-950 font-black shadow-[0_0_20px_rgba(245,158,11,0.6)] hover:brightness-105 cursor-pointer transition uppercase text-xs sm:text-sm tracking-wide"
+                >
+                  <Swords className="h-4 w-4 fill-slate-950 text-slate-950 shrink-0" />
+                  <span>JOGAR CIDADE 3D</span>
+                  <span className="text-[10px] font-bold text-amber-950/80">• FASE {selectedMission.order}</span>
+                </motion.button>
+
+                {/* 2. JOGAR EM DUPLA (CO-OP 2P) - Diretamente abaixo do Jogar */}
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.96 }}
+                  onClick={() => {
+                    playSfx("click");
+                    setCoopModalOpen(true);
+                  }}
+                  title="Jogar em Dupla Cooperativa (2 Jogadores)"
+                  className="w-full py-2 sm:py-2.5 flex items-center justify-center gap-2 rounded-xl sm:rounded-2xl border border-emerald-400/80 bg-gradient-to-r from-emerald-500/25 via-emerald-600/30 to-teal-500/25 text-emerald-300 font-black shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:border-emerald-300 hover:bg-emerald-500/35 hover:text-white transition cursor-pointer uppercase text-xs sm:text-sm tracking-wide"
+                >
+                  <Users className="h-4 w-4 text-emerald-400 shrink-0" />
+                  <span>JOGAR EM DUPLA (CO-OP 2P)</span>
+                </motion.button>
+              </>
             ) : (
               <button
                 type="button"
                 disabled
-                className="w-full py-3.5 flex items-center justify-center gap-1.5 rounded-xl sm:rounded-2xl border border-slate-800 bg-slate-900/60 text-slate-500 text-[10px] font-black uppercase cursor-not-allowed"
+                className="w-full py-2.5 flex items-center justify-center gap-1.5 rounded-xl sm:rounded-2xl border border-slate-800 bg-slate-900/60 text-slate-500 text-[10px] font-black uppercase cursor-not-allowed"
               >
                 <Lock className="h-3.5 w-3.5" />
                 <span>Bloqueado • Conclua Fase {selectedMission.order - 1}</span>
