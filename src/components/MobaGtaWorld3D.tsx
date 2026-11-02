@@ -2357,6 +2357,11 @@ export function MobaGtaWorld3D({
     let partnerSpeed = 0;
     let partnerInVehicle = false;
     let partnerWalkCycle = 0;
+    // Solo AI Partner Combat & Intelligence System State
+    let partnerAttackCooldown = 0;
+    let partnerAttackAnimTimer = 0;
+    let partnerHealCooldown = 5.0;
+    let partnerVoiceCooldown = 4.0;
 
     if (coopPartnerRef.current) {
       const cp = coopPartnerRef.current;
@@ -2541,7 +2546,12 @@ export function MobaGtaWorld3D({
       );
     };
 
-    const damageEnemy = (enemy: LiveEnemy, amount: number, knockback = 1.6) => {
+    const damageEnemy = (
+      enemy: LiveEnemy,
+      amount: number,
+      knockback = 1.6,
+      fromOrigin?: { x: number; z: number }
+    ) => {
       if (enemy.dead) return;
       enemy.hp = Math.max(0, enemy.hp - amount);
       enemy.hitFlash = 0.18;
@@ -2585,8 +2595,10 @@ export function MobaGtaWorld3D({
         emitPopup("🔥 FÚRIA DO TITÃ: O CHEFÃO ENTROU EM FRENESI!", "#f43f5e");
       }
 
-      const dx = enemy.x - heroPos.x;
-      const dz = enemy.z - heroPos.z;
+      const ox = fromOrigin ? fromOrigin.x : heroPos.x;
+      const oz = fromOrigin ? fromOrigin.z : heroPos.z;
+      const dx = enemy.x - ox;
+      const dz = enemy.z - oz;
       const dist = Math.max(0.1, Math.hypot(dx, dz));
       const safeKnockback = Math.min(2.2, knockback);
       enemy.x += (dx / dist) * safeKnockback;
@@ -3669,6 +3681,7 @@ export function MobaGtaWorld3D({
           }
 
           if (coopPartnerPosRef.current) {
+            // Live WebRTC Network Human Player Sync
             partnerTargetPos.x = coopPartnerPosRef.current.x;
             partnerTargetPos.z = coopPartnerPosRef.current.z;
             partnerTargetAngle = coopPartnerPosRef.current.angle;
@@ -3676,41 +3689,256 @@ export function MobaGtaWorld3D({
             partnerSpeed = coopPartnerPosRef.current.speed || 0;
             partnerIsMoving = partnerSpeed > 0.5;
           } else {
-            // Solo AI Partner companion mode (follows the player smoothly)
-            const distToHero = partnerPos.distanceTo(heroPos);
-            if (distToHero > 4.2) {
-              const dirX = heroPos.x - partnerPos.x;
-              const dirZ = heroPos.z - partnerPos.z;
-              partnerTargetAngle = Math.atan2(dirX, dirZ);
-              partnerTargetPos.x += Math.sin(partnerTargetAngle) * 8.5 * dt;
-              partnerTargetPos.z += Math.cos(partnerTargetAngle) * 8.5 * dt;
-              partnerIsMoving = true;
-              partnerSpeed = 8.5;
-            } else {
+            // =========================================================
+            // SOLO AI PARTNER INTELLIGENCE & COMBAT ENGINE
+            // - Vehicle Boarding & Passenger Protection
+            // - Active Combat (Aggro targeting, boss attacks, combos)
+            // - Emergency Support (Prayer healing when Hero is low HP)
+            // - Tactical Resource / Collectible Gathering
+            // - Tactical Wingman Formation & Flanking
+            // =========================================================
+            if (partnerAttackCooldown > 0) partnerAttackCooldown -= dt;
+            if (partnerAttackAnimTimer > 0) partnerAttackAnimTimer -= dt;
+            if (partnerHealCooldown > 0) partnerHealCooldown -= dt;
+            if (partnerVoiceCooldown > 0) partnerVoiceCooldown -= dt;
+
+            // 1. VEHICLE PASSENGER BEHAVIOR
+            if (activeVehicle) {
+              partnerInVehicle = true;
               partnerIsMoving = false;
               partnerSpeed = 0;
+              const isMoto = activeVehicle.cfg.kind === "moto";
+              const seatOffsetRight = isMoto ? 0 : 0.72;
+              const seatOffsetBack = isMoto ? 0.65 : 0.15;
+              const cosA = Math.cos(heroAngle);
+              const sinA = Math.sin(heroAngle);
+              partnerPos.x = heroPos.x + cosA * seatOffsetRight - sinA * seatOffsetBack;
+              partnerPos.z = heroPos.z - sinA * seatOffsetRight - cosA * seatOffsetBack;
+              partnerPos.y = heroPos.y;
+              partnerTargetPos.copy(partnerPos);
+              partnerAngle = heroAngle;
+              partnerTargetAngle = heroAngle;
+
+              // Passenger Drive-by Protection: If shadows get within 6.5m of the car, partner blasts them!
+              if (partnerAttackCooldown <= 0) {
+                const nearbyEnemy = enemies.find(
+                  (en) => !en.dead && Math.hypot(en.x - partnerPos.x, en.z - partnerPos.z) < 6.5
+                );
+                if (nearbyEnemy) {
+                  partnerAttackCooldown = 0.9;
+                  partnerAttackAnimTimer = 0.25;
+                  damageEnemy(nearbyEnemy, 32, 2.0, { x: partnerPos.x, z: partnerPos.z });
+                  soundEngine.play("hit");
+                  if (partnerVoiceCooldown <= 0) {
+                    partnerVoiceCooldown = 6.0;
+                    emitPopup(`🚗💥 ${cp.name}: "Cobrindo o veículo! Fogo nas sombras!"`, "#38bdf8");
+                  }
+                }
+              }
+            } else {
+              partnerInVehicle = false;
+
+              // 2. EMERGENCY SUPPORT & HEALING PRAYER
+              let isHandlingEmergency = false;
+              const distToHero = partnerPos.distanceTo(heroPos);
+              if (hp <= 45 && partnerHealCooldown <= 0) {
+                if (distToHero > 3.0) {
+                  // Run to hero to deliver healing
+                  const dirX = heroPos.x - partnerPos.x;
+                  const dirZ = heroPos.z - partnerPos.z;
+                  partnerTargetAngle = Math.atan2(dirX, dirZ);
+                  partnerTargetPos.x += Math.sin(partnerTargetAngle) * 11.0 * dt;
+                  partnerTargetPos.z += Math.cos(partnerTargetAngle) * 11.0 * dt;
+                  partnerIsMoving = true;
+                  partnerSpeed = 11.0;
+                  isHandlingEmergency = true;
+                } else {
+                  // Deliver heal!
+                  hp = Math.min(maxHp, hp + 35);
+                  partnerHealCooldown = 18.0;
+                  soundEngine.play("success");
+                  emitPopup(`💖 ${cp.name}: "Não tema! Receba forças!" (+35 HP)`, "#34d399");
+                  const healRing = new THREE.Mesh(
+                    new THREE.RingGeometry(0.3, 1.8, 24),
+                    new THREE.MeshBasicMaterial({
+                      color: 0x34d399,
+                      side: THREE.DoubleSide,
+                      transparent: true,
+                      opacity: 0.8,
+                    })
+                  );
+                  healRing.rotation.x = -Math.PI / 2;
+                  healRing.position.set(heroPos.x, 0.25, heroPos.z);
+                  scene.add(healRing);
+                  vfxList.push({ mesh: healRing, age: 0, duration: 0.6, maxScale: 2.5 });
+                }
+              }
+
+              // 3. TACTICAL COMBAT ENGAGEMENT
+              if (!isHandlingEmergency) {
+                let bestTarget: LiveEnemy | null = null;
+                let bestTargetScore = -Infinity;
+
+                enemies.forEach((en) => {
+                  if (en.dead) return;
+                  const dToHero = Math.hypot(en.x - heroPos.x, en.z - heroPos.z);
+                  const dToPartner = Math.hypot(en.x - partnerPos.x, en.z - partnerPos.z);
+
+                  if (dToHero < 18.0 || dToPartner < 15.0) {
+                    let score = 100 - dToPartner;
+                    if (en.isBoss) score += 50;
+                    if (en.aggroTimer > 0) score += 35; // attacking hero
+                    if (dToHero < 5.0) score += 40; // immediate danger to hero
+
+                    if (score > bestTargetScore) {
+                      bestTargetScore = score;
+                      bestTarget = en;
+                    }
+                  }
+                });
+
+                if (bestTarget) {
+                  const targetEnemy = bestTarget as LiveEnemy;
+                  const dx = targetEnemy.x - partnerPos.x;
+                  const dz = targetEnemy.z - partnerPos.z;
+                  const distToEnemy = Math.hypot(dx, dz);
+                  partnerTargetAngle = Math.atan2(dx, dz);
+
+                  if (distToEnemy > 2.4) {
+                    // Move swiftly into melee strike distance
+                    const combatSpeed = 10.5;
+                    partnerTargetPos.x += Math.sin(partnerTargetAngle) * combatSpeed * dt;
+                    partnerTargetPos.z += Math.cos(partnerTargetAngle) * combatSpeed * dt;
+                    partnerIsMoving = true;
+                    partnerSpeed = combatSpeed;
+                  } else {
+                    // In strike range! Stop and slash
+                    partnerIsMoving = false;
+                    partnerSpeed = 0;
+
+                    if (partnerAttackCooldown <= 0) {
+                      partnerAttackCooldown = 0.82;
+                      partnerAttackAnimTimer = 0.28;
+                      const dmg = targetEnemy.isBoss ? 44 : 36;
+                      damageEnemy(targetEnemy, dmg, 1.8, { x: partnerPos.x, z: partnerPos.z });
+                      soundEngine.play("hit");
+
+                      if (partnerVoiceCooldown <= 0) {
+                        partnerVoiceCooldown = 7.0;
+                        const battleQuotes = [
+                          `⚔️ ${cp.name}: "Pela Luz! Afastem-se!"`,
+                          `🛡️ ${cp.name}: "Cobrindo sua retaguarda!"`,
+                          `✨ ${cp.name} desferiu um Golpe Purificador!`,
+                        ];
+                        const q = battleQuotes[Math.floor(Math.random() * battleQuotes.length)];
+                        emitPopup(q, "#38bdf8");
+                      }
+                    }
+                  }
+                } else {
+                  // 4. RESOURCE & SUPPLY ASSISTANCE (Collectibles Helper)
+                  let nearestItem: LiveCollectible | null = null;
+                  let minItemDist = 14.0;
+
+                  collectibles.forEach((c) => {
+                    if (c.collected) return;
+                    const d = Math.hypot(c.x - partnerPos.x, c.z - partnerPos.z);
+                    if (d < minItemDist) {
+                      minItemDist = d;
+                      nearestItem = c;
+                    }
+                  });
+
+                  if (nearestItem) {
+                    const item = nearestItem as LiveCollectible;
+                    const idx = item.x - partnerPos.x;
+                    const idz = item.z - partnerPos.z;
+                    partnerTargetAngle = Math.atan2(idx, idz);
+                    const itemDist = Math.hypot(idx, idz);
+
+                    if (itemDist > 1.8) {
+                      const speed = 8.8;
+                      partnerTargetPos.x += Math.sin(partnerTargetAngle) * speed * dt;
+                      partnerTargetPos.z += Math.cos(partnerTargetAngle) * speed * dt;
+                      partnerIsMoving = true;
+                      partnerSpeed = speed;
+                    } else {
+                      // Collect item for team!
+                      item.collected = true;
+                      item.mesh.visible = false;
+                      soundEngine.play("pickup");
+                      score += item.points;
+
+                      if (item.kind === "scroll") {
+                        scrollsCollected += 1;
+                        onEarnRef.current(25, 10);
+                        emitPopup(`📜 ${cp.name} resgatou um Pergaminho! (+${item.points})`, "#fbbf24");
+                      } else if (item.kind === "supply") {
+                        suppliesHeld += 1;
+                        onEarnRef.current(15, 5);
+                        emitPopup(`📦 ${cp.name} resgatou provisões!`, "#38bdf8");
+                      } else if (item.kind === "heart") {
+                        hp = Math.min(maxHp, hp + 35);
+                        emitPopup(`❤️ ${cp.name} compartilhou Vida! (+35 HP)`, "#f43f5e");
+                      } else {
+                        onEarnRef.current(10, 6);
+                        emitPopup(`💎 ${cp.name} coletou Diamante!`, "#06b6d4");
+                      }
+                      partnerIsMoving = false;
+                      partnerSpeed = 0;
+                    }
+                  } else {
+                    // 5. TACTICAL WINGMAN FORMATION (Follows player at flank, not bumping or lagging)
+                    const flankOffsetX = Math.cos(heroAngle) * 2.2 - Math.sin(heroAngle) * 1.8;
+                    const flankOffsetZ = -Math.sin(heroAngle) * 2.2 - Math.cos(heroAngle) * 1.8;
+                    const targetX = heroPos.x + flankOffsetX;
+                    const targetZ = heroPos.z + flankOffsetZ;
+                    const dFlank = Math.hypot(targetX - partnerPos.x, targetZ - partnerPos.z);
+
+                    if (dFlank > 2.0) {
+                      const fdx = targetX - partnerPos.x;
+                      const fdz = targetZ - partnerPos.z;
+                      partnerTargetAngle = Math.atan2(fdx, fdz);
+                      const followSpeed = dFlank > 14.0 ? 14.0 : 9.2;
+                      partnerTargetPos.x += Math.sin(partnerTargetAngle) * followSpeed * dt;
+                      partnerTargetPos.z += Math.cos(partnerTargetAngle) * followSpeed * dt;
+                      partnerIsMoving = true;
+                      partnerSpeed = followSpeed;
+                    } else {
+                      partnerTargetAngle = heroAngle;
+                      partnerIsMoving = false;
+                      partnerSpeed = 0;
+                    }
+                  }
+                }
+              }
             }
           }
 
-          partnerPos.x += (partnerTargetPos.x - partnerPos.x) * Math.min(1, 14 * dt);
-          partnerPos.z += (partnerTargetPos.z - partnerPos.z) * Math.min(1, 14 * dt);
-          partnerAngle += (partnerTargetAngle - partnerAngle) * Math.min(1, 12 * dt);
+          if (partnerInVehicle && activeVehicle) {
+            partnerHolder.position.copy(partnerPos);
+            partnerHolder.rotation.y = partnerAngle;
+          } else {
+            partnerPos.x += (partnerTargetPos.x - partnerPos.x) * Math.min(1, 14 * dt);
+            partnerPos.z += (partnerTargetPos.z - partnerPos.z) * Math.min(1, 14 * dt);
+            partnerAngle += (partnerTargetAngle - partnerAngle) * Math.min(1, 12 * dt);
 
-          if (resolvedBiome === "amazonia" && !partnerInVehicle) {
-            const onBridge =
-              Math.abs(partnerPos.x) < 5.8 ||
-              Math.abs(partnerPos.x + 46) < 5.8 ||
-              Math.abs(partnerPos.x - 46) < 5.8;
-            if (!onBridge && Math.abs(partnerPos.z - 27) < 4.8) {
-              partnerPos.z = partnerPos.z > 27 ? 31.9 : 22.1;
+            if (resolvedBiome === "amazonia" && !partnerInVehicle) {
+              const onBridge =
+                Math.abs(partnerPos.x) < 5.8 ||
+                Math.abs(partnerPos.x + 46) < 5.8 ||
+                Math.abs(partnerPos.x - 46) < 5.8;
+              if (!onBridge && Math.abs(partnerPos.z - 27) < 4.8) {
+                partnerPos.z = partnerPos.z > 27 ? 31.9 : 22.1;
+              }
             }
+
+            const pElevation = getGroundElevation(partnerPos.x, partnerPos.z);
+            partnerPos.y += (pElevation - partnerPos.y) * Math.min(1, 16 * dt);
+
+            partnerHolder.position.copy(partnerPos);
+            partnerHolder.rotation.y = partnerAngle;
           }
-
-          const pElevation = getGroundElevation(partnerPos.x, partnerPos.z);
-          partnerPos.y += (pElevation - partnerPos.y) * Math.min(1, 16 * dt);
-
-          partnerHolder.position.copy(partnerPos);
-          partnerHolder.rotation.y = partnerAngle;
 
           if (partnerIsMoving) {
             partnerWalkCycle += dt * 12.0;
@@ -3721,11 +3949,23 @@ export function MobaGtaWorld3D({
             partnerWalkCycle,
             partnerIsMoving,
             partnerInVehicle,
-            0,
+            partnerAttackAnimTimer,
             idleClock,
             "idle",
             0
           );
+
+          if (partnerAttackAnimTimer > 0 && partnerRig) {
+            partnerRig.rightArmPivot.rotation.x = -1.6 + partnerAttackAnimTimer * 3.5;
+            partnerRig.rightArmPivot.rotation.z = -0.4;
+            if (partnerRig.slashArc) {
+              partnerRig.slashArc.rotation.z += dt * 25;
+              (partnerRig.slashArc.material as THREE.MeshBasicMaterial).opacity = Math.min(
+                0.95,
+                partnerAttackAnimTimer * 4.2
+              );
+            }
+          }
 
           // Co-op Cargo Threat: Shadows attack cargo if near active vehicle
           const veh = activeVehicle;

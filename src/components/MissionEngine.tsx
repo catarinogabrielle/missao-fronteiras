@@ -368,7 +368,18 @@ export function MissionEngine({
       text: "📍 Você sinalizou a rota para seu parceiro!",
       color: "#fbbf24",
     });
-  }, [playSfx, pushWorldPopup]);
+    // Solo AI Partner acknowledges tactical ping
+    if (!partnerPosition && coopSession) {
+      setTimeout(() => {
+        playSfx("levelUp");
+        pushWorldPopup({
+          id: Date.now() + Math.random(),
+          text: `📍 ${partnerInfo?.name || "Dupla"}: "Entendido! Avançando com você!"`,
+          color: "#38bdf8",
+        });
+      }, 700);
+    }
+  }, [playSfx, pushWorldPopup, partnerPosition, coopSession, partnerInfo?.name]);
 
   const handleHudUpdate = useCallback((snap: WorldHudSnapshot) => {
     setHudSnap(snap);
