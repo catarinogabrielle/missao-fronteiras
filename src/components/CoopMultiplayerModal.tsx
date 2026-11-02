@@ -203,31 +203,31 @@ export function CoopMultiplayerModal({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-3 sm:p-5 backdrop-blur-md"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-1.5 sm:p-4 backdrop-blur-md"
     >
       <motion.div
         initial={{ scale: 0.94, y: 16 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.95, opacity: 0 }}
         onClick={(e) => e.stopPropagation()}
-        className="relative flex w-full max-w-2xl max-h-[92vh] overflow-y-auto flex-col rounded-3xl border border-cyan-400/50 bg-gradient-to-b from-slate-950 via-[#071328] to-slate-950 p-3.5 sm:p-6 shadow-[0_0_50px_rgba(6,182,212,0.25)] backdrop-blur-xl"
+        className="relative flex w-[98%] sm:w-[94%] max-w-4xl max-h-[96vh] sm:max-h-[92vh] overflow-y-auto flex-col rounded-2xl sm:rounded-3xl border border-cyan-400/50 bg-gradient-to-b from-slate-950 via-[#071328] to-slate-950 p-2.5 sm:p-5 shadow-[0_0_50px_rgba(6,182,212,0.25)] backdrop-blur-xl"
       >
         {/* Top Header */}
-        <div className="flex items-start sm:items-center justify-between border-b border-cyan-500/25 pb-3 gap-2 shrink-0">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-2xl border border-cyan-400/60 bg-cyan-500/20 text-cyan-300 shadow-md">
-              <Users className="h-5 w-5 sm:h-6 sm:w-6" />
+        <div className="flex items-center justify-between border-b border-cyan-500/25 pb-2 sm:pb-3 gap-2 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+            <div className="flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl sm:rounded-2xl border border-cyan-400/60 bg-cyan-500/20 text-cyan-300 shadow-md">
+              <Users className="h-4.5 w-4.5 sm:h-6 sm:w-6" />
             </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="font-mono text-[8px] sm:text-[9px] font-black tracking-wider text-cyan-300 uppercase">
+                <span className="font-mono text-[7.5px] sm:text-[9px] font-black tracking-wider text-cyan-300 uppercase">
                   MODO CO-OP (2P)
                 </span>
-                <span className="rounded-full bg-emerald-500/20 border border-emerald-400/40 px-1.5 py-0.2 text-[7.5px] sm:text-[8px] font-black text-emerald-300 uppercase">
+                <span className="rounded-full bg-emerald-500/20 border border-emerald-400/40 px-1.5 py-0.2 text-[7px] sm:text-[8px] font-black text-emerald-300 uppercase">
                   WEBRTC P2P
                 </span>
               </div>
-              <h2 className="text-base sm:text-xl font-black text-white uppercase tracking-wide truncate">
+              <h2 className="text-sm sm:text-xl font-black text-white uppercase tracking-wide truncate">
                 Expedição em Dupla
               </h2>
             </div>
@@ -239,14 +239,14 @@ export function CoopMultiplayerModal({
               playSfx("click");
               onClose();
             }}
-            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-slate-300 transition hover:border-rose-400 hover:bg-rose-500/20 hover:text-white shrink-0"
+            className="flex h-7 w-7 sm:h-8 sm:w-8 cursor-pointer items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-slate-300 transition hover:border-rose-400 hover:bg-rose-500/20 hover:text-white shrink-0"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Tab Toggle: Criar Sala vs Entrar em Sala */}
-        <div className="mt-3 sm:mt-4 flex rounded-2xl border border-cyan-500/25 bg-slate-900/60 p-1 shrink-0">
+        <div className="mt-2.5 sm:mt-3 flex rounded-xl sm:rounded-2xl border border-cyan-500/25 bg-slate-900/60 p-1 shrink-0">
           <button
             type="button"
             onClick={() => {
@@ -255,7 +255,7 @@ export function CoopMultiplayerModal({
               setNetworkStatus("idle");
               setPartner(null);
             }}
-            className={`flex-1 rounded-xl py-2 text-[11px] sm:text-xs font-black uppercase transition cursor-pointer ${
+            className={`flex-1 rounded-lg sm:rounded-xl py-1.5 sm:py-2 text-[10.5px] sm:text-xs font-black uppercase transition cursor-pointer ${
               tab === "create"
                 ? "bg-cyan-500/25 text-cyan-200 border border-cyan-400/40 shadow"
                 : "text-slate-400 hover:text-white"
@@ -271,7 +271,7 @@ export function CoopMultiplayerModal({
               setNetworkStatus("idle");
               setPartner(null);
             }}
-            className={`flex-1 rounded-xl py-2 text-[11px] sm:text-xs font-black uppercase transition cursor-pointer ${
+            className={`flex-1 rounded-lg sm:rounded-xl py-1.5 sm:py-2 text-[10.5px] sm:text-xs font-black uppercase transition cursor-pointer ${
               tab === "join"
                 ? "bg-amber-500/25 text-amber-200 border border-amber-400/40 shadow"
                 : "text-slate-400 hover:text-white"
@@ -282,11 +282,11 @@ export function CoopMultiplayerModal({
         </div>
 
         {/* Role Selection: Piloto vs Guardião */}
-        <div className="mt-3 sm:mt-4 shrink-0">
-          <label className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-slate-300">
+        <div className="mt-2.5 sm:mt-3 shrink-0">
+          <label className="text-[9.5px] sm:text-[11px] font-black uppercase tracking-wider text-slate-300">
             Escolha sua Função na Dupla:
           </label>
-          <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+          <div className="mt-1.5 grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
             {/* Piloto */}
             <button
               type="button"
@@ -294,28 +294,28 @@ export function CoopMultiplayerModal({
                 playSfx("click");
                 setSelectedRole("driver");
               }}
-              className={`flex flex-col rounded-2xl border p-3 sm:p-3.5 text-left transition cursor-pointer ${
+              className={`flex flex-col rounded-xl sm:rounded-2xl border p-2.5 sm:p-3.5 text-left transition cursor-pointer ${
                 selectedRole === "driver"
                   ? "border-amber-400 bg-amber-500/20 shadow-[0_0_20px_rgba(245,158,11,0.25)]"
                   : "border-slate-800 bg-slate-900/50 hover:border-slate-700"
               }`}
             >
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-xl bg-amber-500/25 text-amber-300 shrink-0">
-                    <Car className="h-4 w-4" />
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg sm:rounded-xl bg-amber-500/25 text-amber-300 shrink-0">
+                    <Car className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </div>
                   <span className="font-black text-xs sm:text-sm text-white uppercase">
                     Piloto da Esperança
                   </span>
                 </div>
                 {selectedRole === "driver" && (
-                  <span className="rounded-full bg-amber-400 text-slate-950 font-black text-[8px] sm:text-[9px] px-2 py-0.5">
+                  <span className="rounded-full bg-amber-400 text-slate-950 font-black text-[7.5px] sm:text-[9px] px-2 py-0.5">
                     ESCOLHIDO
                   </span>
                 )}
               </div>
-              <p className="mt-1.5 text-[10px] sm:text-[11px] text-slate-300 leading-snug">
+              <p className="mt-1 text-[9.5px] sm:text-[11px] text-slate-300 leading-snug">
                 Conduz a Van/Barco de suprimentos pelos anéis do GPS, atropela sombras e transporta a carga da igreja até o destino.
               </p>
             </button>
@@ -327,28 +327,28 @@ export function CoopMultiplayerModal({
                 playSfx("click");
                 setSelectedRole("guardian");
               }}
-              className={`flex flex-col rounded-2xl border p-3 sm:p-3.5 text-left transition cursor-pointer ${
+              className={`flex flex-col rounded-xl sm:rounded-2xl border p-2.5 sm:p-3.5 text-left transition cursor-pointer ${
                 selectedRole === "guardian"
                   ? "border-cyan-400 bg-cyan-500/20 shadow-[0_0_20px_rgba(6,182,212,0.25)]"
                   : "border-slate-800 bg-slate-900/50 hover:border-slate-700"
               }`}
             >
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-xl bg-cyan-500/25 text-cyan-300 shrink-0">
-                    <Shield className="h-4 w-4" />
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <div className="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-lg sm:rounded-xl bg-cyan-500/25 text-cyan-300 shrink-0">
+                    <Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </div>
                   <span className="font-black text-xs sm:text-sm text-white uppercase">
                     Guardião da Luz
                   </span>
                 </div>
                 {selectedRole === "guardian" && (
-                  <span className="rounded-full bg-cyan-400 text-slate-950 font-black text-[8px] sm:text-[9px] px-2 py-0.5">
+                  <span className="rounded-full bg-cyan-400 text-slate-950 font-black text-[7.5px] sm:text-[9px] px-2 py-0.5">
                     ESCOLHIDO
                   </span>
                 )}
               </div>
-              <p className="mt-1.5 text-[10px] sm:text-[11px] text-slate-300 leading-snug">
+              <p className="mt-1 text-[9.5px] sm:text-[11px] text-slate-300 leading-snug">
                 Escolta a carga, destrói as sombras que tentam danificar as doações e usa a habilidade de fé para reparar a van.
               </p>
             </button>
@@ -356,21 +356,21 @@ export function CoopMultiplayerModal({
         </div>
 
         {/* Room Code Area */}
-        <div className="mt-3.5 sm:mt-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-3 sm:p-4 shrink-0">
+        <div className="mt-2.5 sm:mt-3.5 rounded-xl sm:rounded-2xl border border-slate-800 bg-slate-900/70 p-2.5 sm:p-4 shrink-0">
           {tab === "create" ? (
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
               <div>
-                <span className="text-[9px] sm:text-[10px] font-mono font-black uppercase text-cyan-300">
+                <span className="text-[8.5px] sm:text-[10px] font-mono font-black uppercase text-cyan-300">
                   Código da Sua Sala (Envie para seu amigo):
                 </span>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="font-mono text-xl sm:text-2xl font-black text-amber-300 tracking-wider">
+                  <span className="font-mono text-lg sm:text-2xl font-black text-amber-300 tracking-wider">
                     {roomCode}
                   </span>
                   <button
                     type="button"
                     onClick={handleCopyCode}
-                    className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-slate-300 hover:text-white transition cursor-pointer"
+                    className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-slate-300 hover:text-white transition cursor-pointer"
                     title="Copiar código"
                   >
                     {copiedCode ? (
@@ -386,9 +386,9 @@ export function CoopMultiplayerModal({
                 <button
                   type="button"
                   onClick={handleCreateRoom}
-                  className="flex items-center justify-center gap-2 rounded-xl border border-cyan-400 bg-cyan-500/25 px-4 py-2.5 text-xs font-black text-cyan-200 uppercase hover:bg-cyan-500/35 transition cursor-pointer shadow-lg active:scale-95 w-full sm:w-auto"
+                  className="flex items-center justify-center gap-1.5 rounded-xl border border-cyan-400 bg-cyan-500/25 px-3.5 py-2 text-[11px] sm:text-xs font-black text-cyan-200 uppercase hover:bg-cyan-500/35 transition cursor-pointer shadow-lg active:scale-95 shrink-0"
                 >
-                  <Radio className="h-4 w-4 shrink-0" />
+                  <Radio className="h-3.5 w-3.5 shrink-0" />
                   <span>Abrir Sala para Conexão</span>
                 </button>
               ) : networkStatus === "connecting" ? (
@@ -405,28 +405,28 @@ export function CoopMultiplayerModal({
             </div>
           ) : (
             <div>
-              <label className="text-[9px] sm:text-[10px] font-mono font-black uppercase text-cyan-300">
+              <label className="text-[8.5px] sm:text-[10px] font-mono font-black uppercase text-cyan-300">
                 Digite o Código da Sala do Host (ex: IDE-UYJY):
               </label>
-              <div className="mt-1.5 flex gap-2">
+              <div className="mt-1 flex gap-2">
                 <input
                   type="text"
                   value={inputCode}
                   onChange={(e) => setInputCode(e.target.value.toUpperCase())}
                   placeholder="IDE-XXXX"
                   maxLength={10}
-                  className="flex-1 rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-sm sm:text-base font-black text-white uppercase placeholder-slate-600 focus:border-amber-400 focus:outline-none"
+                  className="flex-1 rounded-xl border border-slate-700 bg-slate-950 px-3 py-1.5 sm:py-2 font-mono text-sm sm:text-base font-black text-white uppercase placeholder-slate-600 focus:border-amber-400 focus:outline-none"
                 />
                 <button
                   type="button"
                   disabled={!inputCode.trim() || networkStatus === "connecting"}
                   onClick={handleJoinRoom}
-                  className="flex items-center gap-1.5 rounded-xl border border-amber-400 bg-amber-500/25 px-4 py-2 text-xs font-black text-amber-200 uppercase hover:bg-amber-500/35 disabled:opacity-40 transition cursor-pointer shrink-0"
+                  className="flex items-center gap-1.5 rounded-xl border border-amber-400 bg-amber-500/25 px-3.5 py-1.5 sm:py-2 text-[11px] sm:text-xs font-black text-amber-200 uppercase hover:bg-amber-500/35 disabled:opacity-40 transition cursor-pointer shrink-0"
                 >
                   {networkStatus === "connecting" ? (
-                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    <RefreshCw className="h-3.5 w-3.5 animate-spin" />
                   ) : (
-                    <Wifi className="h-4 w-4" />
+                    <Wifi className="h-3.5 w-3.5" />
                   )}
                   <span>Conectar</span>
                 </button>
@@ -436,36 +436,53 @@ export function CoopMultiplayerModal({
 
           {/* Real-time Status Message */}
           {statusMessage && (
-            <div className="mt-2.5 flex items-center gap-2 rounded-lg border border-slate-700/60 bg-slate-950/60 px-2.5 py-1.5 text-[10px] sm:text-[11px] font-mono text-slate-300">
+            <div className="mt-2 flex items-center gap-2 rounded-lg border border-slate-700/60 bg-slate-950/60 px-2.5 py-1 text-[9.5px] sm:text-[11px] font-mono text-slate-300">
               <Globe2 className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
               <span className="truncate">{statusMessage}</span>
             </div>
           )}
         </div>
 
+        {/* Solo Partner Simulation: Available instantly */}
+        {!partner && (
+          <div className="mt-2.5 flex items-center justify-between gap-2 text-[10px] sm:text-[11px] text-slate-300 bg-slate-900/50 p-2 sm:p-2.5 rounded-xl border border-cyan-500/20 shrink-0">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-sm shrink-0">🤖</span>
+              <span className="truncate">Quer jogar em dupla agora com Inteligência Artificial?</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleSimulateSoloPartner}
+              className="shrink-0 rounded-lg border border-amber-400/60 bg-amber-400/20 px-3 py-1 font-bold text-amber-300 hover:bg-amber-400/30 transition cursor-pointer active:scale-95 text-[10px] sm:text-[11px] uppercase"
+            >
+              Jogar com Parceiro IA
+            </button>
+          </div>
+        )}
+
         {/* Partner Connection Status Bar */}
         {partner && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-3 flex items-center justify-between rounded-2xl border border-emerald-400/50 bg-emerald-500/15 p-3.5"
+            className="mt-2.5 flex items-center justify-between gap-2 rounded-xl sm:rounded-2xl border border-emerald-400/50 bg-emerald-500/15 p-2.5 sm:p-3.5 shrink-0"
           >
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-400/25 text-emerald-300 font-black">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-xl bg-emerald-400/25 text-emerald-300 font-black shrink-0">
                 ✓
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[9px] font-mono font-bold uppercase text-emerald-300">
-                    🟢 WebRTC Online P2P
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[8px] sm:text-[9px] font-mono font-bold uppercase text-emerald-300">
+                    🟢 Online P2P / IA
                   </span>
                   {pingMs !== null && (
-                    <span className="rounded bg-emerald-500/20 px-1.5 py-0.2 text-[8px] font-mono font-black text-emerald-300">
+                    <span className="rounded bg-emerald-500/20 px-1 py-0.2 text-[7.5px] sm:text-[8px] font-mono font-black text-emerald-300">
                       {pingMs}ms
                     </span>
                   )}
                 </div>
-                <div className="text-xs sm:text-sm font-black text-white">
+                <div className="text-[11px] sm:text-xs font-black text-white truncate">
                   {partner.name} •{" "}
                   {partner.role === "driver"
                     ? "🚗 Piloto da Esperança"
@@ -477,30 +494,16 @@ export function CoopMultiplayerModal({
             <button
               type="button"
               onClick={() => handleLaunchGame("amazonia")}
-              className="flex items-center gap-2 rounded-xl border border-emerald-300 bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-600 px-4 py-2.5 text-xs font-black text-slate-950 uppercase shadow-[0_0_15px_rgba(16,185,129,0.5)] hover:brightness-110 transition cursor-pointer"
+              className="flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-600 px-3.5 py-2 text-[11px] sm:text-xs font-black text-slate-950 uppercase shadow-[0_0_15px_rgba(16,185,129,0.5)] hover:brightness-110 transition cursor-pointer shrink-0 active:scale-95"
             >
-              <Play className="h-4 w-4 fill-current" />
+              <Play className="h-3.5 w-3.5 fill-current" />
               <span>Iniciar Missão Co-op</span>
             </button>
           </motion.div>
         )}
 
-        {/* Solo Partner Simulation for Testing */}
-        {!partner && networkStatus === "waiting" && (
-          <div className="mt-2.5 flex items-center justify-between text-[11px] text-slate-400 bg-slate-900/40 p-2 rounded-xl border border-slate-800">
-            <span>Quer testar a mecânica em dupla sozinho agora?</span>
-            <button
-              type="button"
-              onClick={handleSimulateSoloPartner}
-              className="text-amber-300 hover:text-amber-200 font-bold underline cursor-pointer"
-            >
-              Simular Parceiro IA
-            </button>
-          </div>
-        )}
-
         {/* Co-op Rules Briefing */}
-        <div className="mt-3 flex items-center justify-between text-[10px] text-slate-400">
+        <div className="mt-2.5 flex items-center justify-between text-[9px] sm:text-[10px] text-slate-400 shrink-0">
           <span>
             💡 <strong>Dica de Cooperação:</strong> O Piloto foca na rota do GPS
             enquanto o Guardião destrói as sombras para manter a carga em 100%.
