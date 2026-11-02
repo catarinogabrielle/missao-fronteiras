@@ -33,6 +33,7 @@ import { useGame } from "@/context/GameContext";
 interface StoryPrologueModalProps {
   open: boolean;
   onClose: () => void;
+  initialHero?: AvatarId;
 }
 
 interface HeroBio {
@@ -99,12 +100,24 @@ const HEROES_DATA: HeroBio[] = [
   },
 ];
 
-export function StoryPrologueModal({ open, onClose }: StoryPrologueModalProps) {
+export function StoryPrologueModal({ open, onClose, initialHero }: StoryPrologueModalProps) {
   const { playSfx } = useGame();
   const [currentChapter, setCurrentChapter] = useState(0);
-  const [selectedHeroTab, setSelectedHeroTab] = useState<AvatarId>("lucas");
+  const [selectedHeroTab, setSelectedHeroTab] = useState<AvatarId>(initialHero || "lucas");
   const [autoPlay, setAutoPlay] = useState(true);
   const [autoPlayProgress, setAutoPlayProgress] = useState(0);
+
+  // Sync selected hero when modal opens
+  useEffect(() => {
+    if (open) {
+      if (initialHero) {
+        setSelectedHeroTab(initialHero);
+      }
+      setCurrentChapter(0);
+      setAutoPlayProgress(0);
+      setAutoPlay(true);
+    }
+  }, [open, initialHero]);
 
   // Chapter 5 Combat Simulator state
   const [simCharges, setSimCharges] = useState(6);

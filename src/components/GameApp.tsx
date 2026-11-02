@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { RotateCw, Smartphone } from "lucide-react";
-import { Mission } from "@/types/game";
+import { AvatarId, GiftId, Mission } from "@/types/game";
 import { getDynamicMissionInstance } from "@/lib/dynamicMissions";
 import { useGame } from "@/context/GameContext";
 import { useMobileViewport } from "@/lib/useMobileViewport";
@@ -20,7 +20,7 @@ import { ToastOverlay } from "./ToastOverlay";
 import type { CoopSessionState } from "./CoopMultiplayerModal";
 
 export function GameApp() {
-  const { state, hydrated, switchUser, markTutorialSeen } = useGame();
+  const { state, hydrated, switchUser, markTutorialSeen, createAgent } = useGame();
   const {
     isCompactMobile,
     isMobilePortrait,
@@ -31,6 +31,7 @@ export function GameApp() {
   const [activeCoopSession, setActiveCoopSession] = useState<CoopSessionState | null>(null);
   const [passportOpen, setPassportOpen] = useState(false);
   const [storyOpen, setStoryOpen] = useState(false);
+  const [storyHero, setStoryHero] = useState<AvatarId>("lucas");
   const [bibleOpen, setBibleOpen] = useState(false);
   const [bibleTab, setBibleTab] = useState<"gospel" | "dictionary" | "school">(
     "gospel"
@@ -39,23 +40,23 @@ export function GameApp() {
   const [tribesQuizOpen, setTribesQuizOpen] = useState(false);
   const [wardrobeOpen, setWardrobeOpen] = useState(false);
 
-  // Auto-trigger story tutorial on first entry to lobby with this profile
-  useEffect(() => {
-    if (!hydrated || !state.agent || activeMission) return;
-    const profileKey = (state.agent.name || "").toLowerCase().trim();
-    if (!profileKey) return;
-    const seen = state.tutorialSeenProfiles || [];
-    if (!seen.includes(profileKey)) {
-      setStoryOpen(true);
-      markTutorialSeen(profileKey);
-    }
-  }, [
-    hydrated,
-    state.agent?.name,
-    activeMission,
-    state.tutorialSeenProfiles,
-    markTutorialSeen,
-  ]);
+  const handleStartPlayFromHome = (playerName: string, avatarId: AvatarId) => {
+    const canonicalGift: Record<AvatarId, GiftId> = {
+      lucas: "acolhedor",
+      sofia: "comunicador",
+      davi: "tradutor",
+      ester: "intercessor",
+    };
+    setStoryHero(avatarId);
+    createAgent(
+      playerName.trim() || `Agente ${avatarId.toUpperCase()}`,
+      avatarId,
+      canonicalGift[avatarId] || "acolhedor",
+      "padrao"
+    );
+    // Toda vez que for da home para o lobby: abre o tutorial e depois entra no lobby!
+    setStoryOpen(true);
+  };
 
   const anyTopModalOpen =
     passportOpen ||
@@ -83,7 +84,7 @@ export function GameApp() {
   return (
     <div className="bg-cyber-grid fixed inset-0 flex h-full h-dvh w-full flex-col overflow-hidden text-slate-100 select-none">
       {!state.agent ? (
-        <OnboardingScreen />
+        <OnboardingScreen onStartPlay={handleStartPlayFromHome} />
       ) : (
         <>
           {!isPlayingGame && (
@@ -148,6 +149,7 @@ export function GameApp() {
       {/* AAA Modals */}
       <StoryPrologueModal
         open={storyOpen}
+        initialHero={storyHero || state.agent?.avatarId}
         onClose={() => setStoryOpen(false)}
       />
 
@@ -182,8 +184,8 @@ export function GameApp() {
 
       <ToastOverlay />
 
-      {/* MANDATORY LANDSCAPE LOCK: GAME ONLY RUNS IN HORIZONTAL / LANDSCAPE WIDESCREEN! */}
-      {isMobilePortrait && (
+      {/* MANDATORY LANDSCAPE LOCK: Only when inside the 3D lobby/missions (not in home or prologue tutorial) */}
+      {isMobilePortrait && state.agent && !storyOpen && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/95 p-6 text-center backdrop-blur-lg">
           <div className="relative mb-6 flex h-24 w-24 items-center justify-center">
             <div className="absolute inset-0 animate-ping rounded-3xl bg-amber-500/20" />
