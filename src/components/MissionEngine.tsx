@@ -40,6 +40,7 @@ import {
   Volume2,
   VolumeX,
   Maximize2,
+  Settings,
   ChevronDown,
   ChevronUp,
   X,
@@ -164,6 +165,7 @@ const INITIAL_HUD_SNAPSHOT: WorldHudSnapshot = {
   raceTotalCheckpoints: 5,
   cooldowns: { q: 0, w: 0, e: 0, r: 0 },
   nearby: null,
+  nearVehicle: null,
   dots: [],
   vehicleKind: null,
   preferredVehicle: "car",
@@ -226,7 +228,7 @@ export function MissionEngine({
   const [worldResetSeed, setWorldResetSeed] = useState(0);
   const [overlay, setOverlay] = useState<OverlayMode>("none");
   const [missionPhoneOpen, setMissionPhoneOpen] = useState(false);
-  const [emotesDrawerOpen, setEmotesDrawerOpen] = useState(false);
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [hudSnap, setHudSnap] = useState<WorldHudSnapshot>(INITIAL_HUD_SNAPSHOT);
   const [popups, setPopups] = useState<WorldFloatingPopup[]>([]);
   const [combatTrigger, setCombatTrigger] = useState<CombatTrigger | null>(null);
@@ -510,18 +512,21 @@ export function MissionEngine({
       if (e.key === "Escape") {
         e.preventDefault();
         playSfx("click");
-        if (activeEncounter) {
+        if (settingsModalOpen) {
+          setSettingsModalOpen(false);
+        } else if (activeEncounter) {
           setActiveEncounter(null);
         } else if (missionPhoneOpen) {
           setMissionPhoneOpen(false);
         } else if (
           overlay === "dialogue" ||
           overlay === "briefing" ||
-          overlay === "decoder"
+          overlay === "decoder" ||
+          overlay === "language"
         ) {
           setOverlay("none");
         } else {
-          onExitToHub();
+          setSettingsModalOpen(true);
         }
       } else if (activeEncounter && (e.key === "Enter" || e.key === " ")) {
         e.preventDefault();
@@ -531,7 +536,7 @@ export function MissionEngine({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [activeEncounter, missionPhoneOpen, onExitToHub, overlay, playSfx]);
+  }, [activeEncounter, missionPhoneOpen, onExitToHub, overlay, playSfx, settingsModalOpen]);
 
   // Radio Tower Activated Callback
   const handleTowerActivated = useCallback(
@@ -947,7 +952,8 @@ export function MissionEngine({
     Boolean(externalPaused) ||
     overlay !== "none" ||
     Boolean(activeEncounter) ||
-    missionPhoneOpen;
+    missionPhoneOpen ||
+    settingsModalOpen;
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-slate-950 select-none touch-none">
@@ -1223,120 +1229,6 @@ export function MissionEngine({
             </div>
           </div>
         </div>
-
-        {/* QUEST & HUB NAVIGATION CONTROLS (ULTRA-COMPACT 2-ROW GAMER DOCK - ZERO SCREEN CLUTTER) */}
-        <div className="flex flex-col gap-1 w-full">
-          {/* Row 1: Back to Lobby + Cultural Intelligence */}
-          <div className="flex items-center gap-1">
-            <motion.button
-              type="button"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.94 }}
-              onClick={() => {
-                playSfx("click");
-                onExitToHub();
-              }}
-              title="Sair da Missão e Voltar ao Lobby [ESC]"
-              className="flex-1 h-6.5 sm:h-7 flex cursor-pointer items-center justify-center gap-1 rounded-md border border-amber-400/50 bg-slate-950/80 backdrop-blur-md px-1.5 text-[9px] font-black uppercase text-amber-300 shadow-sm transition hover:border-amber-300 hover:text-white active:scale-95"
-            >
-              <ArrowLeft className="h-2.5 w-2.5 text-amber-400 shrink-0" />
-              <span>LOBBY</span>
-            </motion.button>
-
-            <motion.button
-              type="button"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.94 }}
-              onClick={() => {
-                playSfx("click");
-                if (totemScanned) {
-                  setOverlay("briefing");
-                } else {
-                  setCustomWaypoint({
-                    x: WORLD_LANDMARKS.totem.x,
-                    z: WORLD_LANDMARKS.totem.z,
-                    label: "Totem de Inteligência Cultural",
-                  });
-                  pushWorldPopup({
-                    id: Date.now() + Math.random(),
-                    text: "🧭 GPS -> Totem Cultural!",
-                    color: "#22d3ee",
-                  });
-                }
-              }}
-              title="Inteligência Cultural & Tradições"
-              className="flex-1 h-6.5 sm:h-7 flex cursor-pointer items-center justify-center gap-1 rounded-md border border-cyan-400/50 bg-slate-950/80 backdrop-blur-md px-1.5 text-[9px] font-black uppercase text-cyan-300 shadow-sm transition hover:border-cyan-300 hover:text-white active:scale-95"
-            >
-              <Compass className="h-2.5 w-2.5 text-cyan-400 shrink-0" />
-              <span>CULTURA</span>
-            </motion.button>
-
-            {isMobileDevice && !isMobileLandscape && (
-              <button
-                type="button"
-                onClick={toggleLandscapeFullscreen}
-                title="Girar Celular / Modo Tela Cheia"
-                className="flex cursor-pointer items-center justify-center h-6.5 w-6.5 rounded-md border border-cyan-400/50 bg-slate-950/80 text-cyan-300 shadow-sm hover:bg-cyan-500/20 active:scale-90 transition shrink-0"
-              >
-                <RotateCw className="h-2.5 w-2.5" />
-              </button>
-            )}
-          </div>
-
-          {/* Row 2: Missions Phone Button + Tactile 3D Camera Switcher (SIDE-BY-SIDE!) */}
-          <div className="flex items-center gap-1">
-            {/* Missions List Trigger */}
-            <motion.button
-              type="button"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                playSfx("click");
-                setMissionPhoneOpen(true);
-              }}
-              title="Ver Todas as 12 Missões"
-              className="flex-1 h-6.5 sm:h-7 flex cursor-pointer items-center justify-between rounded-md border border-cyan-400/50 bg-slate-950/80 backdrop-blur-md px-1.5 text-[9px] font-black text-cyan-200 shadow-sm transition hover:border-cyan-300 hover:text-white active:scale-95"
-            >
-              <div className="flex items-center gap-1 truncate">
-                <ClipboardList className="h-2.5 w-2.5 text-cyan-300 shrink-0" />
-                <span className="truncate">MISSÕES</span>
-              </div>
-              <span className="rounded bg-cyan-500/25 border border-cyan-400/40 px-1 font-mono text-[8px] font-black text-cyan-300">
-                {completedMapMissions}/{totalMapMissions}
-              </span>
-            </motion.button>
-
-            {/* Tactile Camera Switcher Pill */}
-            <motion.button
-              type="button"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.95 }}
-              onPointerDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                playSfx("click");
-                fireAction("camera");
-              }}
-              title="Alternar Ângulo da Câmera (3ª Pessoa / Visão Alta) [C]"
-              className={`flex-1 h-6.5 sm:h-7 flex cursor-pointer items-center justify-between rounded-md border-t border-x border-b-2 px-1.5 transition active:translate-y-0.5 select-none ${
-                hudSnap.cameraMode === "gta"
-                  ? "border-t-amber-300/80 border-x-amber-500/60 border-b-amber-700 bg-gradient-to-r from-amber-500/30 via-slate-950/90 to-slate-950/90 text-amber-300 shadow-[0_1px_6px_rgba(245,158,11,0.25)] hover:border-amber-300"
-                  : "border-t-sky-300/80 border-x-sky-500/60 border-b-sky-700 bg-gradient-to-r from-sky-500/30 via-slate-950/90 to-slate-950/90 text-sky-300 shadow-[0_1px_6px_rgba(56,189,248,0.25)] hover:border-sky-300"
-              }`}
-            >
-              <div className="flex items-center gap-1 truncate min-w-0">
-                <Camera className="h-2.5 w-2.5 text-amber-300 shrink-0" />
-                <span className="text-[8.5px] font-black uppercase tracking-tight truncate">
-                  {hudSnap.cameraMode === "gta" ? "3ª PESSOA" : "VISÃO ALTA"}
-                </span>
-              </div>
-              <div className="flex items-center gap-0.5 font-mono text-[7.5px] font-black text-amber-300 shrink-0">
-                <RotateCw className="h-2 w-2" />
-                {!isMobile && <span>C</span>}
-              </div>
-            </motion.button>
-          </div>
-        </div>
       </div>
 
       {/* =========================================================
@@ -1503,72 +1395,56 @@ export function MissionEngine({
       </div>
 
       {/* =========================================================
-          TOP-RIGHT: SCOREBOARD, AUDIO & FULLSCREEN CONTROLS (AAA ERGONOMIC POSITIONING)
+          TOP-RIGHT: SETTINGS MENU, MISSIONS & STATUS CONTROLS
          ========================================================= */}
-      <div className="pointer-events-auto absolute top-1.5 sm:top-2 right-2 z-20 flex items-start gap-1.5 sm:right-3">
-        {/* Quick Utility Action Buttons (Sound, Fullscreen, Keyboard Help) */}
+      <div className="pointer-events-auto absolute top-1.5 sm:top-2.5 right-2 z-20 flex items-start gap-1.5 sm:right-3">
+        {/* Quick Utility Action Buttons (Missions, Settings Gear, Gamepad, Help) */}
         <div className="flex items-center gap-1.5 pt-0.5">
-          {/* Quick Audio Mute / Unmute Toggle */}
-          <motion.button
-            type="button"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.94 }}
-            onClick={() => {
-              toggleMute();
-            }}
-            title={state.muted ? "Ativar Áudio e SFX" : "Mutar Áudio"}
-            className="flex h-7 sm:h-8 w-7 sm:w-8 cursor-pointer items-center justify-center rounded-xl border border-slate-700/80 bg-slate-950/90 text-slate-200 shadow-lg transition hover:border-amber-400 hover:text-white"
-          >
-            {state.muted ? (
-              <VolumeX className="h-3.5 w-3.5 text-rose-400" />
-            ) : (
-              <Volume2 className="h-3.5 w-3.5 text-emerald-400" />
-            )}
-          </motion.button>
+          {/* Missions Progress Quick Pill */}
+        <motion.button
+          type="button"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.94 }}
+          onClick={() => {
+            playSfx("click");
+            setMissionPhoneOpen(true);
+          }}
+          title="Ver Lista de Missões do Mapa"
+          className="flex h-8 sm:h-8.5 cursor-pointer items-center gap-1.5 rounded-xl border border-cyan-400/60 bg-slate-950/90 px-2 sm:px-2.5 text-[10px] font-black text-cyan-300 shadow-lg backdrop-blur-md hover:border-cyan-300 hover:text-white transition"
+        >
+          <ClipboardList className="h-3.5 w-3.5 text-cyan-400" />
+          <span className="font-mono text-[9px] sm:text-[10px] font-bold text-cyan-200">
+            {completedMapMissions}/{totalMapMissions}
+          </span>
+        </motion.button>
 
-          {/* Quick Fullscreen Toggle (Web / Desktop) */}
-          <motion.button
-            type="button"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.94 }}
-            onClick={() => {
-              playSfx("click");
-              toggleLandscapeFullscreen();
-            }}
-            title="Alternar Tela Cheia / Fullscreen"
-            className="hidden sm:flex h-7 sm:h-8 w-7 sm:w-8 cursor-pointer items-center justify-center rounded-xl border border-slate-700/80 bg-slate-950/90 text-slate-200 shadow-lg transition hover:border-cyan-300 hover:text-white"
-          >
-            <Maximize2 className="h-3.5 w-3.5 text-cyan-300" />
-          </motion.button>
+        {/* Global Pause & Settings Gear Menu Trigger Button */}
+        <motion.button
+          type="button"
+          whileHover={{ scale: 1.06 }}
+          whileTap={{ scale: 0.92 }}
+          onClick={() => {
+            playSfx("click");
+            setSettingsModalOpen(true);
+          }}
+          title="Abrir Menu de Pausa & Configurações [ESC]"
+          className="flex h-8 sm:h-8.5 w-8 sm:w-8.5 cursor-pointer items-center justify-center rounded-xl border-2 border-amber-400/80 bg-gradient-to-b from-amber-400/20 via-slate-950/95 to-slate-950 text-amber-300 shadow-[0_0_16px_rgba(251,191,36,0.35)] backdrop-blur-md hover:border-amber-300 hover:text-white transition active:scale-95"
+        >
+          <Settings className="h-4.5 w-4.5 text-amber-300" />
+        </motion.button>
 
-          {/* Quick Language / Translation Mode Button */}
-          <motion.button
-            type="button"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.94 }}
-            onClick={() => {
-              playSfx("click");
-              setOverlay((prev) => (prev === "language" ? "none" : "language"));
-            }}
-            title="Modo Tradução & Idiomas Locais"
-            className="flex h-7 sm:h-8 cursor-pointer items-center gap-1 rounded-xl border border-amber-400/70 bg-slate-950/90 px-2 text-[9px] sm:text-[10px] font-black text-amber-300 shadow-lg transition hover:border-amber-300 hover:text-white"
+        {/* Gamepad Connection Indicator */}
+        {isGamepadConnected && (
+          <div
+            title={`Gamepad Conectado: ${connectedGamepad}`}
+            className="flex h-8 sm:h-8.5 items-center gap-1 rounded-xl border border-emerald-400/60 bg-slate-950/90 px-2 text-[9px] font-black text-emerald-300 shadow-lg"
           >
-            <Globe2 className="h-3.5 w-3.5 text-amber-400" />
-            <span className="hidden sm:inline">IDIOMA</span>
-          </motion.button>
-
-          {/* Gamepad Connection Indicator */}
-          {isGamepadConnected && (
-            <div
-              title={`Gamepad Conectado: ${connectedGamepad}`}
-              className="flex h-7 sm:h-8 items-center gap-1 rounded-xl border border-emerald-400/60 bg-slate-950/90 px-2 text-[9px] font-black text-emerald-300 shadow-lg"
-            >
-              <span>🎮</span>
-              <span className="hidden md:inline max-w-[90px] truncate">
-                {connectedGamepad?.split("(")[0]?.trim() || "Gamepad"}
-              </span>
-            </div>
-          )}
+            <span>🎮</span>
+            <span className="hidden md:inline max-w-[90px] truncate">
+              {connectedGamepad?.split("(")[0]?.trim() || "Gamepad"}
+            </span>
+          </div>
+        )}
 
           {/* Toggle Keyboard Controls Help Bar (Desktop PC Only - Strictly Hidden on Mobile / Touch) */}
           {!isMobile && !isMobileDevice && !isMobileLandscape && !isCompactMobile && (
@@ -1857,73 +1733,12 @@ export function MissionEngine({
           BOTTOM-RIGHT: MOBA COMBAT ARC, VEHICLE & CONTEXTUAL ACTIONS
          ========================================================= */}
       <div className="pointer-events-auto absolute right-2 bottom-2 z-20 flex flex-col items-end gap-2 sm:right-4 sm:bottom-4">
-        {/* Upper Action Bar: Emotes 3D Drawer + Vehicle Control (Comfortably spaced above skills!) */}
+        {/* Upper Action Bar: Contextual Vehicle Entry & Driving Controls (Clean & Zero Clutter) */}
         <div className="flex items-center justify-end gap-1.5 mr-1 mb-1">
-          {/* Collapsible Emotes 3D Drawer (Zero accidental clicks mid-fight!) */}
-          <div className="relative flex items-center gap-1">
-            <AnimatePresence>
-              {emotesDrawerOpen && (
-                <motion.div
-                  initial={{ opacity: 0, x: 12, scale: 0.92 }}
-                  animate={{ opacity: 1, x: 0, scale: 1 }}
-                  exit={{ opacity: 0, x: 10, scale: 0.92 }}
-                  transition={{ duration: 0.18 }}
-                  className="flex items-center gap-1 rounded-full border border-fuchsia-400/50 bg-slate-950/95 px-2 py-0.5 shadow-2xl backdrop-blur-md"
-                >
-                  {(
-                    [
-                      { act: "emoteSlash", icon: "⚔️", key: "5", title: "Giro Heroico [5]" },
-                      { act: "emoteVictory", icon: "🙌", key: "6", title: "Vitória & Louvor [6]" },
-                      { act: "emoteDance", icon: "🕺", key: "7", title: "Passinho Street [7]" },
-                      { act: "emotePray", icon: "🛡️", key: "8", title: "Postura de Fé [8]" },
-                    ] as const
-                  ).map((em) => (
-                    <motion.button
-                      key={em.act}
-                      type="button"
-                      whileHover={{ scale: 1.15 }}
-                      whileTap={{ scale: 0.88 }}
-                      onPointerDown={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        fireAction(em.act);
-                        setEmotesDrawerOpen(false);
-                      }}
-                      title={em.title}
-                      className="flex h-7 cursor-pointer items-center gap-0.5 rounded-full border border-white/20 bg-slate-900/90 px-2 text-xs font-black text-white hover:border-amber-300 hover:bg-amber-500/20"
-                    >
-                      <span>{em.icon}</span>
-                      <span className="hidden sm:inline font-mono text-[9px] text-amber-300">
-                        {em.key}
-                      </span>
-                    </motion.button>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <motion.button
-              type="button"
-              whileHover={{ scale: 1.07 }}
-              whileTap={{ scale: 0.92 }}
-              onClick={() => setEmotesDrawerOpen((prev) => !prev)}
-              title="Abrir Emotes 3D [5, 6, 7, 8]"
-              className={`flex h-7 sm:h-7.5 cursor-pointer items-center gap-1 rounded-full border px-2.5 text-[9px] font-black uppercase shadow-lg transition ${
-                emotesDrawerOpen
-                  ? "border-fuchsia-400 bg-fuchsia-500/30 text-white shadow-[0_0_12px_rgba(217,70,239,0.5)]"
-                  : "border-fuchsia-400/40 bg-slate-950/85 text-fuchsia-300 hover:border-fuchsia-300 hover:text-white"
-              }`}
-            >
-              <span>🎭</span>
-              <span>{isMobile ? "EMOTES" : "EMOTES [5-8]"}</span>
-            </motion.button>
-          </div>
-
-          {/* Vehicle Controls */}
           {hudSnap.inVehicle ? (
             <>
               {/* Active Vehicle Fuel Countdown Meter */}
-              <div className="flex h-7 sm:h-7.5 items-center gap-1.5 rounded-full border border-sky-400/60 bg-slate-950/90 px-3 text-[9px] sm:text-[10px] font-mono font-black text-sky-200 shadow-lg">
+              <div className="flex h-7.5 sm:h-8 items-center gap-1.5 rounded-full border border-sky-400/60 bg-slate-950/90 px-3 text-[9px] sm:text-[10px] font-mono font-black text-sky-200 shadow-lg backdrop-blur-md">
                 <span>{hudSnap.vehicleKind === "moto" ? "🏍️" : "🚙"}</span>
                 <span>{Math.ceil(hudSnap.fuel[hudSnap.vehicleKind || "car"])}s</span>
                 <div className="h-1.5 w-10 sm:w-14 overflow-hidden rounded-full bg-slate-800">
@@ -1954,7 +1769,7 @@ export function MissionEngine({
                   e.stopPropagation();
                   fireAction("nitro");
                 }}
-                className={`flex h-7 sm:h-7.5 cursor-pointer items-center gap-1 rounded-full border px-2.5 text-[9px] sm:text-[10px] font-black shadow-lg ${
+                className={`flex h-7.5 sm:h-8 cursor-pointer items-center gap-1 rounded-full border px-2.5 text-[9px] sm:text-[10px] font-black shadow-lg backdrop-blur-md ${
                   hudSnap.nitroCooldown > 0
                     ? "border-slate-700 bg-slate-900 text-slate-500"
                     : "border-sky-300 bg-sky-500/30 text-sky-200 hover:bg-sky-500/40"
@@ -1974,17 +1789,20 @@ export function MissionEngine({
                   e.stopPropagation();
                   fireAction("vehicle");
                 }}
-                className="flex h-7 sm:h-7.5 cursor-pointer items-center gap-1 rounded-full border-2 border-rose-400 bg-rose-950/90 px-2.5 text-[9px] sm:text-[10px] font-black text-rose-200 shadow-lg hover:bg-rose-900/80"
+                className="flex h-7.5 sm:h-8 cursor-pointer items-center gap-1 rounded-full border-2 border-rose-400 bg-rose-950/90 px-2.5 text-[9px] sm:text-[10px] font-black text-rose-200 shadow-lg hover:bg-rose-900/80 active:scale-95"
               >
                 <Car className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                 <span>{isMobile ? "SAIR" : "SAIR [V]"}</span>
               </motion.button>
             </>
           ) : (
-            <div className="flex items-center gap-1 sm:gap-1.5">
-              {/* Summon Preferred Vehicle Button with Available Tanks */}
+            // Contextual Vehicle Boarding Button - Only appears when close to a parked Car or Moto!
+            (Boolean(hudSnap.nearVehicle) || (hudSnap.nearby && hudSnap.nearby.kind === "vehicle")) && (
               <motion.button
                 type="button"
+                initial={{ scale: 0.88, opacity: 0, y: 6 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.88, opacity: 0, y: 6 }}
                 whileHover={{ scale: 1.06 }}
                 whileTap={{ scale: 0.92 }}
                 onPointerDown={(e) => {
@@ -1992,40 +1810,26 @@ export function MissionEngine({
                   e.stopPropagation();
                   fireAction("vehicle");
                 }}
-                title="Entrar ou Chamar Veículo [V]"
-                disabled={hudSnap.garage[hudSnap.preferredVehicle] <= 0}
-                className={`flex h-7 sm:h-7.5 cursor-pointer items-center gap-1.5 rounded-full border px-2.5 text-[9px] sm:text-[10px] font-black shadow-lg transition ${
-                  hudSnap.garage[hudSnap.preferredVehicle] > 0
-                    ? "border-amber-400/60 bg-slate-950/90 text-amber-300 hover:border-amber-300 hover:bg-amber-500/20"
-                    : "border-slate-800 bg-slate-950/60 text-slate-500 cursor-not-allowed opacity-60"
-                }`}
+                title="Entrar / Montar no Veículo [V ou F]"
+                className="flex h-8 sm:h-9 cursor-pointer items-center gap-2 rounded-2xl border-2 border-sky-300 bg-gradient-to-r from-sky-500/90 via-sky-600/90 to-cyan-500/90 px-3.5 sm:px-4 text-[10px] sm:text-xs font-black uppercase text-white shadow-[0_0_24px_rgba(56,189,248,0.7)] backdrop-blur-md active:scale-95 transition select-none"
               >
-                <span>{hudSnap.preferredVehicle === "moto" ? "🏍️" : "🚙"}</span>
-                <span>
-                  {hudSnap.preferredVehicle === "moto" ? "MOTO" : "CARRO"}
+                <span className="text-base sm:text-lg animate-bounce">
+                  {(hudSnap.nearVehicle?.kind || hudSnap.nearby?.vehicleKind) === "moto"
+                    ? "🏍️"
+                    : "🚗"}
                 </span>
-                <span className="rounded-full bg-amber-500/20 border border-amber-400/30 px-1 py-0.2 font-mono text-[8px] text-amber-200">
-                  {hudSnap.garage[hudSnap.preferredVehicle]} disp.
+                <span className="tracking-wide">
+                  {(hudSnap.nearVehicle?.kind || hudSnap.nearby?.vehicleKind) === "moto"
+                    ? "MONTAR NA MOTO"
+                    : "ENTRAR NO CARRO"}
                 </span>
+                {!isMobile && (
+                  <span className="rounded bg-slate-950/80 border border-sky-300/40 px-1.5 py-0.5 font-mono text-[9px] font-black text-sky-200">
+                    V
+                  </span>
+                )}
               </motion.button>
-
-              {/* Quick Vehicle Switch / Selector */}
-              <motion.button
-                type="button"
-                whileHover={{ scale: 1.08 }}
-                whileTap={{ scale: 0.92 }}
-                onPointerDown={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  fireAction("vehicleSwap");
-                }}
-                title="Alternar entre Carro (4x4) e Moto (Ágil)"
-                className="flex h-7 sm:h-7.5 cursor-pointer items-center gap-1 rounded-full border border-sky-400/50 bg-slate-950/85 px-2 text-[8.5px] sm:text-[9.5px] font-black text-sky-300 hover:border-sky-300 hover:bg-sky-500/20"
-              >
-                <span>🔄</span>
-                <span>{hudSnap.preferredVehicle === "car" ? "P/ Moto" : "P/ Carro"}</span>
-              </motion.button>
-            </div>
+            )
           )}
 
           {dialogueCompleted && (
@@ -2039,7 +1843,7 @@ export function MissionEngine({
                 playSfx("levelUp");
                 setOverlay("decoder");
               }}
-              className="moba-ult-ready flex h-7 sm:h-7.5 cursor-pointer items-center gap-1 rounded-full border-2 border-amber-200 bg-gradient-to-r from-amber-300 to-amber-500 px-2.5 text-[9px] sm:text-[10px] font-black text-slate-950"
+              className="moba-ult-ready flex h-7 sm:h-7.5 cursor-pointer items-center gap-1 rounded-full border-2 border-amber-200 bg-gradient-to-r from-amber-300 to-amber-500 px-2.5 text-[9px] sm:text-[10px] font-black text-slate-950 shadow-lg"
             >
               <Languages className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
               TRADUZIR
@@ -2271,6 +2075,254 @@ export function MissionEngine({
           MODALS & CONVERSATION OVERLAYS (ALL CLOSEABLE ANYTIME!)
          ========================================================= */}
       <AnimatePresence>
+        {/* PAUSE & SETTINGS MENU MODAL (ACESSÍVEL PELA ENGRENAGEM OU ESC) */}
+        {settingsModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => {
+              playSfx("click");
+              setSettingsModalOpen(false);
+            }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md"
+          >
+            <motion.div
+              initial={{ scale: 0.92, y: 16 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.94, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="moba-panel-amber moba-clip-panel max-h-[90vh] w-full max-w-lg overflow-y-auto p-5 sm:p-6"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-amber-500/30 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-amber-400/60 bg-amber-500/20 text-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.3)]">
+                    <Settings className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">
+                      PAUSA & CONFIGURAÇÕES
+                    </span>
+                    <h3 className="text-lg font-black text-white uppercase tracking-tight">
+                      {mission.title}
+                    </h3>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx("click");
+                    setSettingsModalOpen(false);
+                  }}
+                  className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-slate-300 hover:border-amber-400 hover:text-white transition"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Menu Items */}
+              <div className="mt-4 space-y-2.5">
+                {/* 1. Voltar ao Lobby */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx("click");
+                    setSettingsModalOpen(false);
+                    onExitToHub();
+                  }}
+                  className="flex w-full cursor-pointer items-center justify-between rounded-xl border-2 border-rose-500/50 bg-gradient-to-r from-rose-950/60 via-slate-900/90 to-slate-900/90 p-3.5 text-left transition hover:border-rose-400 hover:bg-rose-900/40 active:scale-[0.99]"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-rose-400/40 bg-rose-500/20 text-rose-300">
+                      <ArrowLeft className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-black text-rose-200 uppercase tracking-wide">
+                        Voltar ao Lobby
+                      </div>
+                      <div className="text-[11px] text-slate-400">
+                        Sair da cidade 3D e retornar ao Seletor Planetário
+                      </div>
+                    </div>
+                  </div>
+                  <span className="rounded bg-rose-500/20 border border-rose-400/30 px-2 py-0.5 font-mono text-[10px] font-black text-rose-300">
+                    SAIR
+                  </span>
+                </button>
+
+                {/* 2. Câmera 3D */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx("click");
+                    fireAction("camera");
+                  }}
+                  className="flex w-full cursor-pointer items-center justify-between rounded-xl border border-slate-700/80 bg-slate-900/90 p-3.5 text-left transition hover:border-amber-400 hover:bg-amber-500/10 active:scale-[0.99]"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-amber-400/40 bg-amber-500/20 text-amber-300">
+                      <Camera className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-black text-white uppercase tracking-wide">
+                        Câmera 3D
+                      </div>
+                      <div className="text-[11px] text-slate-400">
+                        {hudSnap.cameraMode === "gta"
+                          ? "Modo atual: 3ª Pessoa (Ação GTA) • Pressione C"
+                          : "Modo atual: Visão Alta (Tática MOBA) • Pressione C"}
+                      </div>
+                    </div>
+                  </div>
+                  <span
+                    className={`rounded px-2.5 py-1 text-[10px] font-black uppercase border ${
+                      hudSnap.cameraMode === "gta"
+                        ? "bg-amber-500/20 border-amber-400/40 text-amber-300"
+                        : "bg-sky-500/20 border-sky-400/40 text-sky-300"
+                    }`}
+                  >
+                    {hudSnap.cameraMode === "gta" ? "3ª Pessoa" : "Visão Alta"}
+                  </span>
+                </button>
+
+                {/* 3. Som / Áudio */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    toggleMute();
+                  }}
+                  className="flex w-full cursor-pointer items-center justify-between rounded-xl border border-slate-700/80 bg-slate-900/90 p-3.5 text-left transition hover:border-cyan-400 hover:bg-cyan-500/10 active:scale-[0.99]"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-cyan-400/40 bg-cyan-500/20 text-cyan-300">
+                      {state.muted ? (
+                        <VolumeX className="h-5 w-5 text-rose-400" />
+                      ) : (
+                        <Volume2 className="h-5 w-5 text-emerald-400" />
+                      )}
+                    </div>
+                    <div>
+                      <div className="text-xs font-black text-white uppercase tracking-wide">
+                        Áudio & Efeitos Sonoros
+                      </div>
+                      <div className="text-[11px] text-slate-400">
+                        {state.muted ? "O som do jogo está desligado" : "Efeitos sonoros e trilha ativos"}
+                      </div>
+                    </div>
+                  </div>
+                  <span
+                    className={`rounded px-2.5 py-1 text-[10px] font-black uppercase border ${
+                      state.muted
+                        ? "bg-rose-500/20 border-rose-400/40 text-rose-300"
+                        : "bg-emerald-500/20 border-emerald-400/40 text-emerald-300"
+                    }`}
+                  >
+                    {state.muted ? "Mudo" : "Ativado"}
+                  </span>
+                </button>
+
+                {/* 4. Expandir Tela / Fullscreen */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx("click");
+                    toggleLandscapeFullscreen();
+                  }}
+                  className="flex w-full cursor-pointer items-center justify-between rounded-xl border border-slate-700/80 bg-slate-900/90 p-3.5 text-left transition hover:border-cyan-400 hover:bg-cyan-500/10 active:scale-[0.99]"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-cyan-400/40 bg-cyan-500/20 text-cyan-300">
+                      <Maximize2 className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-black text-white uppercase tracking-wide">
+                        Expandir Tela / Fullscreen
+                      </div>
+                      <div className="text-[11px] text-slate-400">
+                        Alternar modo tela cheia para imersão total
+                      </div>
+                    </div>
+                  </div>
+                  <span className="rounded bg-slate-800 border border-slate-600 px-2.5 py-1 text-[10px] font-black text-slate-300">
+                    TELA CHEIA
+                  </span>
+                </button>
+
+                {/* 5. Dossiê Cultural */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx("click");
+                    setSettingsModalOpen(false);
+                    setOverlay("briefing");
+                  }}
+                  className="flex w-full cursor-pointer items-center justify-between rounded-xl border border-slate-700/80 bg-slate-900/90 p-3.5 text-left transition hover:border-amber-400 hover:bg-amber-500/10 active:scale-[0.99]"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-amber-400/40 bg-amber-500/20 text-amber-300">
+                      <Compass className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-black text-white uppercase tracking-wide">
+                        Dossiê Cultural & Tradições
+                      </div>
+                      <div className="text-[11px] text-slate-400">
+                        {mission.country} • Sabedoria transcultural da missão
+                      </div>
+                    </div>
+                  </div>
+                  <span className="rounded bg-amber-500/20 border border-amber-400/40 px-2 py-0.5 font-mono text-[10px] font-black text-amber-300">
+                    ABRIR
+                  </span>
+                </button>
+
+                {/* 6. Lista de Missões */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx("click");
+                    setSettingsModalOpen(false);
+                    setMissionPhoneOpen(true);
+                  }}
+                  className="flex w-full cursor-pointer items-center justify-between rounded-xl border border-slate-700/80 bg-slate-900/90 p-3.5 text-left transition hover:border-cyan-400 hover:bg-cyan-500/10 active:scale-[0.99]"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-cyan-400/40 bg-cyan-500/20 text-cyan-300">
+                      <ClipboardList className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-black text-white uppercase tracking-wide">
+                        Lista de Missões & Desafios
+                      </div>
+                      <div className="text-[11px] text-slate-400">
+                        {completedMapMissions} de {totalMapMissions} objetivos concluídos
+                      </div>
+                    </div>
+                  </div>
+                  <span className="rounded bg-cyan-500/20 border border-cyan-400/40 px-2 py-0.5 font-mono text-[10px] font-black text-cyan-300">
+                    {completedMapMissions}/{totalMapMissions}
+                  </span>
+                </button>
+              </div>
+
+              {/* Resume Button */}
+              <div className="mt-5 border-t border-slate-800 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx("click");
+                    setSettingsModalOpen(false);
+                  }}
+                  className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-emerald-400 bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 py-3 text-xs font-black uppercase text-white shadow-[0_0_20px_rgba(16,185,129,0.5)] transition hover:brightness-110 active:scale-[0.99]"
+                >
+                  <span>▶ RETOMAR MISSÃO</span>
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
         {/* A. GTA MISSION PHONE / CENTRAL DE MISSÕES DO MAPA (12 MISSIONS!) */}
         {missionPhoneOpen && (
           <motion.div

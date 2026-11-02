@@ -78,11 +78,12 @@ export interface RadarEntityDot {
 }
 
 export interface NearbyInteractionInfo {
-  kind: "mainNpc" | "person" | "totem" | "nexus" | "tower" | "race";
+  kind: "mainNpc" | "person" | "totem" | "nexus" | "tower" | "race" | "vehicle";
   id: string;
   label: string;
   person?: StreetPersonQuest;
   tower?: RadioTowerMission;
+  vehicleKind?: VehicleClass;
 }
 
 export interface WorldHudSnapshot {
@@ -116,6 +117,7 @@ export interface WorldHudSnapshot {
   raceTotalCheckpoints: number;
   cooldowns: { q: number; w: number; e: number; r: number };
   nearby: NearbyInteractionInfo | null;
+  nearVehicle?: { kind: VehicleClass; name: string } | null;
   dots: RadarEntityDot[];
   /** Garage system: which vehicle class is being driven right now */
   vehicleKind: VehicleClass | null;
@@ -2505,6 +2507,7 @@ export function MobaGtaWorld3D({
     let emoteElapsed = 0;
     const cooldowns = { q: 0, w: 0, e: 0, r: 0 };
     let currentNearby: NearbyInteractionInfo | null = null;
+    let currentNearVehicle: { kind: VehicleClass; name: string } | null = null;
 
     let lastCombatPopupTime = 0;
     const emitPopup = (text: string, color: string) => {
@@ -2766,36 +2769,56 @@ export function MobaGtaWorld3D({
           dismountVehicle();
           emitPopup("🏃 MODO A PÉ", "#e2e8f0");
         } else {
-          const kind = preferredVehicle;
-          if (garageUnits[kind] <= 0) {
-            soundEngine.play("error");
-            emitPopup(`❌ Sem ${VEHICLE_RULES[kind].label}s disponíveis na base!`, "#f43f5e");
-            return;
+          // Mount closest vehicle or targeted vehicle
+          let bestV: LiveVehicle | undefined;
+          const nearbyTarget = currentNearby;
+          if (nearbyTarget && nearbyTarget.kind === "vehicle") {
+            bestV = vehicles.find((v) => v.cfg.id === nearbyTarget.id);
           }
-          let bestV =
-            vehicles.find((v) =>
-              kind === "moto" ? v.cfg.kind === "moto" : v.cfg.kind !== "moto"
-            ) || vehicles[0];
-          heroPos.set(heroPos.x, 0, heroPos.z);
-          bestV.x = heroPos.x;
-          bestV.z = heroPos.z;
-          bestV.rotY = heroAngle;
-          bestV.mesh.position.copy(heroPos);
-          bestV.mesh.rotation.y = heroAngle;
-          activeVehicle = bestV;
-          const tag = bestV.mesh.getObjectByName("vehicleTag");
-          if (tag) tag.visible = false;
-          const meta = VEHICLE_RULES[kind];
-          emitPopup(
-            `${meta.emoji} ${bestV.cfg.name.toUpperCase()}! [${fuelRemaining[kind].toFixed(0)}s • Shift = Turbo]`,
-            "#38bdf8"
-          );
+          if (!bestV && currentNearVehicle) {
+            let minD = 6.5;
+            for (const v of vehicles) {
+              const d = Math.hypot(heroPos.x - v.x, heroPos.z - v.z);
+              if (d < minD) {
+                minD = d;
+                bestV = v;
+              }
+            }
+          }
+          if (!bestV) {
+            const kind = preferredVehicle;
+            bestV =
+              vehicles.find((v) =>
+                kind === "moto" ? v.cfg.kind === "moto" : v.cfg.kind !== "moto"
+              ) || vehicles[0];
+          }
+
+          if (bestV) {
+            const kind: VehicleClass = bestV.cfg.kind === "moto" ? "moto" : "car";
+            preferredVehicle = kind;
+            heroPos.set(bestV.x, 0, bestV.z);
+            bestV.mesh.position.copy(heroPos);
+            bestV.mesh.rotation.y = bestV.rotY;
+            activeVehicle = bestV;
+            const tag = bestV.mesh.getObjectByName("vehicleTag");
+            if (tag) tag.visible = false;
+            const meta = VEHICLE_RULES[kind];
+            emitPopup(
+              `${meta.emoji} ${bestV.cfg.name.toUpperCase()}! [${fuelRemaining[kind].toFixed(0)}s • Shift = Turbo]`,
+              "#38bdf8"
+            );
+          }
         }
         return;
       }
 
       if (action === "interact") {
         if (!currentNearby) return;
+
+        if (currentNearby.kind === "vehicle") {
+          performAction("vehicle");
+          return;
+        }
 
         if (currentNearby.kind === "race") {
           startCheckpointRace();
@@ -4373,6 +4396,27 @@ export function MobaGtaWorld3D({
               }
             }
           }
+
+          let foundNearVehicle: { kind: VehicleClass; name: string } | null = null;
+          if (!activeVehicle) {
+            for (const v of vehicles) {
+              const d = Math.hypot(heroPos.x - v.x, heroPos.z - v.z);
+              if (d < 6.0) {
+                const vk: VehicleClass = v.cfg.kind === "moto" ? "moto" : "car";
+                foundNearVehicle = { kind: vk, name: v.cfg.name };
+                if (!foundNearby) {
+                  foundNearby = {
+                    kind: "vehicle",
+                    id: v.cfg.id,
+                    label: vk === "moto" ? `Montar na ${v.cfg.name}` : `Entrar no ${v.cfg.name}`,
+                    vehicleKind: vk,
+                  };
+                }
+                break;
+              }
+            }
+          }
+          currentNearVehicle = foundNearVehicle;
         }
         currentNearby = foundNearby;
       }
@@ -4546,6 +4590,7 @@ export function MobaGtaWorld3D({
           raceTotalCheckpoints: raceCfg.checkpoints.length,
           cooldowns: { ...cooldowns },
           nearby: currentNearby,
+          nearVehicle: currentNearVehicle,
           dots,
           vehicleKind: activeVehicle
             ? activeVehicle.cfg.kind === "moto"
