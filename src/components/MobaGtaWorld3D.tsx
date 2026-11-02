@@ -2680,7 +2680,8 @@ export function MobaGtaWorld3D({
 
     // --- ACTION DISPATCHER ---
     const performAction = (action: CombatActionType) => {
-      if (pausedRef.current) return;
+      // Allow camera switching even when world is paused (e.g. from Pause / Settings modal)
+      if (pausedRef.current && action !== "camera") return;
 
       if (
         action === "emoteSlash" ||
@@ -2726,6 +2727,8 @@ export function MobaGtaWorld3D({
         } else {
           emitPopup("🎥 3ª PESSOA (Visão de Rua)", "#38bdf8");
         }
+        // Force immediate HUD sync so UI badges update instantly
+        lastHudSync = 0;
         return;
       }
 

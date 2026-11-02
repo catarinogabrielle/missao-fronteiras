@@ -1403,6 +1403,24 @@ export function MissionEngine({
       <div className="pointer-events-auto absolute top-1.5 sm:top-2.5 right-2 z-20 flex items-start gap-1.5 sm:right-3">
         {/* Quick Utility Action Buttons (Missions, Settings Gear, Gamepad, Help) */}
         <div className="flex items-center gap-1.5 pt-0.5">
+          {/* Quick Camera Mode Switcher Button */}
+          <motion.button
+            type="button"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.92 }}
+            onClick={() => {
+              playSfx("click");
+              fireAction("camera");
+            }}
+            title={`Alternar Câmera: ${hudSnap.cameraMode === "gta" ? "3ª Pessoa (Rua)" : "Visão Alta (Panorâmica)"} [Tecla C]`}
+            className="flex h-8 sm:h-8.5 items-center gap-1 cursor-pointer rounded-xl border border-amber-400/80 bg-slate-950/90 px-2 sm:px-2.5 text-[9px] sm:text-[10px] font-black text-amber-300 shadow-lg backdrop-blur-md hover:border-amber-300 hover:text-white transition active:scale-95"
+          >
+            <Camera className="h-3.5 w-3.5 text-amber-300 shrink-0" />
+            <span className="font-mono text-[8px] sm:text-[9.5px]">
+              {hudSnap.cameraMode === "gta" ? "3ªP" : "ALTA"}
+            </span>
+          </motion.button>
+
           {/* Missions Progress Quick Pill */}
         <motion.button
           type="button"
@@ -1724,9 +1742,18 @@ export function MissionEngine({
               <span className="flex items-center gap-0.5 text-amber-300">
                 🔥 {state.streak}
               </span>
-              <span className="rounded bg-slate-900/90 px-1.5 py-0.5 text-[8.5px] text-slate-400 font-sans">
-                {hudSnap.cameraMode === "gta" ? "3ª PESSOA" : "VISÃO ALTA"}
-              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  playSfx("click");
+                  fireAction("camera");
+                }}
+                title="Clique para alternar câmera [Tecla C]"
+                className="cursor-pointer rounded bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 hover:border-amber-400/60 px-1.5 py-0.5 text-[8.5px] text-amber-300 font-sans font-bold transition active:scale-95 flex items-center gap-1"
+              >
+                <Camera className="h-2.5 w-2.5 shrink-0" />
+                <span>{hudSnap.cameraMode === "gta" ? "3ª PESSOA" : "VISÃO ALTA"}</span>
+              </button>
             </div>
           </div>
         </div>
