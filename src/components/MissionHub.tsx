@@ -391,7 +391,7 @@ export function MissionHub({
               className="flex flex-col items-center justify-center py-1.5 rounded-xl border border-cyan-500/40 bg-slate-900/90 text-cyan-300 hover:border-cyan-400 transition cursor-pointer text-[8px] font-black uppercase shadow-sm"
             >
               <Sparkles className="h-3.5 w-3.5 mb-0.5 text-cyan-400" />
-              <span>Skins 3D</span>
+              <span>Herói</span>
             </button>
 
             <button
@@ -585,15 +585,15 @@ export function MissionHub({
         <div className="pointer-events-none fixed inset-0 bg-radial from-transparent via-slate-950/50 to-slate-950/90" />
 
         {/* 1. LEFT HUD DOCK (Modes & Summoner Profile - Spacious Floating Glass Card) */}
-        <aside className="relative z-20 flex w-48 sm:w-52 md:w-56 shrink-0 flex-col justify-between h-full rounded-2xl sm:rounded-3xl border border-cyan-500/20 bg-slate-950/80 backdrop-blur-xl p-2.5 sm:p-3 shadow-2xl overflow-hidden">
+        <aside className="relative z-20 flex w-56 sm:w-64 md:w-72 shrink-0 flex-col justify-between h-full rounded-2xl sm:rounded-3xl border border-cyan-500/25 bg-slate-950/85 backdrop-blur-xl p-2.5 sm:p-3 shadow-2xl overflow-hidden">
           {/* Quick Access Modes */}
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-1.5 px-1 text-[9.5px] font-black tracking-widest text-cyan-400 uppercase">
-              <Compass className="h-3 w-3 text-cyan-400" />
+          <div className="space-y-1.5 sm:space-y-2">
+            <div className="flex items-center gap-1.5 px-1 text-[10px] font-black tracking-widest text-cyan-400 uppercase">
+              <Compass className="h-3.5 w-3.5 text-cyan-400" />
               <span>Modos de Jogo</span>
             </div>
 
-            {/* Active Mode (Glowing, 2-line title to never truncate) */}
+            {/* Active Mode (Glowing, spacious & never truncates) */}
             <button
               type="button"
               onClick={() => {
@@ -601,16 +601,18 @@ export function MissionHub({
                 setCitySelectorOpen(true);
               }}
               title="Clique para alternar entre as 8 cidades e missões"
-              className="w-full flex h-11 items-center gap-2 rounded-xl border-2 border-amber-400/70 bg-gradient-to-r from-amber-500/25 via-slate-900/95 to-slate-900/95 px-2.5 text-left shadow-[0_0_15px_rgba(245,158,11,0.3)] hover:border-amber-300 cursor-pointer transition"
+              className="w-full flex h-12 items-center gap-2.5 rounded-xl sm:rounded-2xl border-2 border-amber-400/80 bg-gradient-to-r from-amber-500/25 via-slate-900/95 to-slate-900/95 px-3 text-left shadow-[0_0_20px_rgba(245,158,11,0.35)] hover:border-amber-300 cursor-pointer transition"
             >
-              <Swords className="h-4 w-4 text-amber-300 shrink-0" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/20 border border-amber-400/50 shrink-0">
+                <Swords className="h-4 w-4 text-amber-300" />
+              </div>
               <div className="min-w-0 flex-1">
-                <div className="text-[11px] font-black uppercase text-white truncate leading-tight">
+                <div className="text-xs sm:text-sm font-black uppercase text-white truncate leading-tight tracking-wide">
                   {selectedMission.title}
                 </div>
-                <div className="text-[8.5px] font-bold text-amber-300 uppercase truncate flex items-center justify-between">
-                  <span>Fase {selectedMission.order}</span>
-                  <span className="text-cyan-400 font-mono">VER MAPA ▾</span>
+                <div className="text-[9px] font-bold text-amber-300 uppercase truncate flex items-center justify-between mt-0.5">
+                  <span>Fase {selectedMission.order} • {selectedMission.difficulty}</span>
+                  <span className="text-cyan-400 font-mono text-[8px] bg-cyan-950/80 border border-cyan-800/60 px-1 rounded">MAPA ▾</span>
                 </div>
               </div>
             </button>
@@ -620,13 +622,13 @@ export function MissionHub({
               whileHover={{ scale: 1.02, x: 2 }}
               whileTap={{ scale: 0.96 }}
               onClick={onOpenTribesQuiz}
-              className="w-full flex h-8 sm:h-8.5 items-center justify-between rounded-xl border border-fuchsia-500/35 bg-slate-900/85 px-2.5 text-left text-slate-200 hover:border-fuchsia-400 shadow-md cursor-pointer transition"
+              className="w-full flex h-8.5 sm:h-9 items-center justify-between rounded-xl border border-fuchsia-500/35 bg-slate-900/85 px-3 text-left text-slate-200 hover:border-fuchsia-400 shadow-md cursor-pointer transition"
             >
-              <span className="flex items-center gap-1.5 text-xs font-black uppercase">
+              <span className="flex items-center gap-2 text-xs font-black uppercase tracking-wide">
                 <Swords className="h-3.5 w-3.5 text-fuchsia-400 shrink-0" />
                 <span>Arena Tribos</span>
               </span>
-              <span className="rounded bg-fuchsia-500/20 px-1.5 py-0.2 text-[8.5px] font-mono font-black text-fuchsia-300">
+              <span className="rounded bg-fuchsia-500/20 px-1.5 py-0.5 text-[8.5px] font-mono font-black text-fuchsia-300">
                 4v4
               </span>
             </motion.button>
@@ -636,13 +638,13 @@ export function MissionHub({
               whileHover={{ scale: 1.02, x: 2 }}
               whileTap={{ scale: 0.96 }}
               onClick={onOpenPrayerRadar}
-              className="w-full flex h-8 sm:h-8.5 items-center justify-between rounded-xl border border-amber-500/35 bg-slate-900/85 px-2.5 text-left text-slate-200 hover:border-amber-400 shadow-md cursor-pointer transition"
+              className="w-full flex h-8.5 sm:h-9 items-center justify-between rounded-xl border border-amber-500/35 bg-slate-900/85 px-3 text-left text-slate-200 hover:border-amber-400 shadow-md cursor-pointer transition"
             >
-              <span className="flex items-center gap-1.5 text-xs font-black uppercase">
+              <span className="flex items-center gap-2 text-xs font-black uppercase tracking-wide">
                 <Radio className="h-3.5 w-3.5 text-amber-400 shrink-0" />
                 <span>Radar Oração</span>
               </span>
-              <span className="rounded bg-amber-500/20 px-1.5 py-0.2 text-[8.5px] font-mono font-black text-amber-300">
+              <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[8.5px] font-mono font-black text-amber-300">
                 {state.prayedMissionIds.length}/4
               </span>
             </motion.button>
@@ -652,13 +654,13 @@ export function MissionHub({
               whileHover={{ scale: 1.02, x: 2 }}
               whileTap={{ scale: 0.96 }}
               onClick={() => onOpenPocketBible("gospel")}
-              className="w-full flex h-8 sm:h-8.5 items-center justify-between rounded-xl border border-emerald-500/35 bg-slate-900/85 px-2.5 text-left text-slate-200 hover:border-emerald-400 shadow-md cursor-pointer transition"
+              className="w-full flex h-8.5 sm:h-9 items-center justify-between rounded-xl border border-emerald-500/35 bg-slate-900/85 px-3 text-left text-slate-200 hover:border-emerald-400 shadow-md cursor-pointer transition"
             >
-              <span className="flex items-center gap-1.5 text-xs font-black uppercase">
+              <span className="flex items-center gap-2 text-xs font-black uppercase tracking-wide">
                 <BookOpen className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
                 <span>Grimório</span>
               </span>
-              <span className="rounded bg-emerald-500/20 px-1.5 py-0.2 text-[8.5px] font-mono font-black text-emerald-300">
+              <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[8.5px] font-mono font-black text-emerald-300">
                 {state.studiedGospelSteps.length}/4
               </span>
             </motion.button>
@@ -668,13 +670,13 @@ export function MissionHub({
               whileHover={{ scale: 1.02, x: 2 }}
               whileTap={{ scale: 0.96 }}
               onClick={onOpenPassport}
-              className="w-full flex h-8 sm:h-8.5 items-center justify-between rounded-xl border border-cyan-500/35 bg-slate-900/85 px-2.5 text-left text-slate-200 hover:border-cyan-400 shadow-md cursor-pointer transition"
+              className="w-full flex h-8.5 sm:h-9 items-center justify-between rounded-xl border border-cyan-500/35 bg-slate-900/85 px-3 text-left text-slate-200 hover:border-cyan-400 shadow-md cursor-pointer transition"
             >
-              <span className="flex items-center gap-1.5 text-xs font-black uppercase">
+              <span className="flex items-center gap-2 text-xs font-black uppercase tracking-wide">
                 <Trophy className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
                 <span>Passaporte</span>
               </span>
-              <span className="rounded bg-cyan-500/20 px-1.5 py-0.2 text-[8.5px] font-mono font-black text-cyan-300">
+              <span className="rounded bg-cyan-500/20 px-1.5 py-0.5 text-[8.5px] font-mono font-black text-cyan-300">
                 {completedIds.length}/{allMissions.length}
               </span>
             </motion.button>
@@ -687,13 +689,13 @@ export function MissionHub({
                 playSfx("click");
                 setLanguageModalOpen(true);
               }}
-              className="w-full flex h-8 sm:h-8.5 items-center justify-between rounded-xl border border-amber-500/35 bg-slate-900/85 px-2.5 text-left text-slate-200 hover:border-amber-400 shadow-md cursor-pointer transition"
+              className="w-full flex h-8.5 sm:h-9 items-center justify-between rounded-xl border border-amber-500/35 bg-slate-900/85 px-3 text-left text-slate-200 hover:border-amber-400 shadow-md cursor-pointer transition"
             >
-              <span className="flex items-center gap-1.5 text-xs font-black uppercase">
+              <span className="flex items-center gap-2 text-xs font-black uppercase tracking-wide">
                 <Globe2 className="h-3.5 w-3.5 text-amber-400 shrink-0" />
                 <span>Idiomas</span>
               </span>
-              <span className="rounded bg-amber-500/20 px-1.5 py-0.2 text-[8.5px] font-mono font-black text-amber-300">
+              <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[8.5px] font-mono font-black text-amber-300">
                 8 Povos
               </span>
             </motion.button>
@@ -706,13 +708,13 @@ export function MissionHub({
                 playSfx("click");
                 setCoopModalOpen(true);
               }}
-              className="w-full flex h-8 sm:h-8.5 items-center justify-between rounded-xl border border-emerald-500/35 bg-slate-900/85 px-2.5 text-left text-slate-200 hover:border-emerald-400 shadow-md cursor-pointer transition"
+              className="w-full flex h-8.5 sm:h-9 items-center justify-between rounded-xl border border-emerald-500/35 bg-slate-900/85 px-3 text-left text-slate-200 hover:border-emerald-400 shadow-md cursor-pointer transition"
             >
-              <span className="flex items-center gap-1.5 text-xs font-black uppercase">
+              <span className="flex items-center gap-2 text-xs font-black uppercase tracking-wide">
                 <Users className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
                 <span>Co-op (2P)</span>
               </span>
-              <span className="rounded bg-emerald-500/20 px-1.5 py-0.2 text-[8.5px] font-mono font-black text-emerald-300">
+              <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[8.5px] font-mono font-black text-emerald-300">
                 Dupla
               </span>
             </motion.button>
@@ -729,31 +731,31 @@ export function MissionHub({
               else onOpenWardrobe();
             }}
             title="Perfil de Invocador • Clique para alternar agente"
-            className="flex w-full cursor-pointer items-center gap-2 rounded-xl border border-amber-500/40 bg-slate-900/95 p-2 text-left shadow-lg hover:border-amber-300 transition shrink-0"
+            className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl sm:rounded-2xl border border-amber-500/40 bg-slate-900/95 p-2 sm:p-2.5 text-left shadow-lg hover:border-amber-300 transition shrink-0"
           >
             <div className="relative shrink-0">
               <HeroPortrait
                 avatarId={state.agent.avatarId}
-                size={34}
+                size={38}
                 shape="hex"
                 active
               />
-              <span className="absolute -right-1 -bottom-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded border border-amber-200 bg-gradient-to-b from-amber-300 to-amber-600 px-0.5 text-[8px] font-black text-slate-950 shadow">
+              <span className="absolute -right-1 -bottom-0.5 flex h-4 min-w-4 items-center justify-center rounded border border-amber-200 bg-gradient-to-b from-amber-300 to-amber-600 px-0.5 text-[8.5px] font-black text-slate-950 shadow">
                 {level}
               </span>
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between">
-                <span className="truncate text-xs font-black uppercase text-white">
+                <span className="truncate text-xs sm:text-sm font-black uppercase text-white tracking-wide">
                   {state.agent.name}
                 </span>
-                <span className="text-[8.5px] text-amber-300 font-bold">▾</span>
+                <span className="text-[9px] text-amber-300 font-bold">▾</span>
               </div>
-              <div className="text-[8.5px] font-bold text-cyan-300 truncate leading-none mt-0.5">
+              <div className="text-[9px] font-bold text-cyan-300 truncate leading-none mt-0.5">
                 {levelTitle}
               </div>
               {/* XP Progress Bar */}
-              <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full border border-slate-700 bg-slate-950">
+              <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full border border-slate-700 bg-slate-950">
                 <div
                   style={{ width: `${xpPercent}%` }}
                   className="h-full bg-gradient-to-r from-cyan-400 via-emerald-400 to-amber-300"
@@ -865,26 +867,26 @@ export function MissionHub({
           </div>
         </main>
 
-        {/* 3. RIGHT HUD DOCK (Tactical Intel, 1-Tap Champion Switcher & AAA JOGAR Button) */}
-        <aside className="relative z-20 flex w-56 sm:w-60 md:w-64 shrink-0 flex-col justify-between h-full rounded-2xl sm:rounded-3xl border border-amber-500/25 bg-slate-950/80 backdrop-blur-xl p-2.5 sm:p-3 shadow-2xl gap-2 overflow-hidden">
+        {/* 3. RIGHT HUD DOCK (Tactical Intel Dossier, Mission Objectives & AAA JOGAR Button) */}
+        <aside className="relative z-20 flex w-64 sm:w-72 md:w-80 lg:w-84 shrink-0 flex-col justify-between h-full rounded-2xl sm:rounded-3xl border border-amber-500/30 bg-slate-950/85 backdrop-blur-xl p-2.5 sm:p-3 shadow-2xl gap-2 overflow-hidden">
           {/* Top: Active City Tactical Intel Card */}
-          <div className="flex-1 min-h-0 flex flex-col justify-between rounded-xl sm:rounded-2xl border border-amber-400/40 bg-slate-900/90 p-2 sm:p-2.5 shadow-lg">
+          <div className="flex-1 min-h-0 flex flex-col justify-between rounded-xl sm:rounded-2xl border border-amber-400/40 bg-slate-900/90 p-2.5 sm:p-3 shadow-lg overflow-y-auto no-scrollbar">
             {/* City Title & Phase */}
-            <div className="flex items-center justify-between border-b border-amber-500/25 pb-1">
-              <div className="min-w-0 flex-1">
-                <div className="text-xs font-black text-white uppercase flex items-center gap-1">
-                  <span className="text-sm shrink-0">{selectedMission.emoji}</span>
+            <div className="flex items-center justify-between border-b border-amber-500/25 pb-1.5 shrink-0">
+              <div className="min-w-0 flex-1 pr-2">
+                <div className="text-xs sm:text-sm font-black text-white uppercase flex items-center gap-1.5">
+                  <span className="text-base shrink-0">{selectedMission.emoji}</span>
                   <span className="truncate">{selectedMission.title}</span>
                 </div>
-                <div className="text-[9px] font-bold text-amber-300 uppercase truncate">
+                <div className="text-[9px] sm:text-[10px] font-bold text-amber-300 uppercase truncate mt-0.5">
                   Fase {selectedMission.order} • {selectedMission.difficulty}
                 </div>
               </div>
               <span
-                className={`rounded-full px-1.5 py-0.5 font-mono text-[8.5px] font-black shrink-0 ${
+                className={`rounded-full px-2 py-0.5 font-mono text-[9px] font-black shrink-0 ${
                   selectedRecord?.completed
-                    ? "bg-emerald-500/25 text-emerald-300"
-                    : "bg-amber-500/25 text-amber-300"
+                    ? "bg-emerald-500/25 text-emerald-300 border border-emerald-500/40"
+                    : "bg-amber-500/25 text-amber-300 border border-amber-500/40"
                 }`}
               >
                 {selectedRecord?.completed ? "✓ CONCLUÍDA" : "ATIVA"}
@@ -892,81 +894,56 @@ export function MissionHub({
             </div>
 
             {/* Visual NPC Contact Bubble */}
-            <div className="my-1 flex items-center gap-2 rounded-xl bg-slate-950/80 p-1.5 border border-slate-800">
+            <div className="my-1.5 flex items-center gap-2.5 rounded-xl bg-slate-950/80 p-2 border border-slate-800 shrink-0">
               <NpcPortrait
                 avatarKey={selectedMission.npc.avatarKey}
-                size={36}
+                size={38}
                 shape="hex"
               />
               <div className="min-w-0 flex-1">
-                <div className="text-[9.5px] font-black text-cyan-300 truncate">
-                  {selectedMission.npc.name} ({selectedMission.npc.age} anos)
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black text-cyan-300 truncate">
+                    {selectedMission.npc.name} ({selectedMission.npc.age} anos)
+                  </span>
+                  <span className="text-[7.5px] font-bold uppercase text-slate-400">
+                    {tacticalIntel.role}
+                  </span>
                 </div>
-                <p className="line-clamp-2 text-[8px] text-slate-300 leading-snug italic mt-0.5">
+                <p className="line-clamp-2 text-[8.5px] text-slate-300 leading-snug italic mt-0.5">
                   &ldquo;{tacticalIntel.quote}&rdquo;
                 </p>
               </div>
             </div>
 
+            {/* Tactical Tasks / Objectives Checklist */}
+            <div className="my-1 space-y-1 rounded-xl bg-slate-950/60 p-2 border border-slate-800/80 shrink-0">
+              <div className="text-[9px] font-black uppercase tracking-wider text-cyan-400 flex items-center justify-between">
+                <span>🎯 Tarefas Táticas da Missão</span>
+                <span className="text-[8px] font-mono text-amber-300">0/3</span>
+              </div>
+              <div className="space-y-1 pt-0.5">
+                {tacticalIntel.tasks.map((task, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-start gap-1.5 text-[8.5px] text-slate-300 leading-tight"
+                  >
+                    <span className="text-amber-400 font-bold shrink-0 mt-0.5">✦</span>
+                    <span className="line-clamp-2">{task}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* Rewards Pill */}
-            <div className="flex items-center justify-between text-[9px] font-bold text-slate-400 bg-slate-950/60 px-2 py-0.5 rounded-lg">
-              <span>Recompensa:</span>
+            <div className="flex items-center justify-between text-[9.5px] font-bold text-slate-400 bg-slate-950/80 px-2.5 py-1 rounded-xl border border-slate-800 shrink-0">
+              <span>Recompensa da Fase:</span>
               <span className="text-amber-300 font-mono font-black">
                 +{selectedMission.rewardXp} XP • +{selectedMission.rewardWisdom} 💎
               </span>
             </div>
           </div>
 
-          {/* Middle: 1-Tap Instant Champion Switcher */}
-          <div className="rounded-xl border border-slate-800 bg-slate-900/90 p-1.5 shrink-0">
-            <div className="flex items-center justify-between mb-1 px-1">
-              <span className="text-[8.5px] font-black tracking-widest text-cyan-400 uppercase">
-                HERÓIS DA BASE IDE
-              </span>
-              <span className="text-[8px] font-bold text-amber-300 uppercase">
-                {heroMeta?.name}
-              </span>
-            </div>
-            <div className="grid grid-cols-4 gap-1">
-              {AVATAR_OPTIONS.map((av) => {
-                const isCurrent = av.id === state.agent?.avatarId;
-                return (
-                  <motion.button
-                    key={av.id}
-                    type="button"
-                    whileHover={{ scale: 1.08 }}
-                    whileTap={{ scale: 0.94 }}
-                    onClick={() => {
-                      playSfx("click");
-                      updateAgentAppearance({ avatarId: av.id });
-                    }}
-                    title={`Equipar ${av.name}`}
-                    className={`flex flex-col items-center justify-center rounded-lg p-1 transition cursor-pointer ${
-                      isCurrent
-                        ? "bg-amber-500/25 border-2 border-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
-                        : "bg-slate-950/80 border border-slate-800 hover:border-slate-600"
-                    }`}
-                  >
-                    <HeroPortrait
-                      avatarId={av.id}
-                      size={28}
-                      shape="hex"
-                      active={isCurrent}
-                    />
-                    <span
-                      className={`mt-0.5 text-[8px] font-black uppercase truncate max-w-full ${
-                        isCurrent ? "text-amber-300" : "text-slate-400"
-                      }`}
-                    >
-                      {av.name}
-                    </span>
-                  </motion.button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Bottom: AAA MOBA JOGAR Button & Wardrobe Shortcut */}
+          {/* Bottom: AAA MOBA JOGAR Button & Quick Navigation */}
           <div className="shrink-0 space-y-1.5">
             {selectedUnlocked ? (
               <motion.button
@@ -984,45 +961,47 @@ export function MissionHub({
                   <span>JOGAR</span>
                 </div>
                 <div className="text-[9.5px] font-extrabold uppercase tracking-wider text-amber-950/90 truncate max-w-[95%]">
-                  ENTRAR NA CIDADE • FASE {selectedMission.order}
+                  ENTRAR NA CIDADE 3D • FASE {selectedMission.order}
                 </div>
               </motion.button>
             ) : (
               <button
                 type="button"
                 disabled
-                className="w-full py-3 flex items-center justify-center gap-1.5 rounded-xl sm:rounded-2xl border border-slate-800 bg-slate-900/60 text-slate-500 text-[10px] font-black uppercase cursor-not-allowed"
+                className="w-full py-3.5 flex items-center justify-center gap-1.5 rounded-xl sm:rounded-2xl border border-slate-800 bg-slate-900/60 text-slate-500 text-[10px] font-black uppercase cursor-not-allowed"
               >
                 <Lock className="h-3.5 w-3.5" />
-                <span>Bloqueado • Fase {selectedMission.order - 1}</span>
+                <span>Bloqueado • Conclua Fase {selectedMission.order - 1}</span>
               </button>
             )}
 
-            {/* Quick Actions: Lore/História & Skins 3D (Clean, High-Value, Zero Redundancy) */}
+            {/* Quick Actions: Lore/História & Aba Herói */}
             <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => {
-                  playSfx("click");
-                  if (onOpenStory) onOpenStory();
-                }}
-                title="Assistir Prólogo Animado & Tutorial da Base Ide"
-                className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl border border-amber-500/40 bg-slate-900/90 text-[8.5px] font-black text-amber-300 hover:border-amber-400 hover:text-white transition cursor-pointer uppercase shadow-sm"
-              >
-                <Film className="h-3 w-3 text-amber-400 shrink-0" />
-                <span>História</span>
-              </button>
+              {onOpenStory && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx("click");
+                    onOpenStory();
+                  }}
+                  title="Assistir Prólogo Animado & Tutorial da Base Ide"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl border border-amber-500/40 bg-slate-900/90 text-[9px] font-black text-amber-300 hover:border-amber-400 hover:text-white transition cursor-pointer uppercase shadow-sm"
+                >
+                  <Film className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+                  <span>História</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => {
                   playSfx("click");
                   onOpenWardrobe();
                 }}
-                title="Vestiário e Personalização de Skins 3D"
-                className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl border border-cyan-500/40 bg-slate-900/90 text-[8.5px] font-black text-cyan-300 hover:border-cyan-400 hover:text-white transition cursor-pointer uppercase shadow-sm"
+                title="Aba Herói: Personagens, Skins e Títulos"
+                className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl border border-cyan-500/40 bg-slate-900/90 text-[9px] font-black text-cyan-300 hover:border-cyan-400 hover:text-white transition cursor-pointer uppercase shadow-sm"
               >
-                <Sparkles className="h-3 w-3 text-cyan-300 shrink-0" />
-                <span>Skins 3D</span>
+                <Sparkles className="h-3.5 w-3.5 text-cyan-300 shrink-0" />
+                <span>Aba Herói</span>
               </button>
             </div>
           </div>
@@ -1252,7 +1231,7 @@ export function MissionHub({
                 className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-amber-400/60 bg-gradient-to-r from-amber-500/20 via-amber-500/30 to-amber-600/20 py-1.5 text-xs font-black text-amber-300 hover:border-amber-300 hover:text-white transition cursor-pointer shadow-sm"
               >
                 <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-                <span>PERSONALIZAR SKINS 3D</span>
+                <span>PERSONALIZAR HERÓI 3D</span>
               </motion.button>
             </div>
           </div>

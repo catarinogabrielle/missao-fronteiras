@@ -93,7 +93,7 @@ export function HeaderBar({
               playSfx("click");
               onOpenWardrobe();
             }}
-            title="Ver Perfil & Skins"
+            title="Ver Perfil & Herói"
             className="flex items-center gap-2 min-w-0 text-left cursor-pointer"
           >
             <div className="relative shrink-0">
@@ -202,17 +202,19 @@ export function HeaderBar({
      ========================================================================= */
   if (isLandscapeMode) {
     return (
-      <header className="sticky top-0 z-40 h-11 w-full max-w-full shrink-0 border-b border-amber-500/25 bg-slate-950/95 px-3 sm:px-4 backdrop-blur-xl shadow-lg select-none">
-        <div className="flex h-full w-full items-center justify-between gap-3">
-          {/* Brand & Summoner Profile */}
-          <div className="flex items-center gap-2 shrink-0">
+      <header className="sticky top-0 z-40 h-11 w-full max-w-full shrink-0 border-b border-amber-500/25 bg-slate-950/95 px-2.5 sm:px-3 backdrop-blur-xl shadow-lg select-none">
+        <div className="flex h-full w-full items-center justify-between gap-2">
+          {/* Left Group: Logo + Player Crest + Navigation Selections */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Logo */}
             <button
               type="button"
               onClick={() => {
                 playSfx("click");
                 if (onGoHome) onGoHome();
               }}
-              className="flex items-center gap-1.5 cursor-pointer"
+              className="flex items-center cursor-pointer shrink-0"
+              title="Base Missionária Ide"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -220,12 +222,7 @@ export function HeaderBar({
                 alt="Logo"
                 className="h-7 w-7 rounded-lg border border-amber-400/70 shadow-[0_0_8px_rgba(245,158,11,0.4)]"
               />
-              <span className="hidden sm:inline bg-gradient-to-r from-amber-200 via-white to-cyan-300 bg-clip-text text-xs font-black tracking-wider text-transparent uppercase">
-                Missão Fronteiras
-              </span>
             </button>
-
-            <div className="h-4 w-px bg-slate-800" />
 
             {/* Player Crest */}
             <button
@@ -234,84 +231,87 @@ export function HeaderBar({
                 playSfx("click");
                 onOpenWardrobe();
               }}
-              className="flex items-center gap-1.5 cursor-pointer text-left"
+              title="Ver Herói e Vestiário"
+              className="flex items-center gap-1.5 cursor-pointer text-left shrink-0 rounded-lg bg-slate-900/60 border border-slate-800 px-1.5 py-0.5"
             >
               <HeroPortrait
                 avatarId={state.agent.avatarId}
-                size={26}
+                size={24}
                 shape="hex"
                 active
               />
-              <span className="text-xs font-black text-white uppercase truncate max-w-[100px]">
+              <span className="text-xs font-black text-white uppercase truncate max-w-[80px]">
                 {state.agent.name}
               </span>
               <span className="rounded bg-amber-500/20 px-1 py-0.2 font-mono text-[8px] font-black text-amber-300">
                 Nv.{level}
               </span>
             </button>
+
+            <div className="h-4 w-px bg-slate-800" />
+
+            {/* Navigation Selections Aligned to the Left */}
+            <nav className="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  playSfx("click");
+                  if (onGoHome) onGoHome();
+                }}
+                className="px-2.5 py-1 rounded-lg border border-amber-400/50 bg-amber-500/15 text-[10px] font-black text-amber-300 uppercase transition cursor-pointer"
+              >
+                Lobby
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  playSfx("click");
+                  onOpenWardrobe();
+                }}
+                className="px-2.5 py-1 rounded-lg border border-transparent text-[10px] font-black text-slate-300 hover:text-white hover:bg-slate-900 transition cursor-pointer uppercase"
+              >
+                Herói
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  playSfx("click");
+                  onOpenPassport();
+                }}
+                className="px-2.5 py-1 rounded-lg border border-transparent text-[10px] font-black text-slate-300 hover:text-white hover:bg-slate-900 transition cursor-pointer uppercase"
+              >
+                Coleção ({stampCount})
+              </button>
+
+              {onOpenStory && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx("click");
+                    onOpenStory();
+                  }}
+                  className="px-2.5 py-1 rounded-lg border border-transparent text-[10px] font-black text-slate-300 hover:text-white hover:bg-slate-900 transition cursor-pointer uppercase"
+                >
+                  História
+                </button>
+              )}
+
+              {onOpenBible && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx("click");
+                    onOpenBible();
+                  }}
+                  className="px-2.5 py-1 rounded-lg border border-transparent text-[10px] font-black text-slate-300 hover:text-white hover:bg-slate-900 transition cursor-pointer uppercase"
+                >
+                  Palavra
+                </button>
+              )}
+            </nav>
           </div>
-
-          {/* Center Navigation Dock */}
-          <nav className="flex items-center gap-1 shrink-0">
-            <button
-              type="button"
-              onClick={() => {
-                playSfx("click");
-                if (onGoHome) onGoHome();
-              }}
-              className="px-2.5 py-1 rounded-lg border border-amber-400/50 bg-amber-500/15 text-[10px] font-black text-amber-300 uppercase transition cursor-pointer"
-            >
-              Lobby
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                playSfx("click");
-                onOpenWardrobe();
-              }}
-              className="px-2.5 py-1 rounded-lg border border-transparent text-[10px] font-black text-slate-300 hover:text-white hover:bg-slate-900 transition cursor-pointer uppercase"
-            >
-              Skins
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                playSfx("click");
-                onOpenPassport();
-              }}
-              className="px-2.5 py-1 rounded-lg border border-transparent text-[10px] font-black text-slate-300 hover:text-white hover:bg-slate-900 transition cursor-pointer uppercase"
-            >
-              Coleção ({stampCount})
-            </button>
-
-            {onOpenStory && (
-              <button
-                type="button"
-                onClick={() => {
-                  playSfx("click");
-                  onOpenStory();
-                }}
-                className="px-2.5 py-1 rounded-lg border border-transparent text-[10px] font-black text-slate-300 hover:text-white hover:bg-slate-900 transition cursor-pointer uppercase"
-              >
-                História
-              </button>
-            )}
-
-            {onOpenBible && (
-              <button
-                type="button"
-                onClick={() => {
-                  playSfx("click");
-                  onOpenBible();
-                }}
-                className="px-2.5 py-1 rounded-lg border border-transparent text-[10px] font-black text-slate-300 hover:text-white hover:bg-slate-900 transition cursor-pointer uppercase"
-              >
-                Palavra
-              </button>
-            )}
-          </nav>
 
           {/* Right Utilities */}
           <div className="flex items-center gap-1.5 shrink-0">
@@ -422,7 +422,7 @@ export function HeaderBar({
               playSfx("click");
               onOpenWardrobe();
             }}
-            title="Clique para abrir Skins 3D e Personalização"
+            title="Clique para abrir Herói, Skins e Personalização"
             className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/70 hover:bg-slate-900 hover:border-amber-400/50 p-1 pr-2.5 transition cursor-pointer shadow-sm text-left group"
           >
             <div className="relative shrink-0">
@@ -488,7 +488,7 @@ export function HeaderBar({
             <span>Lobby</span>
           </button>
 
-          {/* Skins 3D */}
+          {/* Herói (Aba Herói & Personalização) */}
           <button
             type="button"
             onClick={() => {
@@ -498,7 +498,7 @@ export function HeaderBar({
             className="flex items-center gap-1 rounded-lg border border-transparent hover:border-slate-700 hover:bg-slate-800/60 px-2.5 py-1 text-xs font-bold uppercase text-slate-300 hover:text-white transition cursor-pointer"
           >
             <Sparkles className="h-3 w-3 text-cyan-400" />
-            <span>Skins</span>
+            <span>Herói</span>
           </button>
 
           {/* Passaporte / Coleção */}
