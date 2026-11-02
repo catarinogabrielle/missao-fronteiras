@@ -222,13 +222,13 @@ export function OnboardingScreen({ onStartPlay }: OnboardingScreenProps) {
             src={activeChamp.arenaBg}
             alt=""
             initial={{ opacity: 0, scale: 1.05 }}
-            animate={{ opacity: 0.2, scale: 1 }}
+            animate={{ opacity: 0.35, scale: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.4 }}
-            className="pointer-events-none fixed inset-0 h-full w-full object-cover blur-[2px]"
+            className="pointer-events-none fixed inset-0 h-full w-full object-cover"
           />
         </AnimatePresence>
-        <div className="pointer-events-none fixed inset-0 bg-gradient-to-b from-slate-950 via-slate-950/80 to-slate-950" />
+        <div className="pointer-events-none fixed inset-0 bg-gradient-to-b from-slate-950 via-slate-950/70 to-slate-950" />
 
         {/* TOP COMPACT BAR */}
         <header className="relative z-20 flex shrink-0 items-center justify-between rounded-2xl border border-amber-500/25 bg-slate-950/85 px-3 py-2 backdrop-blur-xl shadow-md">
@@ -276,7 +276,23 @@ export function OnboardingScreen({ onStartPlay }: OnboardingScreenProps) {
         </header>
 
         {/* HERO SHOWCASE CARD */}
-        <section className="relative z-10 my-2 flex flex-1 flex-col items-center justify-between rounded-2xl border border-cyan-500/25 bg-gradient-to-b from-slate-950/90 via-[#06101e]/90 to-slate-950/95 p-3 backdrop-blur-xl shadow-xl min-h-0">
+        <section className="relative z-10 my-2 flex flex-1 flex-col items-center justify-between rounded-2xl border border-cyan-500/30 bg-slate-950/50 p-3 backdrop-blur-md shadow-xl min-h-0 overflow-hidden">
+          {/* Arena Scenic Wallpaper Backdrop Behind 3D Hero */}
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <AnimatePresence mode="wait">
+              <motion.img
+                key={activeChamp.arenaBg}
+                src={activeChamp.arenaBg}
+                alt="Cenário"
+                initial={{ opacity: 0, scale: 1.06 }}
+                animate={{ opacity: 0.5, scale: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.4 }}
+                className="h-full w-full object-cover"
+              />
+            </AnimatePresence>
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-slate-950/70" />
+          </div>
           {/* Hero Header */}
           <div className="w-full flex items-center justify-between">
             <div>
@@ -512,13 +528,13 @@ export function OnboardingScreen({ onStartPlay }: OnboardingScreenProps) {
             src={activeChamp.arenaBg}
             alt=""
             initial={{ opacity: 0, scale: 1.05 }}
-            animate={{ opacity: 0.22, scale: 1 }}
+            animate={{ opacity: 0.35, scale: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.4 }}
-            className="pointer-events-none fixed inset-0 h-full w-full object-cover blur-[2px]"
+            className="pointer-events-none fixed inset-0 h-full w-full object-cover"
           />
         </AnimatePresence>
-        <div className="pointer-events-none fixed inset-0 bg-radial from-transparent via-slate-950/70 to-slate-950/95" />
+        <div className="pointer-events-none fixed inset-0 bg-radial from-transparent via-slate-950/50 to-slate-950/90" />
 
         {/* 1. TOP COMPACT NAVBAR */}
         <header className="relative z-20 flex h-10 sm:h-11 shrink-0 items-center justify-between rounded-xl border border-amber-500/25 bg-slate-950/85 px-3 py-1 backdrop-blur-xl shadow-md">
@@ -570,7 +586,24 @@ export function OnboardingScreen({ onStartPlay }: OnboardingScreenProps) {
         {/* 2. MAIN 2-COLUMN ARENA (NO OVERFLOW, PERFECT FIT) */}
         <div className="relative z-10 flex flex-1 min-h-0 gap-2.5 sm:gap-3 overflow-hidden my-1">
           {/* LEFT COLUMN: HERO SHOWCASE + 4 CHAMPION SELECTION DOCK (~62% width) */}
-          <section className="relative flex flex-1 flex-col justify-between min-h-0 rounded-2xl border border-cyan-500/25 bg-gradient-to-b from-slate-950/85 via-[#06101e]/90 to-slate-950/95 p-2.5 sm:p-3 backdrop-blur-xl shadow-2xl overflow-hidden">
+          <section className="relative flex flex-1 flex-col justify-between min-h-0 rounded-2xl border border-cyan-500/30 bg-slate-950/50 p-2.5 sm:p-3 backdrop-blur-md shadow-2xl overflow-hidden">
+            {/* Arena Scenic Wallpaper Backdrop Behind 3D Hero */}
+            <div className="pointer-events-none absolute inset-0 overflow-hidden">
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={activeChamp.arenaBg}
+                  src={activeChamp.arenaBg}
+                  alt="Cenário"
+                  initial={{ opacity: 0, scale: 1.06 }}
+                  animate={{ opacity: 0.55, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.4 }}
+                  className="h-full w-full object-cover"
+                />
+              </AnimatePresence>
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-slate-950/70" />
+              <div className="absolute inset-0 bg-gradient-to-r from-slate-950/50 via-transparent to-slate-950/50" />
+            </div>
             {/* Top Identity & 3D/Art Mode Switch */}
             <div className="relative z-10 flex items-start justify-between">
               <div>
