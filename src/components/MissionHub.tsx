@@ -1121,36 +1121,6 @@ export function MissionHub({
                 <span>Bloqueado • Conclua Fase {selectedMission.order - 1}</span>
               </button>
             )}
-
-            {/* Quick Actions: Lore/História & Aba Herói */}
-            <div className="flex items-center gap-1.5">
-              {onOpenStory && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    playSfx("click");
-                    onOpenStory();
-                  }}
-                  title="Assistir Prólogo Animado & Tutorial da Base Ide"
-                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl border border-amber-500/40 bg-slate-900/90 text-[9px] font-black text-amber-300 hover:border-amber-400 hover:text-white transition cursor-pointer uppercase shadow-sm"
-                >
-                  <Film className="h-3.5 w-3.5 text-amber-400 shrink-0" />
-                  <span>História</span>
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  playSfx("click");
-                  onOpenWardrobe();
-                }}
-                title="Aba Herói: Personagens, Skins e Títulos"
-                className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl border border-cyan-500/40 bg-slate-900/90 text-[9px] font-black text-cyan-300 hover:border-cyan-400 hover:text-white transition cursor-pointer uppercase shadow-sm"
-              >
-                <Sparkles className="h-3.5 w-3.5 text-cyan-300 shrink-0" />
-                <span>Aba Herói</span>
-              </button>
-            </div>
           </div>
         </aside>
 
