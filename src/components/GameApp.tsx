@@ -187,7 +187,7 @@ export function GameApp() {
         onClose={() => setWardrobeOpen(false)}
       />
 
-      <ToastOverlay />
+      {!isPlayingGame && <ToastOverlay />}
 
       {/* MANDATORY LANDSCAPE LOCK: Only when inside the 3D lobby/missions (not in home or prologue tutorial) */}
       {isMobilePortrait && state.agent && !storyOpen && (

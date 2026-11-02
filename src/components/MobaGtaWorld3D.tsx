@@ -1945,42 +1945,177 @@ export function MobaGtaWorld3D({
         c.kind === "scroll"
           ? 0xfbbf24
           : c.kind === "supply"
-            ? 0x38bdf8
+            ? 0x0284c7
             : c.kind === "heart"
-              ? 0xf43f5e
-              : 0x34d399;
+              ? 0xff0044
+              : 0x06b6d4;
 
-      if (c.kind === "scroll") {
-        const cyl = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.24, 0.24, 0.95, 12),
+      if (c.kind === "heart") {
+        // --- 1. CORAÇÃO 3D DE VIDA (HEALTH PICKUP - 100% VISÍVEL E ÓBVIO) ---
+        const heartGrp = new THREE.Group();
+        const heartMat = new THREE.MeshStandardMaterial({
+          color: 0xff0044,
+          emissive: 0xff1744,
+          emissiveIntensity: 1.15,
+          roughness: 0.15,
+          metalness: 0.2,
+        });
+
+        // Lóbulo esquerdo
+        const leftLobe = new THREE.Mesh(new THREE.SphereGeometry(0.24, 18, 18), heartMat);
+        leftLobe.position.set(-0.15, 0.14, 0);
+        heartGrp.add(leftLobe);
+
+        // Lóbulo direito
+        const rightLobe = new THREE.Mesh(new THREE.SphereGeometry(0.24, 18, 18), heartMat);
+        rightLobe.position.set(0.15, 0.14, 0);
+        heartGrp.add(rightLobe);
+
+        // Ponta inferior cônica invertida
+        const coneTip = new THREE.Mesh(new THREE.ConeGeometry(0.36, 0.58, 18), heartMat);
+        coneTip.rotation.z = Math.PI;
+        coneTip.position.set(0, -0.14, 0);
+        heartGrp.add(coneTip);
+
+        // Cruz de saúde branca em relevo
+        const crossMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const crossH = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.06, 0.06), crossMat);
+        crossH.position.set(0, 0.04, 0.22);
+        heartGrp.add(crossH);
+
+        const crossV = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.2, 0.06), crossMat);
+        crossV.position.set(0, 0.04, 0.22);
+        heartGrp.add(crossV);
+
+        grp.add(heartGrp);
+      } else if (c.kind === "gem") {
+        // --- 2. DIAMANTE 3D DE SABEDORIA (BRILLIANT CUT DIAMOND) ---
+        const gemGrp = new THREE.Group();
+        const diamondMat = new THREE.MeshStandardMaterial({
+          color: 0x06b6d4,
+          emissive: 0x22d3ee,
+          emissiveIntensity: 1.35,
+          roughness: 0.08,
+          metalness: 0.85,
+        });
+
+        // Coroa superior facetada (octógono)
+        const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.52, 0.22, 8), diamondMat);
+        crown.position.y = 0.11;
+        gemGrp.add(crown);
+
+        // Mesa plana superior
+        const table = new THREE.Mesh(
+          new THREE.CircleGeometry(0.42, 8),
+          new THREE.MeshBasicMaterial({ color: 0xa5f3fc, side: THREE.DoubleSide })
+        );
+        table.rotation.x = -Math.PI / 2;
+        table.position.y = 0.221;
+        gemGrp.add(table);
+
+        // Pavilhão cônico pontudo inferior
+        const pavilion = new THREE.Mesh(new THREE.ConeGeometry(0.52, 0.56, 8), diamondMat);
+        pavilion.rotation.x = Math.PI;
+        pavilion.position.y = -0.28;
+        gemGrp.add(pavilion);
+
+        // Núcleo cristalino interno
+        const core = new THREE.Mesh(
+          new THREE.OctahedronGeometry(0.24, 0),
+          new THREE.MeshBasicMaterial({ color: 0xffffff })
+        );
+        gemGrp.add(core);
+
+        grp.add(gemGrp);
+      } else if (c.kind === "supply") {
+        // --- 3. CAIXA 3D DE SUPRIMENTOS (SUPPLY CRATE COM CRUZ HUMANITÁRIA) ---
+        const crateGrp = new THREE.Group();
+
+        // Corpo de madeira maciça
+        const crateBody = new THREE.Mesh(
+          new THREE.BoxGeometry(0.82, 0.68, 0.82),
+          new THREE.MeshStandardMaterial({
+            color: 0x92400e,
+            roughness: 0.45,
+            metalness: 0.1,
+          })
+        );
+        crateGrp.add(crateBody);
+
+        // Cintas e ferragens de reforço de aço
+        const strapMat = new THREE.MeshStandardMaterial({
+          color: 0x1e293b,
+          roughness: 0.25,
+          metalness: 0.8,
+        });
+        const strapX = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.7, 0.16), strapMat);
+        crateGrp.add(strapX);
+        const strapZ = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.7, 0.85), strapMat);
+        crateGrp.add(strapZ);
+
+        // Borda superior da tampa
+        const topRim = new THREE.Mesh(new THREE.BoxGeometry(0.86, 0.08, 0.86), strapMat);
+        topRim.position.y = 0.35;
+        crateGrp.add(topRim);
+
+        // Cruz de socorro humanitário branca
+        const badgeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const crossH = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.1, 0.85), badgeMat);
+        crateGrp.add(crossH);
+        const crossV = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.36, 0.85), badgeMat);
+        crateGrp.add(crossV);
+
+        // Fecho metálico frontal dourado
+        const latch = new THREE.Mesh(
+          new THREE.BoxGeometry(0.14, 0.14, 0.08),
+          new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.9, roughness: 0.15 })
+        );
+        latch.position.set(0, 0.12, 0.43);
+        crateGrp.add(latch);
+
+        grp.add(crateGrp);
+      } else {
+        // --- 4. PERGAMINHO SAGRADO 3D (SACRED SCROLL) ---
+        const scrollGrp = new THREE.Group();
+
+        // Rolo de pergaminho
+        const parchment = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.18, 0.18, 0.95, 16),
           new THREE.MeshStandardMaterial({
             color: 0xfef3c7,
             emissive: 0xf59e0b,
-            emissiveIntensity: 0.9,
+            emissiveIntensity: 0.8,
+            roughness: 0.3,
           })
         );
-        cyl.rotation.z = Math.PI / 4;
-        grp.add(cyl);
-      } else if (c.kind === "supply") {
-        const box = new THREE.Mesh(
-          new THREE.BoxGeometry(0.78, 0.68, 0.78),
-          new THREE.MeshStandardMaterial({
-            color: 0x0284c7,
-            emissive: 0x38bdf8,
-            emissiveIntensity: 0.7,
-          })
+        parchment.rotation.z = Math.PI / 4;
+        scrollGrp.add(parchment);
+
+        // Hastes de madeira nobre nas pontas
+        const handleMat = new THREE.MeshStandardMaterial({
+          color: 0x78350f,
+          roughness: 0.4,
+          metalness: 0.2,
+        });
+        const handleL = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.14, 16), handleMat);
+        handleL.position.set(-0.35, -0.35, 0);
+        handleL.rotation.z = Math.PI / 4;
+        scrollGrp.add(handleL);
+
+        const handleR = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.14, 16), handleMat);
+        handleR.position.set(0.35, 0.35, 0);
+        handleR.rotation.z = Math.PI / 4;
+        scrollGrp.add(handleR);
+
+        // Selo dourado da aliança
+        const ring = new THREE.Mesh(
+          new THREE.TorusGeometry(0.2, 0.04, 8, 20),
+          new THREE.MeshStandardMaterial({ color: 0xfbbf24, emissive: 0xd97706, emissiveIntensity: 0.8 })
         );
-        grp.add(box);
-      } else {
-        const gem = new THREE.Mesh(
-          new THREE.OctahedronGeometry(0.46, 0),
-          new THREE.MeshStandardMaterial({
-            color: col,
-            emissive: col,
-            emissiveIntensity: 1.05,
-          })
-        );
-        grp.add(gem);
+        ring.rotation.x = Math.PI / 2;
+        scrollGrp.add(ring);
+
+        grp.add(scrollGrp);
       }
 
       const halo = new THREE.Mesh(
@@ -3628,6 +3763,15 @@ export function MobaGtaWorld3D({
           c.mesh.rotation.y += 2.2 * dt;
           c.mesh.position.y = 0.85 + Math.sin(now * 0.004 + c.x) * 0.16;
 
+          // Animação de pulsação de batimento cardíaco para o Coração 3D
+          if (c.kind === "heart") {
+            const pulse = 1 + Math.sin(now * 0.007) * 0.14;
+            c.mesh.scale.set(pulse, pulse, pulse);
+          } else if (c.kind === "gem") {
+            // Leve oscilação de brilho angular para o Diamante
+            c.mesh.rotation.z = Math.sin(now * 0.003) * 0.1;
+          }
+
           const dist = Math.hypot(c.x - heroPos.x, c.z - heroPos.z);
           if (dist < 4.8) {
             c.x += ((heroPos.x - c.x) / Math.max(0.2, dist)) * 17 * dt;
@@ -3651,13 +3795,13 @@ export function MobaGtaWorld3D({
             } else if (c.kind === "supply") {
               suppliesHeld += 1;
               onEarnRef.current(15, 5);
-              emitPopup(`🧰 +1 ${c.label.toUpperCase()}!`, "#38bdf8");
+              emitPopup(`📦 +1 CAIXA: ${c.label.toUpperCase()}!`, "#38bdf8");
             } else if (c.kind === "heart") {
               hp = Math.min(maxHp, hp + 35);
-              emitPopup("❤️ +35 VIDA!", "#fb7185");
+              emitPopup("❤️ VIDA RECUPERADA: +35 HP!", "#f43f5e");
             } else {
               onEarnRef.current(10, 6);
-              emitPopup(`💎 +${c.points} PTS`, "#34d399");
+              emitPopup(`💎 DIAMANTE DE SABEDORIA: +${c.points} PTS!`, "#06b6d4");
             }
           }
         });
