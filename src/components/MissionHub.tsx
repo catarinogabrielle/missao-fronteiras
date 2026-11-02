@@ -229,56 +229,9 @@ export function MissionHub({
         </AnimatePresence>
         <div className="pointer-events-none fixed inset-0 bg-radial from-transparent via-slate-950/60 to-slate-950/95" />
 
-        {/* 1. TOP MOBILE GAMER HUD */}
-        <header className="relative z-20 flex items-center justify-between gap-1.5 shrink-0 px-2 py-1.5 rounded-2xl border border-cyan-500/30 bg-slate-950/85 backdrop-blur-xl shadow-lg">
-          {/* Left: Player Profile Pill */}
-          <button
-            type="button"
-            onClick={() => {
-              playSfx("click");
-              if (onSwitchUser) onSwitchUser();
-              else onOpenWardrobe();
-            }}
-            className="flex items-center gap-2 min-w-0 flex-1 text-left cursor-pointer"
-          >
-            <div className="relative shrink-0">
-              <HeroPortrait
-                avatarId={state.agent.avatarId}
-                size={34}
-                shape="hex"
-                active
-              />
-              <span className="absolute -right-1 -bottom-0.5 flex h-4 min-w-4 items-center justify-center rounded border border-amber-300 bg-gradient-to-b from-amber-400 to-amber-600 px-0.5 text-[8.5px] font-black text-slate-950 shadow">
-                {level}
-              </span>
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-xs font-black text-white uppercase leading-tight">
-                {state.agent.name}
-              </div>
-              <div className="text-[9px] font-bold text-amber-300 truncate leading-none mt-0.5">
-                {levelTitle}
-              </div>
-            </div>
-          </button>
-
-          {/* Right: Currencies & Quick Story/Tutorial Button */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            {/* Story / Tutorial Button */}
-            <button
-              type="button"
-              onClick={() => {
-                playSfx("click");
-                if (onOpenStory) onOpenStory();
-              }}
-              title="Ver História & Tutorial"
-              className="flex items-center gap-1 px-2.5 py-1 rounded-xl border border-amber-400/60 bg-amber-500/20 text-[9.5px] font-black text-amber-300 hover:bg-amber-500/30 transition cursor-pointer shadow-sm active:scale-95"
-            >
-              <Film className="h-3.5 w-3.5 text-amber-400" />
-              <span>História</span>
-            </button>
-
-            {/* Quick Language Button */}
+        {/* Quick Tactical Modes Ribbon (Idiomas & Co-op) */}
+        <div className="relative z-20 flex items-center justify-between gap-1.5 shrink-0 px-2 py-1 rounded-xl border border-slate-800 bg-slate-950/80 backdrop-blur-md">
+          <div className="flex items-center gap-1.5">
             <button
               type="button"
               onClick={() => {
@@ -286,12 +239,12 @@ export function MissionHub({
                 setLanguageModalOpen(true);
               }}
               title="Modo Tradução & Idiomas Locais"
-              className="flex items-center gap-1 px-2 py-1 rounded-xl border border-amber-400/60 bg-amber-500/20 text-[9.5px] font-black text-amber-300 hover:bg-amber-500/30 transition cursor-pointer shadow-sm active:scale-95"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-amber-400/40 bg-amber-500/15 text-[9.5px] font-black text-amber-300 hover:bg-amber-500/25 transition cursor-pointer"
             >
-              <Globe2 className="h-3.5 w-3.5 text-amber-400" />
+              <Globe2 className="h-3 w-3 text-amber-400" />
+              <span>Idiomas (8 Povos)</span>
             </button>
 
-            {/* Quick Co-op Button */}
             <button
               type="button"
               onClick={() => {
@@ -299,24 +252,17 @@ export function MissionHub({
                 setCoopModalOpen(true);
               }}
               title="Multiplayer Cooperativo (2P)"
-              className="flex items-center gap-1 px-2 py-1 rounded-xl border border-emerald-400/60 bg-emerald-500/20 text-[9.5px] font-black text-emerald-300 hover:bg-emerald-500/30 transition cursor-pointer shadow-sm active:scale-95"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-emerald-400/40 bg-emerald-500/15 text-[9.5px] font-black text-emerald-300 hover:bg-emerald-500/25 transition cursor-pointer"
             >
-              <Users className="h-3.5 w-3.5 text-emerald-400" />
+              <Users className="h-3 w-3 text-emerald-400" />
+              <span>Co-op Duo</span>
             </button>
-
-            {/* Streak */}
-            <div className="flex items-center gap-1 rounded-xl border border-orange-500/40 bg-slate-900/90 px-2 py-1 font-mono text-[10px] font-black text-orange-400">
-              <Flame className="h-3 w-3 text-orange-400 fill-orange-400" />
-              <span>{state.streak}</span>
-            </div>
-
-            {/* Diamonds */}
-            <div className="flex items-center gap-1 rounded-xl border border-cyan-500/40 bg-slate-900/90 px-2 py-1 font-mono text-[10px] font-black text-cyan-300">
-              <Gem className="h-3 w-3 text-cyan-400" />
-              <span>{state.wisdom}</span>
-            </div>
           </div>
-        </header>
+
+          <div className="flex items-center gap-1 text-[9px] font-bold text-slate-400">
+            <span>Expedição {selectedMission.order}/8</span>
+          </div>
+        </div>
 
         {/* 2. CENTER STAGE: 3D CHAMPION TURNTABLE (Fits tightly in viewport) */}
         <main className="relative z-10 flex-1 min-h-0 flex flex-col items-center justify-center overflow-hidden my-1">
@@ -1287,54 +1233,40 @@ export function MissionHub({
               />
             </div>
 
-            {/* Bottom Bar: Hero Identity & Customization Buttons */}
-            <div className="shrink-0 px-1 pt-1 border-t border-amber-500/20">
-              <div className="flex items-center justify-between mb-1">
+            {/* Bottom Bar: Hero Title & Direct Wardrobe Action */}
+            <div className="shrink-0 px-1 pt-1.5 border-t border-amber-500/20">
+              <div className="flex items-center justify-between mb-1.5">
                 <div className="min-w-0 flex-1">
                   <div className="text-[8px] font-black tracking-widest text-cyan-300 uppercase">
                     CAMPEÃO ATIVO
                   </div>
                   <div className="text-xs font-black text-white uppercase tracking-wide truncate">
-                    {state.agent.name}{" "}
-                    <span className="text-[10px] font-semibold text-slate-400">
-                      ({heroMeta?.name})
+                    {heroMeta?.name} •{" "}
+                    <span className="text-[10px] text-amber-300">
+                      {heroMeta?.codename}
                     </span>
                   </div>
                 </div>
-                <div className="text-right shrink-0">
-                  <div className="text-[8px] font-mono text-slate-400 uppercase">EXPERIÊNCIA</div>
-                  <div className="text-[11px] font-mono font-black text-amber-400">
-                    {state.xp} XP
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-1">
-                <MobaButton
-                  variant="gold"
-                  size="sm"
-                  shape="hex"
-                  onClick={onOpenWardrobe}
-                  className="w-full !py-1 text-[9.5px] font-black"
-                >
-                  <Sparkles className="h-3 w-3" />
-                  SKINS 3D
-                </MobaButton>
-
-                {onSwitchUser && (
-                  <MobaButton
-                    variant="obsidian"
-                    size="sm"
-                    shape="slant"
-                    sheen={false}
-                    onClick={onSwitchUser}
-                    className="w-full !py-1 text-[9.5px] font-black"
-                  >
-                    <Users className="h-3 w-3 text-amber-300" />
-                    USUÁRIO
-                  </MobaButton>
+                {giftMeta && (
+                  <span className="rounded bg-slate-950/80 border border-slate-700 px-1.5 py-0.5 text-[8.5px] font-bold text-slate-300">
+                    {giftMeta.name}
+                  </span>
                 )}
               </div>
+
+              <motion.button
+                type="button"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  playSfx("click");
+                  onOpenWardrobe();
+                }}
+                className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-amber-400/60 bg-gradient-to-r from-amber-500/20 via-amber-500/30 to-amber-600/20 py-1.5 text-xs font-black text-amber-300 hover:border-amber-300 hover:text-white transition cursor-pointer shadow-sm"
+              >
+                <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                <span>PERSONALIZAR SKINS 3D</span>
+              </motion.button>
             </div>
           </div>
 

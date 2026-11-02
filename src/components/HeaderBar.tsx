@@ -4,25 +4,27 @@ import React from "react";
 import { motion } from "framer-motion";
 import {
   BookMarked,
+  BookOpen,
   Download,
   Film,
   Flame,
+  Gamepad2,
   Gem,
   Maximize2,
   Monitor,
-  ShieldCheck,
   Sparkles,
+  Swords,
   Users,
   Volume2,
   VolumeX,
+  Wifi,
   WifiOff,
 } from "lucide-react";
 import { useGame } from "@/context/GameContext";
 import { usePwa } from "@/context/PwaContext";
 import { useMobileViewport } from "@/lib/useMobileViewport";
-import { GIFT_OPTIONS, SKIN_OPTIONS } from "@/data/avatarsAndGifts";
+import { GIFT_OPTIONS, SKIN_OPTIONS, AVATAR_OPTIONS } from "@/data/avatarsAndGifts";
 import { HeroPortrait } from "./GamePortrait";
-import { MobaButton } from "./MobaButton";
 
 interface HeaderBarProps {
   onOpenPassport: () => void;
@@ -51,11 +53,19 @@ export function HeaderBar({
     toggleProjectorMode,
     playSfx,
   } = useGame();
-  const { isOnline, offlineReady, isStandalone, triggerInstall } = usePwa();
-  const { isMobileDevice, isMobileLandscape, toggleLandscapeFullscreen } =
-    useMobileViewport();
+  const { isOnline, offlineReady, triggerInstall } = usePwa();
+  const {
+    isMobileLandscape,
+    isMobilePortrait,
+    isCompactMobile,
+    isLandscape,
+    toggleLandscapeFullscreen,
+  } = useMobileViewport();
 
   if (!state.agent) return null;
+
+  const isPortraitMode = isMobilePortrait || (isCompactMobile && !isLandscape);
+  const isLandscapeMode = isMobileLandscape || (isCompactMobile && isLandscape);
 
   const stampCount = Object.values(state.missionProgress).filter(
     (m) => m.completed
@@ -66,43 +76,195 @@ export function HeaderBar({
     Math.round((xpInCurrentLevel / xpForNextLevel) * 100)
   );
 
+  const heroMeta = AVATAR_OPTIONS.find((a) => a.id === state.agent?.avatarId);
   const giftMeta = GIFT_OPTIONS.find((g) => g.id === state.agent?.giftId);
   const skinMeta =
     SKIN_OPTIONS.find((s) => s.id === (state.agent?.skinId ?? "padrao")) ||
     SKIN_OPTIONS[0];
 
-  /* -----------------------------------------------------------
-     A. SLEEK AAA MOBILE LANDSCAPE HUD BAR (ECHOES OF ARENA STYLE)
-     ----------------------------------------------------------- */
-  if (isMobileLandscape) {
+  /* =========================================================================
+     1. MOBILE PORTRAIT: ULTRA-SLEEK COMPACT HUD (ONE-ROW, ZERO CLUTTER)
+     ========================================================================= */
+  if (isPortraitMode) {
     return (
-      <header className="sticky top-0 z-40 h-11 sm:h-12 w-full max-w-full shrink-0 border-b border-amber-500/30 bg-gradient-to-r from-slate-950/95 via-[#071326]/95 to-slate-950/95 shadow-[0_4px_20px_rgba(0,0,0,0.7)] backdrop-blur-md px-3 sm:px-4 md:px-5 overflow-hidden">
-        <div className="flex h-full w-full items-center justify-between gap-2 sm:gap-3">
-          {/* Top-Left: Game Emblem & Title */}
-          <div className="flex items-center gap-2 shrink-0">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/icons/icon-192.png"
-              alt="Logo"
-              className="h-7 w-7 sm:h-8 sm:w-8 rounded-xl border border-amber-400/70 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
-            />
-            <span className="font-black text-xs sm:text-sm tracking-wider uppercase bg-gradient-to-r from-amber-200 via-white to-cyan-300 bg-clip-text text-transparent truncate max-w-[140px] sm:max-w-none">
-              Missão Fronteiras
-            </span>
-          </div>
+      <header className="sticky top-0 z-40 h-13 w-full shrink-0 border-b border-amber-500/25 bg-slate-950/90 px-3 py-1.5 backdrop-blur-xl shadow-lg select-none">
+        <div className="flex h-full w-full items-center justify-between gap-2">
+          {/* Left: Player Crest & Identity */}
+          <button
+            type="button"
+            onClick={() => {
+              playSfx("click");
+              onOpenWardrobe();
+            }}
+            title="Ver Perfil & Skins"
+            className="flex items-center gap-2 min-w-0 text-left cursor-pointer"
+          >
+            <div className="relative shrink-0">
+              <HeroPortrait
+                avatarId={state.agent.avatarId}
+                size={36}
+                shape="hex"
+                active
+              />
+              <span className="absolute -right-1 -bottom-0.5 flex h-4 min-w-4 items-center justify-center rounded-md border border-amber-300 bg-gradient-to-b from-amber-400 to-amber-600 px-0.5 text-[8.5px] font-black text-slate-950 shadow">
+                {level}
+              </span>
+            </div>
+            <div className="min-w-0 leading-tight">
+              <div className="flex items-center gap-1">
+                <span className="text-xs font-black text-white uppercase truncate max-w-[110px]">
+                  {state.agent.name}
+                </span>
+                <span
+                  style={{ color: skinMeta.accentHex }}
+                  className="text-[9px] font-bold"
+                >
+                  {skinMeta.badgeEmoji}
+                </span>
+              </div>
+              <div className="text-[9px] font-bold text-amber-300 truncate">
+                {levelTitle}
+              </div>
+            </div>
+          </button>
 
-          {/* Center: MOBA Navigation Tabs (Echoes of Arena: JOGAR | HERÓIS | APRENDER) */}
-          <nav className="flex items-center gap-1 sm:gap-3 shrink-0">
+          {/* Right: Currencies & Quick Utility Actions */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* Currencies Capsule */}
+            <div className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/90 px-2.5 py-1 text-[10px] font-black shadow-inner">
+              <div title="Fervor Diário" className="flex items-center gap-1 text-orange-400">
+                <Flame className="h-3 w-3 fill-orange-400" />
+                <span>{state.streak}</span>
+              </div>
+              <span className="text-slate-700">|</span>
+              <button
+                type="button"
+                onClick={() => {
+                  playSfx("click");
+                  onOpenWardrobe();
+                }}
+                title="Cristais de Sabedoria"
+                className="flex items-center gap-1 text-cyan-300 hover:text-white transition cursor-pointer"
+              >
+                <Gem className="h-3 w-3" />
+                <span>{state.wisdom}</span>
+              </button>
+            </div>
+
+            {/* Story / Tutorial */}
+            {onOpenStory && (
+              <button
+                type="button"
+                onClick={() => {
+                  playSfx("click");
+                  onOpenStory();
+                }}
+                title="História & Tutorial"
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-amber-400/50 bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 transition cursor-pointer"
+              >
+                <Film className="h-3.5 w-3.5" />
+              </button>
+            )}
+
+            {/* Audio Toggle */}
+            <button
+              type="button"
+              onClick={toggleMute}
+              title={state.muted ? "Ativar Som" : "Silenciar"}
+              className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-slate-300 hover:text-white transition cursor-pointer"
+            >
+              {state.muted ? (
+                <VolumeX className="h-3.5 w-3.5 text-rose-400" />
+              ) : (
+                <Volume2 className="h-3.5 w-3.5 text-emerald-400" />
+              )}
+            </button>
+
+            {/* Switch User */}
+            {onSwitchUser && (
+              <button
+                type="button"
+                onClick={() => {
+                  playSfx("click");
+                  onSwitchUser();
+                }}
+                title="Trocar de Personagem / Sair"
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-amber-300 hover:border-amber-400 hover:text-white transition cursor-pointer"
+              >
+                <Users className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+      </header>
+    );
+  }
+
+  /* =========================================================================
+     2. MOBILE LANDSCAPE: WIDESCREEN CONSOLE CLIENT (WILD RIFT STYLE)
+     ========================================================================= */
+  if (isLandscapeMode) {
+    return (
+      <header className="sticky top-0 z-40 h-11 w-full max-w-full shrink-0 border-b border-amber-500/25 bg-slate-950/95 px-3 sm:px-4 backdrop-blur-xl shadow-lg select-none">
+        <div className="flex h-full w-full items-center justify-between gap-3">
+          {/* Brand & Summoner Profile */}
+          <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={() => {
                 playSfx("click");
                 if (onGoHome) onGoHome();
               }}
-              className="relative px-2 py-0.5 text-xs font-black uppercase text-amber-300 tracking-wider transition cursor-pointer"
+              className="flex items-center gap-1.5 cursor-pointer"
             >
-              <span>Jogar</span>
-              <span className="absolute bottom-0 left-1 right-1 h-0.5 bg-gradient-to-r from-amber-400 via-cyan-400 to-amber-400 shadow-[0_0_8px_#fbbf24]" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/icons/icon-192.png"
+                alt="Logo"
+                className="h-7 w-7 rounded-lg border border-amber-400/70 shadow-[0_0_8px_rgba(245,158,11,0.4)]"
+              />
+              <span className="hidden sm:inline bg-gradient-to-r from-amber-200 via-white to-cyan-300 bg-clip-text text-xs font-black tracking-wider text-transparent uppercase">
+                Missão Fronteiras
+              </span>
+            </button>
+
+            <div className="h-4 w-px bg-slate-800" />
+
+            {/* Player Crest */}
+            <button
+              type="button"
+              onClick={() => {
+                playSfx("click");
+                onOpenWardrobe();
+              }}
+              className="flex items-center gap-1.5 cursor-pointer text-left"
+            >
+              <HeroPortrait
+                avatarId={state.agent.avatarId}
+                size={26}
+                shape="hex"
+                active
+              />
+              <span className="text-xs font-black text-white uppercase truncate max-w-[100px]">
+                {state.agent.name}
+              </span>
+              <span className="rounded bg-amber-500/20 px-1 py-0.2 font-mono text-[8px] font-black text-amber-300">
+                Nv.{level}
+              </span>
+            </button>
+          </div>
+
+          {/* Center Navigation Dock */}
+          <nav className="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                playSfx("click");
+                if (onGoHome) onGoHome();
+              }}
+              className="px-2.5 py-1 rounded-lg border border-amber-400/50 bg-amber-500/15 text-[10px] font-black text-amber-300 uppercase transition cursor-pointer"
+            >
+              Lobby
             </button>
 
             <button
@@ -111,9 +273,20 @@ export function HeaderBar({
                 playSfx("click");
                 onOpenWardrobe();
               }}
-              className="px-2 py-0.5 text-xs font-black uppercase text-slate-300 hover:text-white tracking-wider transition cursor-pointer"
+              className="px-2.5 py-1 rounded-lg border border-transparent text-[10px] font-black text-slate-300 hover:text-white hover:bg-slate-900 transition cursor-pointer uppercase"
             >
-              <span>Heróis</span>
+              Skins
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                playSfx("click");
+                onOpenPassport();
+              }}
+              className="px-2.5 py-1 rounded-lg border border-transparent text-[10px] font-black text-slate-300 hover:text-white hover:bg-slate-900 transition cursor-pointer uppercase"
+            >
+              Coleção ({stampCount})
             </button>
 
             {onOpenStory && (
@@ -123,335 +296,351 @@ export function HeaderBar({
                   playSfx("click");
                   onOpenStory();
                 }}
-                className="px-2 py-0.5 text-xs font-black uppercase text-amber-300 hover:text-amber-200 tracking-wider transition cursor-pointer"
+                className="px-2.5 py-1 rounded-lg border border-transparent text-[10px] font-black text-slate-300 hover:text-white hover:bg-slate-900 transition cursor-pointer uppercase"
               >
-                <span>História</span>
+                História
               </button>
             )}
 
-            <button
-              type="button"
-              onClick={() => {
-                playSfx("click");
-                if (onOpenBible) onOpenBible();
-                else onOpenPassport();
-              }}
-              className="px-2 py-0.5 text-xs font-black uppercase text-slate-300 hover:text-white tracking-wider transition cursor-pointer"
-            >
-              <span>Aprender</span>
-            </button>
+            {onOpenBible && (
+              <button
+                type="button"
+                onClick={() => {
+                  playSfx("click");
+                  onOpenBible();
+                }}
+                className="px-2.5 py-1 rounded-lg border border-transparent text-[10px] font-black text-slate-300 hover:text-white hover:bg-slate-900 transition cursor-pointer uppercase"
+              >
+                Palavra
+              </button>
+            )}
           </nav>
 
-          {/* Top-Right: Currencies & Console Control Hub (Ultra-Compact, No Overflow) */}
+          {/* Right Utilities */}
           <div className="flex items-center gap-1.5 shrink-0">
-            {/* Currencies Capsule (Streak + Wisdom) */}
-            <div className="flex items-center gap-2.5 rounded-xl border border-slate-700/80 bg-slate-900/90 px-3.5 py-1.5 text-[11px] font-black shadow-sm">
-              <div
-                title="Chamas de Fervor Diário"
-                className="flex items-center gap-1.5 text-orange-400"
-              >
-                <Flame className="h-3.5 w-3.5 fill-orange-400" />
+            {/* Currencies */}
+            <div className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/90 px-2 py-0.5 text-[10px] font-black">
+              <div className="flex items-center gap-1 text-orange-400">
+                <Flame className="h-3 w-3 fill-orange-400" />
                 <span>{state.streak}</span>
               </div>
-              <span className="text-slate-600 font-normal">|</span>
+              <span className="text-slate-700">|</span>
               <button
                 type="button"
                 onClick={() => {
                   playSfx("click");
                   onOpenWardrobe();
                 }}
-                title="Cristais de Sabedoria • Clique para abrir Vestiário"
-                className="flex items-center gap-1.5 text-cyan-300 hover:text-white transition cursor-pointer"
+                className="flex items-center gap-1 text-cyan-300 hover:text-white transition cursor-pointer"
               >
-                <Gem className="h-3.5 w-3.5" />
+                <Gem className="h-3 w-3" />
                 <span>{state.wisdom}</span>
               </button>
             </div>
 
-            {/* Install PWA Button (Always Available on Mobile, Emerald Green Background) */}
-            <motion.button
+            {/* Mute */}
+            <button
               type="button"
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.96 }}
-              onClick={() => {
-                playSfx("click");
-                triggerInstall();
-              }}
-              title="Instalar Aplicativo (PWA) para jogar Offline"
-              className="flex items-center gap-1 rounded-xl border border-emerald-300 bg-gradient-to-b from-emerald-400 via-emerald-500 to-emerald-600 px-2 sm:px-2.5 py-1 text-xs font-black text-slate-950 shadow-[0_0_12px_rgba(16,185,129,0.5),inset_0_1px_1px_rgba(255,255,255,0.7)] hover:brightness-110 cursor-pointer transition uppercase"
+              onClick={toggleMute}
+              className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-slate-300 hover:text-white transition cursor-pointer"
             >
-              <Download className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Instalar</span>
-            </motion.button>
-
-            {/* Utility Cluster: Trocar Jogador, Som, Tela Cheia */}
-            <div className="flex items-center gap-1">
-              {onSwitchUser && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    playSfx("click");
-                    onSwitchUser();
-                  }}
-                  title="Trocar de Jogador / Agente"
-                  className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-amber-300 hover:border-amber-400 hover:text-white transition"
-                >
-                  <Users className="h-3.5 w-3.5" />
-                </button>
+              {state.muted ? (
+                <VolumeX className="h-3.5 w-3.5 text-rose-400" />
+              ) : (
+                <Volume2 className="h-3.5 w-3.5 text-emerald-400" />
               )}
+            </button>
 
+            {/* Fullscreen */}
+            <button
+              type="button"
+              onClick={toggleLandscapeFullscreen}
+              className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-slate-300 hover:border-cyan-400 hover:text-white transition cursor-pointer"
+            >
+              <Maximize2 className="h-3.5 w-3.5 text-cyan-300" />
+            </button>
+
+            {/* Switch User */}
+            {onSwitchUser && (
               <button
                 type="button"
-                onClick={toggleMute}
-                title={state.muted ? "Ativar Som" : "Silenciar"}
-                className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-slate-300 hover:border-slate-600 hover:text-white transition"
+                onClick={() => {
+                  playSfx("click");
+                  onSwitchUser();
+                }}
+                title="Trocar de Personagem"
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-amber-300 hover:border-amber-400 hover:text-white transition cursor-pointer"
               >
-                {state.muted ? (
-                  <VolumeX className="h-3.5 w-3.5 text-rose-400" />
-                ) : (
-                  <Volume2 className="h-3.5 w-3.5 text-emerald-400" />
-                )}
+                <Users className="h-3.5 w-3.5" />
               </button>
-
-              <button
-                type="button"
-                onClick={toggleLandscapeFullscreen}
-                title="Tela Cheia"
-                className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-slate-300 hover:border-cyan-400 hover:text-white transition"
-              >
-                <Maximize2 className="h-3.5 w-3.5 text-cyan-300" />
-              </button>
-            </div>
+            )}
           </div>
         </div>
       </header>
     );
   }
 
-  /* -----------------------------------------------------------
-     B. FULL RICH AAA DESKTOP HEADER BAR (RESTORED 100%)
-     ----------------------------------------------------------- */
+  /* =========================================================================
+     3. DESKTOP WEB: MODERN AAA GAME CLIENT HEADER (CLEAN, HARMONIOUS & BALANCED)
+     ========================================================================= */
   return (
-    <header className="sticky top-0 z-40 border-b border-amber-500/35 bg-gradient-to-r from-slate-950/95 via-[#071326]/95 to-slate-950/95 shadow-[0_8px_30px_rgba(0,0,0,0.7)] backdrop-blur-md">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2.5 px-3 py-2 sm:px-6">
-        {/* TOP-LEFT: AAA Summoner Crest (Hexagonal Portrait + Skin Badge + Rank + XP) */}
-        <motion.button
-          type="button"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => {
-            if (onGoHome) {
+    <header className="sticky top-0 z-40 border-b border-amber-500/20 bg-slate-950/85 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.6)] select-none">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
+        {/* =====================================================================
+            ZONE 1: BRAND LOGO & PLAYER SUMMONER IDENTITY (LEFT)
+           ===================================================================== */}
+        <div className="flex items-center gap-3.5 shrink-0">
+          {/* Logo with Subtle Pulsing Aura */}
+          <button
+            type="button"
+            onClick={() => {
               playSfx("click");
-              onGoHome();
-            }
-          }}
-          className="flex cursor-pointer items-center gap-3 text-left"
-        >
-          <div className="relative flex items-center gap-2">
+              if (onGoHome) onGoHome();
+            }}
+            title="Base Missionária Ide • Voltar ao Início"
+            className="flex items-center gap-2.5 group cursor-pointer"
+          >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/icons/favicon-32.png"
+              src="/icons/icon-192.png"
               alt="Logo"
-              className="hidden h-8 w-8 rounded-lg border border-amber-400/60 shadow-[0_0_12px_rgba(245,158,11,0.35)] sm:block"
+              className="h-9 w-9 rounded-xl border border-amber-400/70 shadow-[0_0_12px_rgba(245,158,11,0.35)] group-hover:scale-105 transition-transform"
             />
-            <div className="relative">
-              <HeroPortrait
-                avatarId={state.agent.avatarId}
-                size={50}
-                shape="hex"
-                active
-              />
-              <span className="absolute -right-1.5 -bottom-1 flex h-5 min-w-5 items-center justify-center rounded-md border border-amber-200 bg-gradient-to-b from-amber-300 to-amber-600 px-1 text-[10px] font-black text-slate-950 shadow">
-                {level}
-              </span>
+            <div className="hidden xl:block text-left">
+              <div className="text-[9px] font-black uppercase tracking-[0.25em] text-amber-300">
+                BASE MISSIONÁRIA IDE
+              </div>
+              <div className="bg-gradient-to-r from-amber-200 via-white to-cyan-300 bg-clip-text text-sm font-black tracking-wide text-transparent uppercase">
+                Missão Fronteiras
+              </div>
             </div>
-          </div>
+          </button>
 
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-sm font-black tracking-wide text-white uppercase sm:text-base">
-                {state.agent.name}
-              </span>
-              <span
-                className="hidden rounded border border-white/15 bg-slate-900/90 px-1.5 py-0.5 text-[9px] font-black tracking-wider uppercase md:inline-block"
-                style={{ color: skinMeta.accentHex }}
-              >
-                {skinMeta.badgeEmoji} {skinMeta.name}
-              </span>
-            </div>
+          <div className="h-8 w-px bg-slate-800 hidden sm:block" />
 
-            <div className="text-[11px] font-bold text-cyan-300">
-              {levelTitle} •{" "}
-              <span className="font-mono text-amber-300">{state.xp} XP</span>
-              {giftMeta && (
-                <span className="hidden lg:inline text-slate-400">
-                  {" "}
-                  • Dom: {giftMeta.name}
-                </span>
-              )}
-            </div>
-
-            {/* In-Game AAA XP Progress Bar */}
-            <div className="mt-1 h-1.5 w-32 overflow-hidden rounded-full border border-slate-700 bg-slate-900 sm:w-48">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${xpPercent}%` }}
-                transition={{ duration: 0.5 }}
-                className="h-full bg-gradient-to-r from-cyan-400 via-emerald-400 to-amber-300"
-              />
-            </div>
-          </div>
-        </motion.button>
-
-        {/* TOP-RIGHT: Currencies, Wardrobe, Modes & Master Panel */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          {offlineReady && (
-            <div
-              title={
-                isOnline
-                  ? "Jogo pronto para funcionar 100% offline!"
-                  : "Jogando sem internet (Modo Offline)"
-              }
-              className={`hidden items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-black tracking-wider uppercase xl:inline-flex ${
-                isOnline
-                  ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-300"
-                  : "border-amber-400/60 bg-amber-500/20 text-amber-300"
-              }`}
-            >
-              {!isOnline && <WifiOff className="h-3 w-3" />}
-              <span>{isOnline ? "Offline OK" : "Offline"}</span>
-            </div>
-          )}
-
-          <MobaButton
-            variant="emerald"
-            size="sm"
-            shape="rounded"
-            onClick={triggerInstall}
-            title="Instalar Aplicativo (PWA) para jogar Offline"
-          >
-            <Download className="h-3.5 w-3.5" />
-            <span className="hidden md:inline">Instalar App</span>
-          </MobaButton>
-
-          {/* Streak Flames */}
-          <div
-            title="Chamas de Fervor"
-            className="inline-flex items-center gap-2 rounded-xl border border-orange-500/60 bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 px-4 py-1.5 text-xs font-black text-orange-400 shadow-[0_0_12px_rgba(249,115,22,0.25)]"
-          >
-            <Flame className="h-4 w-4 fill-orange-400 text-orange-400" />
-            <span>{state.streak}</span>
-          </div>
-
-          {/* Wisdom Gems */}
+          {/* Summoner Crest & Experience Card */}
           <button
             type="button"
             onClick={() => {
               playSfx("click");
               onOpenWardrobe();
             }}
-            title="Cristais de Sabedoria • Clique para abrir Skins 3D"
-            className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-cyan-400/60 bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 px-4 py-1.5 text-xs font-black text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.25)] transition hover:border-cyan-300 hover:text-white hover:scale-105"
+            title="Clique para abrir Skins 3D e Personalização"
+            className="flex items-center gap-2.5 rounded-2xl border border-slate-800/90 bg-slate-900/60 hover:bg-slate-900/90 hover:border-amber-400/50 p-1.5 pr-3 transition cursor-pointer shadow-sm text-left group"
           >
-            <Gem className="h-4 w-4 text-cyan-300" />
-            <span>{state.wisdom}</span>
+            <div className="relative shrink-0">
+              <HeroPortrait
+                avatarId={state.agent.avatarId}
+                size={42}
+                shape="hex"
+                active
+              />
+              <span className="absolute -right-1 -bottom-0.5 flex h-4 min-w-4 items-center justify-center rounded border border-amber-200 bg-gradient-to-b from-amber-300 to-amber-600 px-1 text-[9px] font-black text-slate-950 shadow">
+                {level}
+              </span>
+            </div>
+
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 leading-none">
+                <span className="text-xs font-black uppercase text-white tracking-wide truncate max-w-[120px] group-hover:text-amber-300 transition-colors">
+                  {state.agent.name}
+                </span>
+                <span
+                  style={{ color: skinMeta.accentHex }}
+                  className="rounded bg-slate-950 border border-slate-800 px-1.5 py-0.2 text-[8.5px] font-black uppercase"
+                >
+                  {heroMeta?.name}
+                </span>
+              </div>
+
+              <div className="text-[10px] font-semibold text-cyan-300 leading-tight mt-1 flex items-center gap-1">
+                <span>{levelTitle}</span>
+                <span className="text-slate-600">•</span>
+                <span className="text-amber-300 font-mono font-bold">
+                  {state.xp} XP
+                </span>
+              </div>
+
+              {/* XP Progress Bar */}
+              <div className="mt-1 h-1.5 w-28 lg:w-36 overflow-hidden rounded-full border border-slate-800 bg-slate-950">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${xpPercent}%` }}
+                  transition={{ duration: 0.5 }}
+                  className="h-full bg-gradient-to-r from-cyan-400 via-emerald-400 to-amber-300"
+                />
+              </div>
+            </div>
+          </button>
+        </div>
+
+        {/* =====================================================================
+            ZONE 2: UNIFIED NAVIGATION TABS (CENTER DOCK)
+           ===================================================================== */}
+        <nav className="hidden md:flex items-center gap-1 rounded-2xl border border-slate-800 bg-slate-900/60 p-1 backdrop-blur shadow-inner">
+          {/* Lobby (Active View) */}
+          <button
+            type="button"
+            onClick={() => {
+              playSfx("click");
+              if (onGoHome) onGoHome();
+            }}
+            className="flex items-center gap-1.5 rounded-xl border border-amber-400/60 bg-gradient-to-r from-amber-500/20 to-amber-600/30 px-3.5 py-1.5 text-xs font-black uppercase text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.25)] transition cursor-pointer"
+          >
+            <Swords className="h-3.5 w-3.5 text-amber-400" />
+            <span>Lobby</span>
           </button>
 
-          {/* 3D Skins Wardrobe Button */}
-          <MobaButton
-            variant="violet"
-            size="sm"
-            shape="slant"
-            onClick={onOpenWardrobe}
-            title="Escolher Skin 3D, Campeão & Animações"
+          {/* Skins 3D */}
+          <button
+            type="button"
+            onClick={() => {
+              playSfx("click");
+              onOpenWardrobe();
+            }}
+            className="flex items-center gap-1.5 rounded-xl border border-transparent hover:border-slate-700 hover:bg-slate-800/60 px-3.5 py-1.5 text-xs font-bold uppercase text-slate-300 hover:text-white transition cursor-pointer"
           >
-            <Sparkles className="h-3.5 w-3.5 text-amber-300" />
-            <span>Skins</span>
-          </MobaButton>
+            <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
+            <span>Skins 3D</span>
+          </button>
 
-          {/* História e Tutorial Button */}
-          {onOpenStory && (
-            <MobaButton
-              variant="gold"
-              size="sm"
-              shape="slant"
-              onClick={onOpenStory}
-              title="Ver História & Tutorial da Base Ide"
-            >
-              <Film className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">História</span>
-            </MobaButton>
-          )}
-
-          {/* Passaporte / Coleção Button */}
-          <MobaButton
-            variant="cyan"
-            size="sm"
-            shape="slant"
-            onClick={onOpenPassport}
+          {/* Passaporte / Coleção */}
+          <button
+            type="button"
+            onClick={() => {
+              playSfx("click");
+              onOpenPassport();
+            }}
+            className="flex items-center gap-1.5 rounded-xl border border-transparent hover:border-slate-700 hover:bg-slate-800/60 px-3.5 py-1.5 text-xs font-bold uppercase text-slate-300 hover:text-white transition cursor-pointer"
           >
-            <BookMarked className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Coleção</span>
-            <span className="rounded bg-slate-950/80 px-1.5 text-[10px] text-amber-300">
+            <BookMarked className="h-3.5 w-3.5 text-emerald-400" />
+            <span>Coleção</span>
+            <span className="rounded bg-slate-950 px-1.5 py-0.2 font-mono text-[9px] font-black text-amber-300 border border-slate-800">
               {stampCount}
             </span>
-          </MobaButton>
+          </button>
 
-          {/* Modo Telão */}
-          <MobaButton
-            variant={state.projectorMode ? "gold" : "obsidian"}
-            size="sm"
-            shape="rounded"
-            sheen={false}
+          {/* Bíblia de Bolso / Palavra */}
+          {onOpenBible && (
+            <button
+              type="button"
+              onClick={() => {
+                playSfx("click");
+                onOpenBible();
+              }}
+              className="flex items-center gap-1.5 rounded-xl border border-transparent hover:border-slate-700 hover:bg-slate-800/60 px-3.5 py-1.5 text-xs font-bold uppercase text-slate-300 hover:text-white transition cursor-pointer"
+            >
+              <BookOpen className="h-3.5 w-3.5 text-amber-400" />
+              <span>Palavra</span>
+            </button>
+          )}
+
+          {/* História & Tutorial */}
+          {onOpenStory && (
+            <button
+              type="button"
+              onClick={() => {
+                playSfx("click");
+                onOpenStory();
+              }}
+              className="flex items-center gap-1.5 rounded-xl border border-transparent hover:border-slate-700 hover:bg-slate-800/60 px-3.5 py-1.5 text-xs font-bold uppercase text-slate-300 hover:text-white transition cursor-pointer"
+            >
+              <Film className="h-3.5 w-3.5 text-rose-400" />
+              <span>Tutorial</span>
+            </button>
+          )}
+        </nav>
+
+        {/* =====================================================================
+            ZONE 3: ECONOMY CAPSULE & UTILITY ACTIONS (RIGHT)
+           ===================================================================== */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Currencies Capsule: Streak Flame + Wisdom Gems */}
+          <div className="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/80 px-3.5 py-1.5 text-xs font-black shadow-inner">
+            {/* Daily Streak */}
+            <div
+              title="Fervor Diário • Dias Consecutivos"
+              className="flex items-center gap-1.5 text-orange-400"
+            >
+              <Flame className="h-4 w-4 fill-orange-400" />
+              <span>{state.streak}</span>
+            </div>
+
+            <span className="text-slate-700">|</span>
+
+            {/* Wisdom Gems */}
+            <button
+              type="button"
+              onClick={() => {
+                playSfx("click");
+                onOpenWardrobe();
+              }}
+              title="Cristais de Sabedoria • Clique para abrir Vestiário"
+              className="flex items-center gap-1.5 text-cyan-300 hover:text-white transition cursor-pointer"
+            >
+              <Gem className="h-4 w-4" />
+              <span>{state.wisdom}</span>
+            </button>
+          </div>
+
+          {/* PWA Install Button (If not installed) */}
+          <button
+            type="button"
+            onClick={triggerInstall}
+            title="Instalar Jogo como Aplicativo"
+            className="hidden lg:flex items-center gap-1.5 rounded-xl border border-emerald-400/40 bg-emerald-500/15 hover:bg-emerald-500/25 px-3 py-1.5 text-xs font-bold text-emerald-300 uppercase transition cursor-pointer shadow-sm"
+          >
+            <Download className="h-3.5 w-3.5" />
+            <span className="hidden xl:inline">Instalar</span>
+          </button>
+
+          {/* Projector / TV Mode */}
+          <button
+            type="button"
             onClick={toggleProjectorMode}
-            title="Modo Telão (Projetor / TV)"
+            title={
+              state.projectorMode
+                ? "Desativar Modo Telão"
+                : "Ativar Modo Telão (TV / Projetor)"
+            }
+            className={`flex h-9 w-9 items-center justify-center rounded-xl border transition cursor-pointer shadow-sm ${
+              state.projectorMode
+                ? "border-amber-400 bg-amber-500/20 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.4)]"
+                : "border-slate-800 bg-slate-900 text-slate-400 hover:text-white hover:border-slate-700"
+            }`}
           >
             <Monitor className="h-4 w-4" />
-          </MobaButton>
+          </button>
 
-          {/* Trocar Usuário / Voltar à Home */}
-          {onSwitchUser && (
-            <MobaButton
-              variant="gold"
-              size="sm"
-              shape="slant"
-              onClick={onSwitchUser}
-              title="Trocar de Usuário / Selecionar outro Campeão"
-            >
-              <Users className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Trocar Usuário</span>
-            </MobaButton>
-          )}
-
-          {/* Fullscreen / Modo Deitado (se celular) */}
-          {isMobileDevice && (
-            <MobaButton
-              variant="cyan"
-              size="sm"
-              shape="rounded"
-              sheen={false}
-              onClick={() => toggleLandscapeFullscreen()}
-              title="Tela Cheia / Modo Deitado"
-            >
-              <Maximize2 className="h-4 w-4" />
-            </MobaButton>
-          )}
-
-          {/* Mute */}
-          <MobaButton
-            variant="obsidian"
-            size="sm"
-            shape="rounded"
-            sheen={false}
+          {/* Audio Toggle */}
+          <button
+            type="button"
             onClick={toggleMute}
-            title={state.muted ? "Ativar Som" : "Silenciar"}
+            title={state.muted ? "Ativar Som" : "Silenciar Áudio"}
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-800 bg-slate-900 text-slate-400 hover:text-white hover:border-slate-700 transition cursor-pointer shadow-sm"
           >
             {state.muted ? (
               <VolumeX className="h-4 w-4 text-rose-400" />
             ) : (
               <Volume2 className="h-4 w-4 text-emerald-400" />
             )}
-          </MobaButton>
+          </button>
+
+          {/* Switch User / Return to Home */}
+          {onSwitchUser && (
+            <button
+              type="button"
+              onClick={() => {
+                playSfx("click");
+                onSwitchUser();
+              }}
+              title="Trocar de Personagem ou Jogador"
+              className="flex items-center gap-1.5 rounded-xl border border-amber-400/40 bg-amber-500/10 hover:bg-amber-500/20 px-3 py-1.5 text-xs font-black uppercase text-amber-300 transition cursor-pointer shadow-sm hover:border-amber-300"
+            >
+              <Users className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Trocar</span>
+            </button>
+          )}
         </div>
       </div>
     </header>
