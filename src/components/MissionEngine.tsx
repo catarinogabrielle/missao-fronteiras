@@ -2092,19 +2092,19 @@ export function MissionEngine({
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.94, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="moba-panel-amber moba-clip-panel max-h-[90vh] w-full max-w-lg overflow-y-auto p-5 sm:p-6"
+              className="moba-panel-amber moba-clip-panel max-h-[94vh] max-h-[94dvh] w-full max-w-2xl sm:max-w-3xl overflow-y-auto no-scrollbar p-3.5 sm:p-5"
             >
               {/* Header */}
-              <div className="flex items-center justify-between border-b border-amber-500/30 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-amber-400/60 bg-amber-500/20 text-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.3)]">
-                    <Settings className="h-5 w-5" />
+              <div className="flex items-center justify-between border-b border-amber-500/30 pb-2.5 sm:pb-3">
+                <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                  <div className="flex h-7.5 w-7.5 sm:h-8 sm:w-8 items-center justify-center rounded-xl border border-amber-400/60 bg-amber-500/20 text-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.3)] shrink-0">
+                    <Settings className="h-4 w-4 sm:h-4.5 sm:w-4.5 animate-spin-slow" />
                   </div>
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">
+                  <div className="min-w-0">
+                    <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-amber-400 block leading-none">
                       PAUSA & CONFIGURAÇÕES
                     </span>
-                    <h3 className="text-lg font-black text-white uppercase tracking-tight">
+                    <h3 className="text-sm sm:text-base font-black text-white uppercase tracking-tight truncate">
                       {mission.title}
                     </h3>
                   </div>
@@ -2115,14 +2115,14 @@ export function MissionEngine({
                     playSfx("click");
                     setSettingsModalOpen(false);
                   }}
-                  className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-slate-300 hover:border-amber-400 hover:text-white transition"
+                  className="flex h-7.5 w-7.5 sm:h-8 sm:w-8 cursor-pointer items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-slate-300 hover:border-amber-400 hover:text-white transition shrink-0 ml-2"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
 
-              {/* Menu Items */}
-              <div className="mt-4 space-y-2.5">
+              {/* Menu Items: 2-Column Responsive Grid on Mobile Landscape & Tablet/Desktop */}
+              <div className="mt-2.5 sm:mt-3.5 grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
                 {/* 1. Voltar ao Lobby */}
                 <button
                   type="button"
@@ -2131,22 +2131,22 @@ export function MissionEngine({
                     setSettingsModalOpen(false);
                     onExitToHub();
                   }}
-                  className="flex w-full cursor-pointer items-center justify-between rounded-xl border-2 border-rose-500/50 bg-gradient-to-r from-rose-950/60 via-slate-900/90 to-slate-900/90 p-3.5 text-left transition hover:border-rose-400 hover:bg-rose-900/40 active:scale-[0.99]"
+                  className="flex w-full cursor-pointer items-center justify-between rounded-xl border-2 border-rose-500/50 bg-gradient-to-r from-rose-950/60 via-slate-900/90 to-slate-900/90 p-2 sm:p-2.5 text-left transition hover:border-rose-400 hover:bg-rose-900/40 active:scale-[0.99]"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-rose-400/40 bg-rose-500/20 text-rose-300">
-                      <ArrowLeft className="h-5 w-5" />
+                  <div className="flex items-center gap-2.5 min-w-0 mr-2">
+                    <div className="flex h-7.5 w-7.5 sm:h-8 sm:w-8 items-center justify-center rounded-lg border border-rose-400/40 bg-rose-500/20 text-rose-300 shrink-0">
+                      <ArrowLeft className="h-4 w-4" />
                     </div>
-                    <div>
-                      <div className="text-xs font-black text-rose-200 uppercase tracking-wide">
+                    <div className="min-w-0">
+                      <div className="text-[11px] sm:text-xs font-black text-rose-200 uppercase tracking-wide truncate">
                         Voltar ao Lobby
                       </div>
-                      <div className="text-[11px] text-slate-400">
-                        Sair da cidade 3D e retornar ao Seletor Planetário
+                      <div className="text-[9.5px] sm:text-[10px] text-slate-400 truncate">
+                        Sair da cidade 3D e ir ao Seletor
                       </div>
                     </div>
                   </div>
-                  <span className="rounded bg-rose-500/20 border border-rose-400/30 px-2 py-0.5 font-mono text-[10px] font-black text-rose-300">
+                  <span className="rounded bg-rose-500/20 border border-rose-400/30 px-2.5 py-1 font-mono text-[9px] sm:text-[9.5px] font-black text-rose-300 whitespace-nowrap shrink-0">
                     SAIR
                   </span>
                 </button>
@@ -2158,31 +2158,31 @@ export function MissionEngine({
                     playSfx("click");
                     fireAction("camera");
                   }}
-                  className="flex w-full cursor-pointer items-center justify-between rounded-xl border border-slate-700/80 bg-slate-900/90 p-3.5 text-left transition hover:border-amber-400 hover:bg-amber-500/10 active:scale-[0.99]"
+                  className="flex w-full cursor-pointer items-center justify-between rounded-xl border border-slate-700/80 bg-slate-900/90 p-2 sm:p-2.5 text-left transition hover:border-amber-400 hover:bg-amber-500/10 active:scale-[0.99]"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-amber-400/40 bg-amber-500/20 text-amber-300">
-                      <Camera className="h-5 w-5" />
+                  <div className="flex items-center gap-2.5 min-w-0 mr-2">
+                    <div className="flex h-7.5 w-7.5 sm:h-8 sm:w-8 items-center justify-center rounded-lg border border-amber-400/40 bg-amber-500/20 text-amber-300 shrink-0">
+                      <Camera className="h-4 w-4" />
                     </div>
-                    <div>
-                      <div className="text-xs font-black text-white uppercase tracking-wide">
+                    <div className="min-w-0">
+                      <div className="text-[11px] sm:text-xs font-black text-white uppercase tracking-wide truncate">
                         Câmera 3D
                       </div>
-                      <div className="text-[11px] text-slate-400">
+                      <div className="text-[9.5px] sm:text-[10px] text-slate-400 truncate">
                         {hudSnap.cameraMode === "gta"
-                          ? "Modo atual: 3ª Pessoa (Ação GTA) • Pressione C"
-                          : "Modo atual: Visão Alta (Tática MOBA) • Pressione C"}
+                          ? "Modo 3ª Pessoa [Tecla C]"
+                          : "Modo Visão Alta [Tecla C]"}
                       </div>
                     </div>
                   </div>
                   <span
-                    className={`rounded px-2.5 py-1 text-[10px] font-black uppercase border ${
+                    className={`rounded px-2.5 py-1 text-[9px] sm:text-[9.5px] font-black uppercase border whitespace-nowrap shrink-0 ${
                       hudSnap.cameraMode === "gta"
                         ? "bg-amber-500/20 border-amber-400/40 text-amber-300"
                         : "bg-sky-500/20 border-sky-400/40 text-sky-300"
                     }`}
                   >
-                    {hudSnap.cameraMode === "gta" ? "3ª Pessoa" : "Visão Alta"}
+                    {hudSnap.cameraMode === "gta" ? "3ª PESSOA" : "VISÃO ALTA"}
                   </span>
                 </button>
 
@@ -2192,33 +2192,33 @@ export function MissionEngine({
                   onClick={() => {
                     toggleMute();
                   }}
-                  className="flex w-full cursor-pointer items-center justify-between rounded-xl border border-slate-700/80 bg-slate-900/90 p-3.5 text-left transition hover:border-cyan-400 hover:bg-cyan-500/10 active:scale-[0.99]"
+                  className="flex w-full cursor-pointer items-center justify-between rounded-xl border border-slate-700/80 bg-slate-900/90 p-2 sm:p-2.5 text-left transition hover:border-cyan-400 hover:bg-cyan-500/10 active:scale-[0.99]"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-cyan-400/40 bg-cyan-500/20 text-cyan-300">
+                  <div className="flex items-center gap-2.5 min-w-0 mr-2">
+                    <div className="flex h-7.5 w-7.5 sm:h-8 sm:w-8 items-center justify-center rounded-lg border border-cyan-400/40 bg-cyan-500/20 text-cyan-300 shrink-0">
                       {state.muted ? (
-                        <VolumeX className="h-5 w-5 text-rose-400" />
+                        <VolumeX className="h-4 w-4 text-rose-400" />
                       ) : (
-                        <Volume2 className="h-5 w-5 text-emerald-400" />
+                        <Volume2 className="h-4 w-4 text-emerald-400" />
                       )}
                     </div>
-                    <div>
-                      <div className="text-xs font-black text-white uppercase tracking-wide">
-                        Áudio & Efeitos Sonoros
+                    <div className="min-w-0">
+                      <div className="text-[11px] sm:text-xs font-black text-white uppercase tracking-wide truncate">
+                        Áudio & SFX
                       </div>
-                      <div className="text-[11px] text-slate-400">
-                        {state.muted ? "O som do jogo está desligado" : "Efeitos sonoros e trilha ativos"}
+                      <div className="text-[9.5px] sm:text-[10px] text-slate-400 truncate">
+                        {state.muted ? "Som desativado" : "Efeitos e trilha ativos"}
                       </div>
                     </div>
                   </div>
                   <span
-                    className={`rounded px-2.5 py-1 text-[10px] font-black uppercase border ${
+                    className={`rounded px-2.5 py-1 text-[9px] sm:text-[9.5px] font-black uppercase border whitespace-nowrap shrink-0 ${
                       state.muted
                         ? "bg-rose-500/20 border-rose-400/40 text-rose-300"
                         : "bg-emerald-500/20 border-emerald-400/40 text-emerald-300"
                     }`}
                   >
-                    {state.muted ? "Mudo" : "Ativado"}
+                    {state.muted ? "MUDO" : "ATIVADO"}
                   </span>
                 </button>
 
@@ -2229,22 +2229,22 @@ export function MissionEngine({
                     playSfx("click");
                     toggleLandscapeFullscreen();
                   }}
-                  className="flex w-full cursor-pointer items-center justify-between rounded-xl border border-slate-700/80 bg-slate-900/90 p-3.5 text-left transition hover:border-cyan-400 hover:bg-cyan-500/10 active:scale-[0.99]"
+                  className="flex w-full cursor-pointer items-center justify-between rounded-xl border border-slate-700/80 bg-slate-900/90 p-2 sm:p-2.5 text-left transition hover:border-cyan-400 hover:bg-cyan-500/10 active:scale-[0.99]"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-cyan-400/40 bg-cyan-500/20 text-cyan-300">
-                      <Maximize2 className="h-5 w-5" />
+                  <div className="flex items-center gap-2.5 min-w-0 mr-2">
+                    <div className="flex h-7.5 w-7.5 sm:h-8 sm:w-8 items-center justify-center rounded-lg border border-cyan-400/40 bg-cyan-500/20 text-cyan-300 shrink-0">
+                      <Maximize2 className="h-4 w-4" />
                     </div>
-                    <div>
-                      <div className="text-xs font-black text-white uppercase tracking-wide">
-                        Expandir Tela / Fullscreen
+                    <div className="min-w-0">
+                      <div className="text-[11px] sm:text-xs font-black text-white uppercase tracking-wide truncate">
+                        Tela Cheia
                       </div>
-                      <div className="text-[11px] text-slate-400">
-                        Alternar modo tela cheia para imersão total
+                      <div className="text-[9.5px] sm:text-[10px] text-slate-400 truncate">
+                        Modo imersivo em tela cheia
                       </div>
                     </div>
                   </div>
-                  <span className="rounded bg-slate-800 border border-slate-600 px-2.5 py-1 text-[10px] font-black text-slate-300">
+                  <span className="rounded bg-slate-800 border border-slate-600 px-2.5 py-1 text-[9px] sm:text-[9.5px] font-black text-slate-300 whitespace-nowrap shrink-0">
                     TELA CHEIA
                   </span>
                 </button>
@@ -2257,22 +2257,22 @@ export function MissionEngine({
                     setSettingsModalOpen(false);
                     setOverlay("briefing");
                   }}
-                  className="flex w-full cursor-pointer items-center justify-between rounded-xl border border-slate-700/80 bg-slate-900/90 p-3.5 text-left transition hover:border-amber-400 hover:bg-amber-500/10 active:scale-[0.99]"
+                  className="flex w-full cursor-pointer items-center justify-between rounded-xl border border-slate-700/80 bg-slate-900/90 p-2 sm:p-2.5 text-left transition hover:border-amber-400 hover:bg-amber-500/10 active:scale-[0.99]"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-amber-400/40 bg-amber-500/20 text-amber-300">
-                      <Compass className="h-5 w-5" />
+                  <div className="flex items-center gap-2.5 min-w-0 mr-2">
+                    <div className="flex h-7.5 w-7.5 sm:h-8 sm:w-8 items-center justify-center rounded-lg border border-amber-400/40 bg-amber-500/20 text-amber-300 shrink-0">
+                      <Compass className="h-4 w-4" />
                     </div>
-                    <div>
-                      <div className="text-xs font-black text-white uppercase tracking-wide">
-                        Dossiê Cultural & Tradições
+                    <div className="min-w-0">
+                      <div className="text-[11px] sm:text-xs font-black text-white uppercase tracking-wide truncate">
+                        Dossiê Cultural
                       </div>
-                      <div className="text-[11px] text-slate-400">
-                        {mission.country} • Sabedoria transcultural da missão
+                      <div className="text-[9.5px] sm:text-[10px] text-slate-400 truncate">
+                        {mission.country} • Sabedoria local
                       </div>
                     </div>
                   </div>
-                  <span className="rounded bg-amber-500/20 border border-amber-400/40 px-2 py-0.5 font-mono text-[10px] font-black text-amber-300">
+                  <span className="rounded bg-amber-500/20 border border-amber-400/40 px-2.5 py-1 font-mono text-[9px] sm:text-[9.5px] font-black text-amber-300 whitespace-nowrap shrink-0">
                     ABRIR
                   </span>
                 </button>
@@ -2285,36 +2285,36 @@ export function MissionEngine({
                     setSettingsModalOpen(false);
                     setMissionPhoneOpen(true);
                   }}
-                  className="flex w-full cursor-pointer items-center justify-between rounded-xl border border-slate-700/80 bg-slate-900/90 p-3.5 text-left transition hover:border-cyan-400 hover:bg-cyan-500/10 active:scale-[0.99]"
+                  className="flex w-full cursor-pointer items-center justify-between rounded-xl border border-slate-700/80 bg-slate-900/90 p-2 sm:p-2.5 text-left transition hover:border-cyan-400 hover:bg-cyan-500/10 active:scale-[0.99]"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-cyan-400/40 bg-cyan-500/20 text-cyan-300">
-                      <ClipboardList className="h-5 w-5" />
+                  <div className="flex items-center gap-2.5 min-w-0 mr-2">
+                    <div className="flex h-7.5 w-7.5 sm:h-8 sm:w-8 items-center justify-center rounded-lg border border-cyan-400/40 bg-cyan-500/20 text-cyan-300 shrink-0">
+                      <ClipboardList className="h-4 w-4" />
                     </div>
-                    <div>
-                      <div className="text-xs font-black text-white uppercase tracking-wide">
-                        Lista de Missões & Desafios
+                    <div className="min-w-0">
+                      <div className="text-[11px] sm:text-xs font-black text-white uppercase tracking-wide truncate">
+                        Missões & Desafios
                       </div>
-                      <div className="text-[11px] text-slate-400">
-                        {completedMapMissions} de {totalMapMissions} objetivos concluídos
+                      <div className="text-[9.5px] sm:text-[10px] text-slate-400 truncate">
+                        {completedMapMissions} de {totalMapMissions} concluídos
                       </div>
                     </div>
                   </div>
-                  <span className="rounded bg-cyan-500/20 border border-cyan-400/40 px-2 py-0.5 font-mono text-[10px] font-black text-cyan-300">
+                  <span className="rounded bg-cyan-500/20 border border-cyan-400/40 px-2.5 py-1 font-mono text-[9px] sm:text-[9.5px] font-black text-cyan-300 whitespace-nowrap shrink-0">
                     {completedMapMissions}/{totalMapMissions}
                   </span>
                 </button>
               </div>
 
               {/* Resume Button */}
-              <div className="mt-5 border-t border-slate-800 pt-4">
+              <div className="mt-2.5 sm:mt-3.5 border-t border-slate-800/80 pt-2 sm:pt-2.5">
                 <button
                   type="button"
                   onClick={() => {
                     playSfx("click");
                     setSettingsModalOpen(false);
                   }}
-                  className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-emerald-400 bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 py-3 text-xs font-black uppercase text-white shadow-[0_0_20px_rgba(16,185,129,0.5)] transition hover:brightness-110 active:scale-[0.99]"
+                  className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-emerald-400 bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 py-2 sm:py-2.5 text-xs font-black uppercase text-white shadow-[0_0_18px_rgba(16,185,129,0.5)] transition hover:brightness-110 active:scale-[0.99]"
                 >
                   <span>▶ RETOMAR MISSÃO</span>
                 </button>
