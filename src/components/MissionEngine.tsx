@@ -2203,30 +2203,12 @@ export function MissionEngine({
               }`}
             />
             <Swords
-              className={`h-6 w-6 sm:h-7.5 sm:w-7.5 drop-shadow transition-transform ${
+              className={`h-7 w-7 sm:h-9 sm:w-9 drop-shadow-md transition-transform ${
                 comboStepUI === 3
                   ? "scale-115 text-amber-200 animate-pulse"
                   : "group-hover:scale-110"
               }`}
             />
-            <span className="mt-0.5 font-mono text-[8px] sm:text-[9.5px] font-black tracking-wider text-amber-200 uppercase drop-shadow">
-              ATACAR
-            </span>
-            <span
-              className={`font-mono text-[7px] font-black uppercase tracking-tight ${
-                comboStepUI === 3
-                  ? "text-amber-200 animate-pulse text-[8px]"
-                  : "text-amber-300/90"
-              }`}
-            >
-              {comboStepUI === 1
-                ? "⚡ GOLPE 1"
-                : comboStepUI === 2
-                ? "⚡⚡ GOLPE 2"
-                : comboStepUI === 3
-                ? "💥 FINALIZADOR!"
-                : "LIVRE ∞"}
-            </span>
           </motion.button>
         </div>
       </div>
