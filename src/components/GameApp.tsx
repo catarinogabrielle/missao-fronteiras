@@ -39,6 +39,7 @@ export function GameApp() {
   const [prayerRadarOpen, setPrayerRadarOpen] = useState(false);
   const [tribesQuizOpen, setTribesQuizOpen] = useState(false);
   const [wardrobeOpen, setWardrobeOpen] = useState(false);
+  const [modesMenuOpen, setModesMenuOpen] = useState(false);
 
   const handleStartPlayFromHome = (playerName: string, avatarId: AvatarId) => {
     const canonicalGift: Record<AvatarId, GiftId> = {
@@ -64,7 +65,8 @@ export function GameApp() {
     bibleOpen ||
     prayerRadarOpen ||
     tribesQuizOpen ||
-    wardrobeOpen;
+    wardrobeOpen ||
+    modesMenuOpen;
 
   if (!hydrated) {
     return (
@@ -96,6 +98,7 @@ export function GameApp() {
                 setBibleTab("gospel");
                 setBibleOpen(true);
               }}
+              onOpenModes={() => setModesMenuOpen(true)}
               onSwitchUser={() => {
                 setActiveMission(null);
                 switchUser();
@@ -123,6 +126,8 @@ export function GameApp() {
             />
           ) : (
             <MissionHub
+              modesModalOpen={modesMenuOpen}
+              onSetModesModalOpen={setModesMenuOpen}
               onSelectMission={(m, coopSession) => {
                 setActiveCoopSession(coopSession || null);
                 setActiveMission(getDynamicMissionInstance(m));

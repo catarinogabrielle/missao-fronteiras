@@ -128,6 +128,8 @@ interface MissionHubProps {
   onOpenWardrobe: () => void;
   onOpenStory?: () => void;
   onSwitchUser?: () => void;
+  modesModalOpen?: boolean;
+  onSetModesModalOpen?: (open: boolean) => void;
 }
 
 export function MissionHub({
@@ -139,6 +141,8 @@ export function MissionHub({
   onOpenWardrobe,
   onOpenStory,
   onSwitchUser,
+  modesModalOpen: modesModalOpenProp,
+  onSetModesModalOpen: onSetModesModalOpenProp,
 }: MissionHubProps) {
   const {
     state,
@@ -166,7 +170,14 @@ export function MissionHub({
   const [citySelectorOpen, setCitySelectorOpen] = useState(false);
   const [languageModalOpen, setLanguageModalOpen] = useState(false);
   const [coopModalOpen, setCoopModalOpen] = useState(false);
+  const [internalModesOpen, setInternalModesOpen] = useState(false);
   const [desktopMapTab, setDesktopMapTab] = useState<"briefing" | "globe">("briefing");
+
+  const isModesOpen = modesModalOpenProp ?? internalModesOpen;
+  const setModesModalOpen = (open: boolean) => {
+    setInternalModesOpen(open);
+    onSetModesModalOpenProp?.(open);
+  };
 
   const selectedMission =
     allMissions.find((m) => m.id === selectedId) || allMissions[0];
@@ -550,6 +561,272 @@ export function MissionHub({
             />
           )}
         </AnimatePresence>
+
+        {/* Central de Modos de Jogo & Atividades Modal */}
+        <AnimatePresence>
+          {isModesOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-3 select-none"
+            >
+              <motion.div
+                initial={{ scale: 0.94, y: 15 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.94, y: 15 }}
+                transition={{ type: "spring", damping: 25, stiffness: 350 }}
+                className="flex h-full max-h-[92dvh] w-full max-w-4xl flex-col justify-between rounded-3xl border-2 border-cyan-400/50 bg-slate-950 p-4 shadow-[0_0_60px_rgba(6,182,212,0.3)] overflow-hidden"
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-cyan-500/25 pb-2.5 shrink-0">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-500/20 border border-cyan-400/50">
+                      <Compass className="h-5 w-5 text-cyan-300" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                        <span>Central de Modos de Jogo</span>
+                        <span className="rounded bg-cyan-500/20 px-1.5 py-0.2 font-mono text-[9px] font-black text-cyan-300">
+                          7 ATIVIDADES
+                        </span>
+                      </h3>
+                      <p className="text-[10px] text-slate-400 font-medium">
+                        Escolha uma expedição, desafio tático ou atividade cooperativa
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setModesModalOpen(false)}
+                    className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-slate-300 hover:text-white hover:border-slate-500 transition"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {/* Grid of Modes */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 my-3 overflow-y-auto no-scrollbar flex-1 min-h-0 pr-1">
+                  {/* 1. Expedições das 8 Cidades */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playSfx("click");
+                      setModesModalOpen(false);
+                      setCitySelectorOpen(true);
+                    }}
+                    className="group relative flex flex-col justify-between rounded-2xl border-2 border-amber-400/70 bg-gradient-to-b from-amber-500/20 via-slate-900/90 to-slate-900/90 p-3 text-left shadow-lg hover:border-amber-300 hover:scale-[1.02] transition cursor-pointer"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/25 border border-amber-400/60">
+                        <Swords className="h-5 w-5 text-amber-300" />
+                      </div>
+                      <span className="rounded-full bg-amber-500/25 px-2 py-0.5 text-[8.5px] font-mono font-black text-amber-300 border border-amber-500/40">
+                        PRINCIPAL • FASE {selectedMission.order}
+                      </span>
+                    </div>
+                    <div className="mt-2">
+                      <div className="text-xs font-black uppercase text-white group-hover:text-amber-300 transition-colors">
+                        Expedições 3D
+                      </div>
+                      <p className="text-[9.5px] text-slate-300 leading-snug mt-0.5">
+                        8 cidades globais para explorar, restaurar e transformar vidas.
+                      </p>
+                    </div>
+                    <div className="mt-2 text-[9px] font-bold text-amber-400 font-mono">
+                      Ativa: {selectedMission.title} ➔
+                    </div>
+                  </button>
+
+                  {/* 2. Arena Tribos (4v4) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playSfx("click");
+                      setModesModalOpen(false);
+                      onOpenTribesQuiz();
+                    }}
+                    className="group relative flex flex-col justify-between rounded-2xl border border-fuchsia-500/40 bg-gradient-to-b from-fuchsia-500/15 via-slate-900/90 to-slate-900/90 p-3 text-left shadow-lg hover:border-fuchsia-400 hover:scale-[1.02] transition cursor-pointer"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-fuchsia-500/25 border border-fuchsia-400/60">
+                        <Swords className="h-5 w-5 text-fuchsia-300" />
+                      </div>
+                      <span className="rounded-full bg-fuchsia-500/25 px-2 py-0.5 text-[8.5px] font-mono font-black text-fuchsia-300 border border-fuchsia-500/40">
+                        4v4 TRIBOS
+                      </span>
+                    </div>
+                    <div className="mt-2">
+                      <div className="text-xs font-black uppercase text-white group-hover:text-fuchsia-300 transition-colors">
+                        Arena Tribos
+                      </div>
+                      <p className="text-[9.5px] text-slate-300 leading-snug mt-0.5">
+                        Batalha de conhecimento bíblico e missões entre equipes em tempo real.
+                      </p>
+                    </div>
+                    <div className="mt-2 text-[9px] font-bold text-fuchsia-400 font-mono">
+                      Entrar na Batalha ➔
+                    </div>
+                  </button>
+
+                  {/* 3. Radar de Oração Global */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playSfx("click");
+                      setModesModalOpen(false);
+                      onOpenPrayerRadar();
+                    }}
+                    className="group relative flex flex-col justify-between rounded-2xl border border-amber-500/40 bg-gradient-to-b from-amber-500/15 via-slate-900/90 to-slate-900/90 p-3 text-left shadow-lg hover:border-amber-400 hover:scale-[1.02] transition cursor-pointer"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/25 border border-amber-400/60">
+                        <Radio className="h-5 w-5 text-amber-300" />
+                      </div>
+                      <span className="rounded-full bg-amber-500/25 px-2 py-0.5 text-[8.5px] font-mono font-black text-amber-300 border border-amber-500/40">
+                        {state.prayedMissionIds.length}/4 POVOS
+                      </span>
+                    </div>
+                    <div className="mt-2">
+                      <div className="text-xs font-black uppercase text-white group-hover:text-amber-300 transition-colors">
+                        Radar de Oração
+                      </div>
+                      <p className="text-[9.5px] text-slate-300 leading-snug mt-0.5">
+                        Interceda pelos povos não alcançados e envie bênçãos globais.
+                      </p>
+                    </div>
+                    <div className="mt-2 text-[9px] font-bold text-amber-400 font-mono">
+                      Abrir Radar ➔
+                    </div>
+                  </button>
+
+                  {/* 4. Grimório dos Discípulos */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playSfx("click");
+                      setModesModalOpen(false);
+                      onOpenPocketBible("gospel");
+                    }}
+                    className="group relative flex flex-col justify-between rounded-2xl border border-emerald-500/40 bg-gradient-to-b from-emerald-500/15 via-slate-900/90 to-slate-900/90 p-3 text-left shadow-lg hover:border-emerald-400 hover:scale-[1.02] transition cursor-pointer"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/25 border border-emerald-400/60">
+                        <BookOpen className="h-5 w-5 text-emerald-300" />
+                      </div>
+                      <span className="rounded-full bg-emerald-500/25 px-2 py-0.5 text-[8.5px] font-mono font-black text-emerald-300 border border-emerald-500/40">
+                        {state.studiedGospelSteps.length}/4 ETAPAS
+                      </span>
+                    </div>
+                    <div className="mt-2">
+                      <div className="text-xs font-black uppercase text-white group-hover:text-emerald-300 transition-colors">
+                        Grimório do Evangelho
+                      </div>
+                      <p className="text-[9.5px] text-slate-300 leading-snug mt-0.5">
+                        Estudo interativo das 4 etapas do Evangelho e memorização de versículos.
+                      </p>
+                    </div>
+                    <div className="mt-2 text-[9px] font-bold text-emerald-400 font-mono">
+                      Acessar Grimório ➔
+                    </div>
+                  </button>
+
+                  {/* 5. Passaporte & Coleção */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playSfx("click");
+                      setModesModalOpen(false);
+                      onOpenPassport();
+                    }}
+                    className="group relative flex flex-col justify-between rounded-2xl border border-cyan-500/40 bg-gradient-to-b from-cyan-500/15 via-slate-900/90 to-slate-900/90 p-3 text-left shadow-lg hover:border-cyan-400 hover:scale-[1.02] transition cursor-pointer"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-500/25 border border-cyan-400/60">
+                        <Trophy className="h-5 w-5 text-cyan-300" />
+                      </div>
+                      <span className="rounded-full bg-cyan-500/25 px-2 py-0.5 text-[8.5px] font-mono font-black text-cyan-300 border border-cyan-500/40">
+                        {completedIds.length}/{allMissions.length} SELOS
+                      </span>
+                    </div>
+                    <div className="mt-2">
+                      <div className="text-xs font-black uppercase text-white group-hover:text-cyan-300 transition-colors">
+                        Passaporte Missionário
+                      </div>
+                      <p className="text-[9.5px] text-slate-300 leading-snug mt-0.5">
+                        Carimbos de vistos, cartas náuticas e histórico de conquistas.
+                      </p>
+                    </div>
+                    <div className="mt-2 text-[9px] font-bold text-cyan-400 font-mono">
+                      Ver Passaporte ➔
+                    </div>
+                  </button>
+
+                  {/* 6. Idiomas & Povos */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playSfx("click");
+                      setModesModalOpen(false);
+                      setLanguageModalOpen(true);
+                    }}
+                    className="group relative flex flex-col justify-between rounded-2xl border border-amber-500/40 bg-gradient-to-b from-amber-500/15 via-slate-900/90 to-slate-900/90 p-3 text-left shadow-lg hover:border-amber-400 hover:scale-[1.02] transition cursor-pointer"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/25 border border-amber-400/60">
+                        <Globe2 className="h-5 w-5 text-amber-300" />
+                      </div>
+                      <span className="rounded-full bg-amber-500/25 px-2 py-0.5 text-[8.5px] font-mono font-black text-amber-300 border border-amber-500/40">
+                        8 POVOS
+                      </span>
+                    </div>
+                    <div className="mt-2">
+                      <div className="text-xs font-black uppercase text-white group-hover:text-amber-300 transition-colors">
+                        Idiomas & Povos
+                      </div>
+                      <p className="text-[9.5px] text-slate-300 leading-snug mt-0.5">
+                        Aprenda saudações e frases-chave nas línguas nativas de cada etnia.
+                      </p>
+                    </div>
+                    <div className="mt-2 text-[9px] font-bold text-amber-400 font-mono">
+                      Praticar Línguas ➔
+                    </div>
+                  </button>
+
+                  {/* 7. Co-op Multiplayer Duo (2P) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playSfx("click");
+                      setModesModalOpen(false);
+                      setCoopModalOpen(true);
+                    }}
+                    className="group relative flex flex-col justify-between rounded-2xl border border-emerald-500/40 bg-gradient-to-b from-emerald-500/15 via-slate-900/90 to-slate-900/90 p-3 text-left shadow-lg hover:border-emerald-400 hover:scale-[1.02] transition cursor-pointer sm:col-span-2 md:col-span-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/25 border border-emerald-400/60">
+                          <Users className="h-5 w-5 text-emerald-300" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-black uppercase text-white group-hover:text-emerald-300 transition-colors">
+                            Co-op Multiplayer (2P Duo)
+                          </div>
+                          <p className="text-[9.5px] text-slate-300 leading-snug mt-0.5">
+                            Gere um PIN de 4 dígitos ou junte-se à sala de um amigo para jogar missões juntos em tempo real.
+                          </p>
+                        </div>
+                      </div>
+                      <span className="rounded-full bg-emerald-500/25 px-2.5 py-1 text-[9px] font-mono font-black text-emerald-300 border border-emerald-500/40 shrink-0">
+                        JOGAR EM DUPLA ➔
+                      </span>
+                    </div>
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     );
   }
@@ -584,200 +861,45 @@ export function MissionHub({
         </AnimatePresence>
         <div className="pointer-events-none fixed inset-0 bg-radial from-transparent via-slate-950/50 to-slate-950/90" />
 
-        {/* 1. LEFT HUD DOCK (Modes & Summoner Profile - Spacious Floating Glass Card) */}
-        <aside className="relative z-20 flex w-56 sm:w-64 md:w-72 shrink-0 flex-col justify-between h-full rounded-2xl sm:rounded-3xl border border-cyan-500/25 bg-slate-950/85 backdrop-blur-xl p-2.5 sm:p-3 shadow-2xl overflow-hidden">
-          {/* Quick Access Modes */}
-          <div className="space-y-1.5 sm:space-y-2">
-            <div className="flex items-center gap-1.5 px-1 text-[10px] font-black tracking-widest text-cyan-400 uppercase">
-              <Compass className="h-3.5 w-3.5 text-cyan-400" />
-              <span>Modos de Jogo</span>
-            </div>
-
-            {/* Active Mode (Glowing, spacious & never truncates) */}
-            <button
-              type="button"
-              onClick={() => {
-                playSfx("click");
-                setCitySelectorOpen(true);
-              }}
-              title="Clique para alternar entre as 8 cidades e missões"
-              className="w-full flex h-12 items-center gap-2.5 rounded-xl sm:rounded-2xl border-2 border-amber-400/80 bg-gradient-to-r from-amber-500/25 via-slate-900/95 to-slate-900/95 px-3 text-left shadow-[0_0_20px_rgba(245,158,11,0.35)] hover:border-amber-300 cursor-pointer transition"
-            >
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/20 border border-amber-400/50 shrink-0">
-                <Swords className="h-4 w-4 text-amber-300" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-xs sm:text-sm font-black uppercase text-white truncate leading-tight tracking-wide">
-                  {selectedMission.title}
-                </div>
-                <div className="text-[9px] font-bold text-amber-300 uppercase truncate flex items-center justify-between mt-0.5">
-                  <span>Fase {selectedMission.order} • {selectedMission.difficulty}</span>
-                  <span className="text-cyan-400 font-mono text-[8px] bg-cyan-950/80 border border-cyan-800/60 px-1 rounded">MAPA ▾</span>
-                </div>
-              </div>
-            </button>
-
+        {/* 1. MAIN ARENA STAGE (Top Control Bar, 3D Champion Showcase & 8 Cities Strip) */}
+        <main className="relative z-10 flex flex-1 min-w-0 h-full flex-col justify-between items-center px-1 sm:px-2 overflow-hidden">
+          {/* Top Control Bar: Modos de Jogo Selector (Left) & Champion Banner (Center/Right) */}
+          <div className="w-full flex items-center justify-between gap-2 px-1 shrink-0 z-20">
+            {/* Quick Trigger to Open Game Modes Modal */}
             <motion.button
               type="button"
-              whileHover={{ scale: 1.02, x: 2 }}
-              whileTap={{ scale: 0.96 }}
-              onClick={onOpenTribesQuiz}
-              className="w-full flex h-8.5 sm:h-9 items-center justify-between rounded-xl border border-fuchsia-500/35 bg-slate-900/85 px-3 text-left text-slate-200 hover:border-fuchsia-400 shadow-md cursor-pointer transition"
-            >
-              <span className="flex items-center gap-2 text-xs font-black uppercase tracking-wide">
-                <Swords className="h-3.5 w-3.5 text-fuchsia-400 shrink-0" />
-                <span>Arena Tribos</span>
-              </span>
-              <span className="rounded bg-fuchsia-500/20 px-1.5 py-0.5 text-[8.5px] font-mono font-black text-fuchsia-300">
-                4v4
-              </span>
-            </motion.button>
-
-            <motion.button
-              type="button"
-              whileHover={{ scale: 1.02, x: 2 }}
-              whileTap={{ scale: 0.96 }}
-              onClick={onOpenPrayerRadar}
-              className="w-full flex h-8.5 sm:h-9 items-center justify-between rounded-xl border border-amber-500/35 bg-slate-900/85 px-3 text-left text-slate-200 hover:border-amber-400 shadow-md cursor-pointer transition"
-            >
-              <span className="flex items-center gap-2 text-xs font-black uppercase tracking-wide">
-                <Radio className="h-3.5 w-3.5 text-amber-400 shrink-0" />
-                <span>Radar Oração</span>
-              </span>
-              <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[8.5px] font-mono font-black text-amber-300">
-                {state.prayedMissionIds.length}/4
-              </span>
-            </motion.button>
-
-            <motion.button
-              type="button"
-              whileHover={{ scale: 1.02, x: 2 }}
-              whileTap={{ scale: 0.96 }}
-              onClick={() => onOpenPocketBible("gospel")}
-              className="w-full flex h-8.5 sm:h-9 items-center justify-between rounded-xl border border-emerald-500/35 bg-slate-900/85 px-3 text-left text-slate-200 hover:border-emerald-400 shadow-md cursor-pointer transition"
-            >
-              <span className="flex items-center gap-2 text-xs font-black uppercase tracking-wide">
-                <BookOpen className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                <span>Grimório</span>
-              </span>
-              <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[8.5px] font-mono font-black text-emerald-300">
-                {state.studiedGospelSteps.length}/4
-              </span>
-            </motion.button>
-
-            <motion.button
-              type="button"
-              whileHover={{ scale: 1.02, x: 2 }}
-              whileTap={{ scale: 0.96 }}
-              onClick={onOpenPassport}
-              className="w-full flex h-8.5 sm:h-9 items-center justify-between rounded-xl border border-cyan-500/35 bg-slate-900/85 px-3 text-left text-slate-200 hover:border-cyan-400 shadow-md cursor-pointer transition"
-            >
-              <span className="flex items-center gap-2 text-xs font-black uppercase tracking-wide">
-                <Trophy className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
-                <span>Passaporte</span>
-              </span>
-              <span className="rounded bg-cyan-500/20 px-1.5 py-0.5 text-[8.5px] font-mono font-black text-cyan-300">
-                {completedIds.length}/{allMissions.length}
-              </span>
-            </motion.button>
-
-            <motion.button
-              type="button"
-              whileHover={{ scale: 1.02, x: 2 }}
+              whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.96 }}
               onClick={() => {
                 playSfx("click");
-                setLanguageModalOpen(true);
+                setModesModalOpen(true);
               }}
-              className="w-full flex h-8.5 sm:h-9 items-center justify-between rounded-xl border border-amber-500/35 bg-slate-900/85 px-3 text-left text-slate-200 hover:border-amber-400 shadow-md cursor-pointer transition"
+              title="Clique para abrir os Modos de Jogo & Atividades"
+              className="flex items-center gap-1.5 sm:gap-2 rounded-full border border-cyan-400/60 bg-gradient-to-r from-cyan-500/20 via-slate-900/95 to-slate-900/95 px-3 py-1 shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:border-cyan-300 cursor-pointer transition whitespace-nowrap"
             >
-              <span className="flex items-center gap-2 text-xs font-black uppercase tracking-wide">
-                <Globe2 className="h-3.5 w-3.5 text-amber-400 shrink-0" />
-                <span>Idiomas</span>
+              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-cyan-500/25 border border-cyan-400/50 shrink-0">
+                <Compass className="h-3 w-3 text-cyan-300 animate-spin-slow" />
+              </div>
+              <span className="text-[10px] sm:text-[11px] font-black uppercase text-white tracking-wide whitespace-nowrap">
+                Modos de Jogo
               </span>
-              <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[8.5px] font-mono font-black text-amber-300">
-                8 Povos
+              <span className="rounded bg-cyan-500/20 px-1.5 py-0.2 font-mono text-[8px] font-black text-cyan-300 border border-cyan-500/30 whitespace-nowrap">
+                7 ATIVIDADES ▾
               </span>
             </motion.button>
 
-            <motion.button
-              type="button"
-              whileHover={{ scale: 1.02, x: 2 }}
-              whileTap={{ scale: 0.96 }}
-              onClick={() => {
-                playSfx("click");
-                setCoopModalOpen(true);
-              }}
-              className="w-full flex h-8.5 sm:h-9 items-center justify-between rounded-xl border border-emerald-500/35 bg-slate-900/85 px-3 text-left text-slate-200 hover:border-emerald-400 shadow-md cursor-pointer transition"
-            >
-              <span className="flex items-center gap-2 text-xs font-black uppercase tracking-wide">
-                <Users className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                <span>Co-op (2P)</span>
+            {/* Top Champion & Skin Showcase Banner (Single-Line, Never Wraps, Fixed Title Issue!) */}
+            <div className="rounded-full border border-amber-400/50 bg-slate-950/90 px-3 py-1 backdrop-blur-md shadow-[0_0_15px_rgba(245,158,11,0.25)] flex items-center gap-1.5 sm:gap-2 shrink-0 whitespace-nowrap">
+              <span className="text-xs font-black text-amber-300 uppercase tracking-wider whitespace-nowrap">
+                {heroMeta?.name || "CAMPEÃO"}
               </span>
-              <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[8.5px] font-mono font-black text-emerald-300">
-                Dupla
+              <span className="text-[9.5px] font-bold text-slate-300 uppercase whitespace-nowrap">
+                • {heroMeta?.codename || "EXPLORADOR"}
               </span>
-            </motion.button>
-          </div>
-
-          {/* Bottom-Left: Summoner Profile Card (Spacious, Never Cuts Off XP) */}
-          <motion.button
-            type="button"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.96 }}
-            onClick={() => {
-              playSfx("click");
-              if (onSwitchUser) onSwitchUser();
-              else onOpenWardrobe();
-            }}
-            title="Perfil de Invocador • Clique para alternar agente"
-            className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl sm:rounded-2xl border border-amber-500/40 bg-slate-900/95 p-2 sm:p-2.5 text-left shadow-lg hover:border-amber-300 transition shrink-0"
-          >
-            <div className="relative shrink-0">
-              <HeroPortrait
-                avatarId={state.agent.avatarId}
-                size={38}
-                shape="hex"
-                active
-              />
-              <span className="absolute -right-1 -bottom-0.5 flex h-4 min-w-4 items-center justify-center rounded border border-amber-200 bg-gradient-to-b from-amber-300 to-amber-600 px-0.5 text-[8.5px] font-black text-slate-950 shadow">
-                {level}
+              <span className="rounded-full bg-gradient-to-r from-amber-500/20 to-cyan-500/20 border border-cyan-400/40 px-2 py-0.5 text-[8px] font-black text-cyan-300 uppercase whitespace-nowrap">
+                {skinMeta?.name || "CLÁSSICA"} (NÍV. {skinMeta?.unlockLevel ?? 1})
               </span>
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between">
-                <span className="truncate text-xs sm:text-sm font-black uppercase text-white tracking-wide">
-                  {state.agent.name}
-                </span>
-                <span className="text-[9px] text-amber-300 font-bold">▾</span>
-              </div>
-              <div className="text-[9px] font-bold text-cyan-300 truncate leading-none mt-0.5">
-                {levelTitle}
-              </div>
-              {/* XP Progress Bar */}
-              <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full border border-slate-700 bg-slate-950">
-                <div
-                  style={{ width: `${xpPercent}%` }}
-                  className="h-full bg-gradient-to-r from-cyan-400 via-emerald-400 to-amber-300"
-                />
-              </div>
-            </div>
-          </motion.button>
-        </aside>
-
-        {/* 2. CENTER STAGE (3D Champion Showcase + 8 Cities Visual Map Horizontal Strip) */}
-        <main className="relative z-10 flex flex-1 min-w-0 h-full flex-col justify-between items-center px-1.5 sm:px-3 overflow-hidden">
-          {/* Top Champion & Skin Showcase Banner (Eliminates Duplicate Nickname!) */}
-          <div className="rounded-full border border-amber-400/50 bg-slate-950/90 px-3.5 py-1 backdrop-blur-md shadow-[0_0_15px_rgba(245,158,11,0.25)] flex items-center gap-2 shrink-0">
-            <span className="text-xs font-black text-amber-300 uppercase tracking-wider">
-              {heroMeta?.name || "CAMPEÃO"}
-            </span>
-            <span className="text-[9.5px] font-bold text-slate-300 uppercase">
-              • {heroMeta?.codename || "EXPLORADOR"}
-            </span>
-            <span className="rounded-full bg-gradient-to-r from-amber-500/20 to-cyan-500/20 border border-cyan-400/40 px-2 py-0.5 text-[8px] font-black text-cyan-300 uppercase">
-              {skinMeta?.name || "CLÁSSICA"} (NÍV. {skinMeta?.unlockLevel ?? 1})
-            </span>
           </div>
 
           {/* 3D Turntable Centerpiece */}
@@ -1151,6 +1273,272 @@ export function MissionHub({
                 onSelectMission(selectedMission, session);
               }}
             />
+          )}
+        </AnimatePresence>
+
+        {/* Central de Modos de Jogo & Atividades Modal */}
+        <AnimatePresence>
+          {isModesOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-3 select-none"
+            >
+              <motion.div
+                initial={{ scale: 0.94, y: 15 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.94, y: 15 }}
+                transition={{ type: "spring", damping: 25, stiffness: 350 }}
+                className="flex h-full max-h-[92dvh] w-full max-w-4xl flex-col justify-between rounded-3xl border-2 border-cyan-400/50 bg-slate-950 p-4 shadow-[0_0_60px_rgba(6,182,212,0.3)] overflow-hidden"
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-cyan-500/25 pb-2.5 shrink-0">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-500/20 border border-cyan-400/50">
+                      <Compass className="h-5 w-5 text-cyan-300" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                        <span>Central de Modos de Jogo</span>
+                        <span className="rounded bg-cyan-500/20 px-1.5 py-0.2 font-mono text-[9px] font-black text-cyan-300">
+                          7 ATIVIDADES
+                        </span>
+                      </h3>
+                      <p className="text-[10px] text-slate-400 font-medium">
+                        Escolha uma expedição, desafio tático ou atividade cooperativa
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setModesModalOpen(false)}
+                    className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-slate-300 hover:text-white hover:border-slate-500 transition"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {/* Grid of Modes */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 my-3 overflow-y-auto no-scrollbar flex-1 min-h-0 pr-1">
+                  {/* 1. Expedições das 8 Cidades */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playSfx("click");
+                      setModesModalOpen(false);
+                      setCitySelectorOpen(true);
+                    }}
+                    className="group relative flex flex-col justify-between rounded-2xl border-2 border-amber-400/70 bg-gradient-to-b from-amber-500/20 via-slate-900/90 to-slate-900/90 p-3 text-left shadow-lg hover:border-amber-300 hover:scale-[1.02] transition cursor-pointer"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/25 border border-amber-400/60">
+                        <Swords className="h-5 w-5 text-amber-300" />
+                      </div>
+                      <span className="rounded-full bg-amber-500/25 px-2 py-0.5 text-[8.5px] font-mono font-black text-amber-300 border border-amber-500/40">
+                        PRINCIPAL • FASE {selectedMission.order}
+                      </span>
+                    </div>
+                    <div className="mt-2">
+                      <div className="text-xs font-black uppercase text-white group-hover:text-amber-300 transition-colors">
+                        Expedições 3D
+                      </div>
+                      <p className="text-[9.5px] text-slate-300 leading-snug mt-0.5">
+                        8 cidades globais para explorar, restaurar e transformar vidas.
+                      </p>
+                    </div>
+                    <div className="mt-2 text-[9px] font-bold text-amber-400 font-mono">
+                      Ativa: {selectedMission.title} ➔
+                    </div>
+                  </button>
+
+                  {/* 2. Arena Tribos (4v4) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playSfx("click");
+                      setModesModalOpen(false);
+                      onOpenTribesQuiz();
+                    }}
+                    className="group relative flex flex-col justify-between rounded-2xl border border-fuchsia-500/40 bg-gradient-to-b from-fuchsia-500/15 via-slate-900/90 to-slate-900/90 p-3 text-left shadow-lg hover:border-fuchsia-400 hover:scale-[1.02] transition cursor-pointer"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-fuchsia-500/25 border border-fuchsia-400/60">
+                        <Swords className="h-5 w-5 text-fuchsia-300" />
+                      </div>
+                      <span className="rounded-full bg-fuchsia-500/25 px-2 py-0.5 text-[8.5px] font-mono font-black text-fuchsia-300 border border-fuchsia-500/40">
+                        4v4 TRIBOS
+                      </span>
+                    </div>
+                    <div className="mt-2">
+                      <div className="text-xs font-black uppercase text-white group-hover:text-fuchsia-300 transition-colors">
+                        Arena Tribos
+                      </div>
+                      <p className="text-[9.5px] text-slate-300 leading-snug mt-0.5">
+                        Batalha de conhecimento bíblico e missões entre equipes em tempo real.
+                      </p>
+                    </div>
+                    <div className="mt-2 text-[9px] font-bold text-fuchsia-400 font-mono">
+                      Entrar na Batalha ➔
+                    </div>
+                  </button>
+
+                  {/* 3. Radar de Oração Global */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playSfx("click");
+                      setModesModalOpen(false);
+                      onOpenPrayerRadar();
+                    }}
+                    className="group relative flex flex-col justify-between rounded-2xl border border-amber-500/40 bg-gradient-to-b from-amber-500/15 via-slate-900/90 to-slate-900/90 p-3 text-left shadow-lg hover:border-amber-400 hover:scale-[1.02] transition cursor-pointer"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/25 border border-amber-400/60">
+                        <Radio className="h-5 w-5 text-amber-300" />
+                      </div>
+                      <span className="rounded-full bg-amber-500/25 px-2 py-0.5 text-[8.5px] font-mono font-black text-amber-300 border border-amber-500/40">
+                        {state.prayedMissionIds.length}/4 POVOS
+                      </span>
+                    </div>
+                    <div className="mt-2">
+                      <div className="text-xs font-black uppercase text-white group-hover:text-amber-300 transition-colors">
+                        Radar de Oração
+                      </div>
+                      <p className="text-[9.5px] text-slate-300 leading-snug mt-0.5">
+                        Interceda pelos povos não alcançados e envie bênçãos globais.
+                      </p>
+                    </div>
+                    <div className="mt-2 text-[9px] font-bold text-amber-400 font-mono">
+                      Abrir Radar ➔
+                    </div>
+                  </button>
+
+                  {/* 4. Grimório dos Discípulos */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playSfx("click");
+                      setModesModalOpen(false);
+                      onOpenPocketBible("gospel");
+                    }}
+                    className="group relative flex flex-col justify-between rounded-2xl border border-emerald-500/40 bg-gradient-to-b from-emerald-500/15 via-slate-900/90 to-slate-900/90 p-3 text-left shadow-lg hover:border-emerald-400 hover:scale-[1.02] transition cursor-pointer"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/25 border border-emerald-400/60">
+                        <BookOpen className="h-5 w-5 text-emerald-300" />
+                      </div>
+                      <span className="rounded-full bg-emerald-500/25 px-2 py-0.5 text-[8.5px] font-mono font-black text-emerald-300 border border-emerald-500/40">
+                        {state.studiedGospelSteps.length}/4 ETAPAS
+                      </span>
+                    </div>
+                    <div className="mt-2">
+                      <div className="text-xs font-black uppercase text-white group-hover:text-emerald-300 transition-colors">
+                        Grimório do Evangelho
+                      </div>
+                      <p className="text-[9.5px] text-slate-300 leading-snug mt-0.5">
+                        Estudo interativo das 4 etapas do Evangelho e memorização de versículos.
+                      </p>
+                    </div>
+                    <div className="mt-2 text-[9px] font-bold text-emerald-400 font-mono">
+                      Acessar Grimório ➔
+                    </div>
+                  </button>
+
+                  {/* 5. Passaporte & Coleção */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playSfx("click");
+                      setModesModalOpen(false);
+                      onOpenPassport();
+                    }}
+                    className="group relative flex flex-col justify-between rounded-2xl border border-cyan-500/40 bg-gradient-to-b from-cyan-500/15 via-slate-900/90 to-slate-900/90 p-3 text-left shadow-lg hover:border-cyan-400 hover:scale-[1.02] transition cursor-pointer"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-500/25 border border-cyan-400/60">
+                        <Trophy className="h-5 w-5 text-cyan-300" />
+                      </div>
+                      <span className="rounded-full bg-cyan-500/25 px-2 py-0.5 text-[8.5px] font-mono font-black text-cyan-300 border border-cyan-500/40">
+                        {completedIds.length}/{allMissions.length} SELOS
+                      </span>
+                    </div>
+                    <div className="mt-2">
+                      <div className="text-xs font-black uppercase text-white group-hover:text-cyan-300 transition-colors">
+                        Passaporte Missionário
+                      </div>
+                      <p className="text-[9.5px] text-slate-300 leading-snug mt-0.5">
+                        Carimbos de vistos, cartas náuticas e histórico de conquistas.
+                      </p>
+                    </div>
+                    <div className="mt-2 text-[9px] font-bold text-cyan-400 font-mono">
+                      Ver Passaporte ➔
+                    </div>
+                  </button>
+
+                  {/* 6. Idiomas & Povos */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playSfx("click");
+                      setModesModalOpen(false);
+                      setLanguageModalOpen(true);
+                    }}
+                    className="group relative flex flex-col justify-between rounded-2xl border border-amber-500/40 bg-gradient-to-b from-amber-500/15 via-slate-900/90 to-slate-900/90 p-3 text-left shadow-lg hover:border-amber-400 hover:scale-[1.02] transition cursor-pointer"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/25 border border-amber-400/60">
+                        <Globe2 className="h-5 w-5 text-amber-300" />
+                      </div>
+                      <span className="rounded-full bg-amber-500/25 px-2 py-0.5 text-[8.5px] font-mono font-black text-amber-300 border border-amber-500/40">
+                        8 POVOS
+                      </span>
+                    </div>
+                    <div className="mt-2">
+                      <div className="text-xs font-black uppercase text-white group-hover:text-amber-300 transition-colors">
+                        Idiomas & Povos
+                      </div>
+                      <p className="text-[9.5px] text-slate-300 leading-snug mt-0.5">
+                        Aprenda saudações e frases-chave nas línguas nativas de cada etnia.
+                      </p>
+                    </div>
+                    <div className="mt-2 text-[9px] font-bold text-amber-400 font-mono">
+                      Praticar Línguas ➔
+                    </div>
+                  </button>
+
+                  {/* 7. Co-op Multiplayer Duo (2P) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playSfx("click");
+                      setModesModalOpen(false);
+                      setCoopModalOpen(true);
+                    }}
+                    className="group relative flex flex-col justify-between rounded-2xl border border-emerald-500/40 bg-gradient-to-b from-emerald-500/15 via-slate-900/90 to-slate-900/90 p-3 text-left shadow-lg hover:border-emerald-400 hover:scale-[1.02] transition cursor-pointer sm:col-span-2 md:col-span-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/25 border border-emerald-400/60">
+                          <Users className="h-5 w-5 text-emerald-300" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-black uppercase text-white group-hover:text-emerald-300 transition-colors">
+                            Co-op Multiplayer (2P Duo)
+                          </div>
+                          <p className="text-[9.5px] text-slate-300 leading-snug mt-0.5">
+                            Gere um PIN de 4 dígitos ou junte-se à sala de um amigo para jogar missões juntos em tempo real.
+                          </p>
+                        </div>
+                      </div>
+                      <span className="rounded-full bg-emerald-500/25 px-2.5 py-1 text-[9px] font-mono font-black text-emerald-300 border border-emerald-500/40 shrink-0">
+                        JOGAR EM DUPLA ➔
+                      </span>
+                    </div>
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
           )}
         </AnimatePresence>
       </div>
@@ -1629,6 +2017,272 @@ export function MissionHub({
               onSelectMission(selectedMission, session);
             }}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Central de Modos de Jogo & Atividades Modal (Desktop) */}
+      <AnimatePresence>
+        {isModesOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-3 select-none"
+          >
+            <motion.div
+              initial={{ scale: 0.94, y: 15 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.94, y: 15 }}
+              transition={{ type: "spring", damping: 25, stiffness: 350 }}
+              className="flex h-full max-h-[92dvh] w-full max-w-4xl flex-col justify-between rounded-3xl border-2 border-cyan-400/50 bg-slate-950 p-5 shadow-[0_0_60px_rgba(6,182,212,0.3)] overflow-hidden"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-cyan-500/25 pb-3 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500/20 border border-cyan-400/50">
+                    <Compass className="h-6 w-6 text-cyan-300 animate-spin-slow" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-white uppercase tracking-wider flex items-center gap-2">
+                      <span>Central de Modos de Jogo & Atividades</span>
+                      <span className="rounded bg-cyan-500/20 px-2 py-0.5 font-mono text-[9px] font-black text-cyan-300">
+                        7 ATIVIDADES
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-400 font-medium">
+                      Escolha uma expedição, desafio tático ou atividade cooperativa
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setModesModalOpen(false)}
+                  className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-slate-300 hover:text-white hover:border-slate-500 transition"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Grid of Modes */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 my-4 overflow-y-auto no-scrollbar flex-1 min-h-0 pr-1">
+                {/* 1. Expedições das 8 Cidades */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx("click");
+                    setModesModalOpen(false);
+                    setCitySelectorOpen(true);
+                  }}
+                  className="group relative flex flex-col justify-between rounded-2xl border-2 border-amber-400/70 bg-gradient-to-b from-amber-500/20 via-slate-900/90 to-slate-900/90 p-3.5 text-left shadow-lg hover:border-amber-300 hover:scale-[1.02] transition cursor-pointer"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/25 border border-amber-400/60">
+                      <Swords className="h-5 w-5 text-amber-300" />
+                    </div>
+                    <span className="rounded-full bg-amber-500/25 px-2 py-0.5 text-[8.5px] font-mono font-black text-amber-300 border border-amber-500/40">
+                      PRINCIPAL • FASE {selectedMission.order}
+                    </span>
+                  </div>
+                  <div className="mt-2.5">
+                    <div className="text-xs font-black uppercase text-white group-hover:text-amber-300 transition-colors">
+                      Expedições 3D
+                    </div>
+                    <p className="text-[10px] text-slate-300 leading-snug mt-0.5">
+                      8 cidades globais para explorar, restaurar e transformar vidas.
+                    </p>
+                  </div>
+                  <div className="mt-2.5 text-[9.5px] font-bold text-amber-400 font-mono">
+                    Ativa: {selectedMission.title} ➔
+                  </div>
+                </button>
+
+                {/* 2. Arena Tribos (4v4) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx("click");
+                    setModesModalOpen(false);
+                    onOpenTribesQuiz();
+                  }}
+                  className="group relative flex flex-col justify-between rounded-2xl border border-fuchsia-500/40 bg-gradient-to-b from-fuchsia-500/15 via-slate-900/90 to-slate-900/90 p-3.5 text-left shadow-lg hover:border-fuchsia-400 hover:scale-[1.02] transition cursor-pointer"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-fuchsia-500/25 border border-fuchsia-400/60">
+                      <Swords className="h-5 w-5 text-fuchsia-300" />
+                    </div>
+                    <span className="rounded-full bg-fuchsia-500/25 px-2 py-0.5 text-[8.5px] font-mono font-black text-fuchsia-300 border border-fuchsia-500/40">
+                      4v4 TRIBOS
+                    </span>
+                  </div>
+                  <div className="mt-2.5">
+                    <div className="text-xs font-black uppercase text-white group-hover:text-fuchsia-300 transition-colors">
+                      Arena Tribos
+                    </div>
+                    <p className="text-[10px] text-slate-300 leading-snug mt-0.5">
+                      Batalha de conhecimento bíblico e missões entre equipes em tempo real.
+                    </p>
+                  </div>
+                  <div className="mt-2.5 text-[9.5px] font-bold text-fuchsia-400 font-mono">
+                    Entrar na Batalha ➔
+                  </div>
+                </button>
+
+                {/* 3. Radar de Oração Global */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx("click");
+                    setModesModalOpen(false);
+                    onOpenPrayerRadar();
+                  }}
+                  className="group relative flex flex-col justify-between rounded-2xl border border-amber-500/40 bg-gradient-to-b from-amber-500/15 via-slate-900/90 to-slate-900/90 p-3.5 text-left shadow-lg hover:border-amber-400 hover:scale-[1.02] transition cursor-pointer"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/25 border border-amber-400/60">
+                      <Radio className="h-5 w-5 text-amber-300" />
+                    </div>
+                    <span className="rounded-full bg-amber-500/25 px-2 py-0.5 text-[8.5px] font-mono font-black text-amber-300 border border-amber-500/40">
+                      {state.prayedMissionIds.length}/4 POVOS
+                    </span>
+                  </div>
+                  <div className="mt-2.5">
+                    <div className="text-xs font-black uppercase text-white group-hover:text-amber-300 transition-colors">
+                      Radar de Oração
+                    </div>
+                    <p className="text-[10px] text-slate-300 leading-snug mt-0.5">
+                      Interceda pelos povos não alcançados e envie bênçãos globais.
+                    </p>
+                  </div>
+                  <div className="mt-2.5 text-[9.5px] font-bold text-amber-400 font-mono">
+                    Abrir Radar ➔
+                  </div>
+                </button>
+
+                {/* 4. Grimório dos Discípulos */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx("click");
+                    setModesModalOpen(false);
+                    onOpenPocketBible("gospel");
+                  }}
+                  className="group relative flex flex-col justify-between rounded-2xl border border-emerald-500/40 bg-gradient-to-b from-emerald-500/15 via-slate-900/90 to-slate-900/90 p-3.5 text-left shadow-lg hover:border-emerald-400 hover:scale-[1.02] transition cursor-pointer"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/25 border border-emerald-400/60">
+                      <BookOpen className="h-5 w-5 text-emerald-300" />
+                    </div>
+                    <span className="rounded-full bg-emerald-500/25 px-2 py-0.5 text-[8.5px] font-mono font-black text-emerald-300 border border-emerald-500/40">
+                      {state.studiedGospelSteps.length}/4 ETAPAS
+                    </span>
+                  </div>
+                  <div className="mt-2.5">
+                    <div className="text-xs font-black uppercase text-white group-hover:text-emerald-300 transition-colors">
+                      Grimório do Evangelho
+                    </div>
+                    <p className="text-[10px] text-slate-300 leading-snug mt-0.5">
+                      Estudo interativo das 4 etapas do Evangelho e memorização de versículos.
+                    </p>
+                  </div>
+                  <div className="mt-2.5 text-[9.5px] font-bold text-emerald-400 font-mono">
+                    Acessar Grimório ➔
+                  </div>
+                </button>
+
+                {/* 5. Passaporte & Coleção */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx("click");
+                    setModesModalOpen(false);
+                    onOpenPassport();
+                  }}
+                  className="group relative flex flex-col justify-between rounded-2xl border border-cyan-500/40 bg-gradient-to-b from-cyan-500/15 via-slate-900/90 to-slate-900/90 p-3.5 text-left shadow-lg hover:border-cyan-400 hover:scale-[1.02] transition cursor-pointer"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500/25 border border-cyan-400/60">
+                      <Trophy className="h-5 w-5 text-cyan-300" />
+                    </div>
+                    <span className="rounded-full bg-cyan-500/25 px-2 py-0.5 text-[8.5px] font-mono font-black text-cyan-300 border border-cyan-500/40">
+                      {completedIds.length}/{allMissions.length} SELOS
+                    </span>
+                  </div>
+                  <div className="mt-2.5">
+                    <div className="text-xs font-black uppercase text-white group-hover:text-cyan-300 transition-colors">
+                      Passaporte Missionário
+                    </div>
+                    <p className="text-[10px] text-slate-300 leading-snug mt-0.5">
+                      Carimbos de vistos, cartas náuticas e histórico de conquistas.
+                    </p>
+                  </div>
+                  <div className="mt-2.5 text-[9.5px] font-bold text-cyan-400 font-mono">
+                    Ver Passaporte ➔
+                  </div>
+                </button>
+
+                {/* 6. Idiomas & Povos */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx("click");
+                    setModesModalOpen(false);
+                    setLanguageModalOpen(true);
+                  }}
+                  className="group relative flex flex-col justify-between rounded-2xl border border-amber-500/40 bg-gradient-to-b from-amber-500/15 via-slate-900/90 to-slate-900/90 p-3.5 text-left shadow-lg hover:border-amber-400 hover:scale-[1.02] transition cursor-pointer"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/25 border border-amber-400/60">
+                      <Globe2 className="h-5 w-5 text-amber-300" />
+                    </div>
+                    <span className="rounded-full bg-amber-500/25 px-2 py-0.5 text-[8.5px] font-mono font-black text-amber-300 border border-amber-500/40">
+                      8 POVOS
+                    </span>
+                  </div>
+                  <div className="mt-2.5">
+                    <div className="text-xs font-black uppercase text-white group-hover:text-amber-300 transition-colors">
+                      Idiomas & Povos
+                    </div>
+                    <p className="text-[10px] text-slate-300 leading-snug mt-0.5">
+                      Aprenda saudações e frases-chave nas línguas nativas de cada etnia.
+                    </p>
+                  </div>
+                  <div className="mt-2.5 text-[9.5px] font-bold text-amber-400 font-mono">
+                    Praticar Línguas ➔
+                  </div>
+                </button>
+
+                {/* 7. Co-op Multiplayer Duo (2P) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx("click");
+                    setModesModalOpen(false);
+                    setCoopModalOpen(true);
+                  }}
+                  className="group relative flex flex-col justify-between rounded-2xl border border-emerald-500/40 bg-gradient-to-b from-emerald-500/15 via-slate-900/90 to-slate-900/90 p-3.5 text-left shadow-lg hover:border-emerald-400 hover:scale-[1.02] transition cursor-pointer sm:col-span-2 md:col-span-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/25 border border-emerald-400/60">
+                        <Users className="h-5 w-5 text-emerald-300" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-black uppercase text-white group-hover:text-emerald-300 transition-colors">
+                          Co-op Multiplayer (2P Duo)
+                        </div>
+                        <p className="text-[10px] text-slate-300 leading-snug mt-0.5">
+                          Gere um PIN de 4 dígitos ou junte-se à sala de um amigo para jogar missões juntos em tempo real.
+                        </p>
+                      </div>
+                    </div>
+                    <span className="rounded-full bg-emerald-500/25 px-2.5 py-1 text-[9px] font-mono font-black text-emerald-300 border border-emerald-500/40 shrink-0">
+                      JOGAR EM DUPLA ➔
+                    </span>
+                  </div>
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </main>

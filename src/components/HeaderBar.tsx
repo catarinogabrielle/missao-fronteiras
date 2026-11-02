@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import {
   BookMarked,
   BookOpen,
+  Compass,
   Download,
   Film,
   Flame,
@@ -30,6 +31,7 @@ interface HeaderBarProps {
   onOpenStory?: () => void;
   onSwitchUser?: () => void;
   onGoHome?: () => void;
+  onOpenModes?: () => void;
 }
 
 export function HeaderBar({
@@ -39,6 +41,7 @@ export function HeaderBar({
   onOpenStory,
   onSwitchUser,
   onGoHome,
+  onOpenModes,
 }: HeaderBarProps) {
   const {
     state,
@@ -262,6 +265,20 @@ export function HeaderBar({
               >
                 Lobby
               </button>
+
+              {onOpenModes && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSfx("click");
+                    onOpenModes();
+                  }}
+                  className="px-2.5 py-1 rounded-lg border border-cyan-400/50 bg-cyan-500/15 text-[10px] font-black text-cyan-300 hover:bg-cyan-500/25 transition cursor-pointer uppercase flex items-center gap-1"
+                >
+                  <Compass className="h-3 w-3 text-cyan-400" />
+                  <span>Modos ▾</span>
+                </button>
+              )}
 
               <button
                 type="button"
@@ -487,6 +504,21 @@ export function HeaderBar({
             <Swords className="h-3 w-3 text-amber-400" />
             <span>Lobby</span>
           </button>
+
+          {/* Central de Modos de Jogo */}
+          {onOpenModes && (
+            <button
+              type="button"
+              onClick={() => {
+                playSfx("click");
+                onOpenModes();
+              }}
+              className="flex items-center gap-1 rounded-lg border border-cyan-400/40 bg-cyan-500/15 hover:border-cyan-400 hover:bg-cyan-500/25 px-2.5 py-1 text-xs font-black uppercase text-cyan-300 transition cursor-pointer"
+            >
+              <Compass className="h-3 w-3 text-cyan-400" />
+              <span>Modos ▾</span>
+            </button>
+          )}
 
           {/* Herói (Aba Herói & Personalização) */}
           <button
