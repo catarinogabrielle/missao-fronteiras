@@ -13,6 +13,18 @@ export default function manifest(): MetadataRoute.Manifest {
     orientation: "landscape",
     background_color: "#030712",
     theme_color: "#030712",
+    // PWA Launch Handling & Link Capturing (Abre no PWA instalado sem abrir nova aba)
+    // @ts-expect-error Extended PWA link capturing property
+    handle_links: "preferred",
+    launch_handler: {
+      client_mode: ["navigate-existing", "auto"],
+    },
+    protocol_handlers: [
+      {
+        protocol: "web+missaofronteiras",
+        url: "/?target=%s",
+      },
+    ],
     categories: ["games", "education"],
     lang: "pt-BR",
     icons: [
